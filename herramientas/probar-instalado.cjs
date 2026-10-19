@@ -37,7 +37,9 @@ function capturar(caso, pagina, cuerpo, juego = false) {
     '--captura=' + path.join(salida, caso + '.png'), '--pagina=' + pagina, '--guion=' + guion,
     '--espera=800', '--esperaGuion=250', '--datos-prueba=' + path.join(trabajo, 'datos'), '--consola=1'];
   if (process.platform === 'linux') args.push('--ozone-platform=headless');
-  if (caso.startsWith('cqb-')) args.push('--tamano=960x540');
+  // El ejecutor Windows usa SwiftShader. Estas resoluciones mantienen el juego
+  // y el editor reales y permiten terminar el recorrido sin depender de una GPU.
+  args.push('--tamano=' + (caso.startsWith('cqb-') ? '640x360' : '960x600'));
   if (juego) args.push('--ventana=juego');
   const r = ejecutar(ejecutable, args);
   fs.writeFileSync(path.join(salida, caso + '.log'), r.stdout + '\n' + r.stderr);

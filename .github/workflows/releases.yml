@@ -58,6 +58,16 @@ jobs:
       - run: npm run test:actualizaciones
       - name: Compilar sin publicar
         run: npm run ${{ matrix.script }} -- --publish never
+      - name: Instalar y probar todas las plantillas con Electron real
+        run: node herramientas/probar-instalado.cjs
+      - name: Conservar evidencias de las pruebas del instalador
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pruebas-instalador-${{ matrix.plataforma }}
+          path: pruebas-instalador/
+          if-no-files-found: ignore
+          retention-days: 7
       - uses: actions/upload-artifact@v4
         with:
           name: instaladores-${{ matrix.plataforma }}

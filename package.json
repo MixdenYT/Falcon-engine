@@ -5,7 +5,7 @@
   "description": "Motor de videojuegos 2D y 3D con el lenguaje Águila",
   "main": "src/principal/main.js",
   "author": "Falcon Engine",
-  "license": "MIT",
+  "license": "SEE LICENSE IN LICENSE",
   "scripts": {
     "start": "electron .",
     "test": "node pruebas/ejecutar.js",

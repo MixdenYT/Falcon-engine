@@ -20,6 +20,7 @@ export class Mundo3D {
     this.solidos = [];
     this.raycaster = new THREE.Raycaster();
     this.controles = new Controles3D(this);
+    this.trazas = [];
   }
 
   async construir() {
@@ -72,6 +73,7 @@ export class Mundo3D {
   }
 
   destruir() {
+    this.limpiarTrazas(true);
     if (this.lumbre) { this.lumbre.destruir(); this.lumbre = null; }
     this.escena.limpiar();
     if (this._raton) { window.removeEventListener('mousemove', this._raton); this.m.lienzo.removeEventListener('click', this._clic); }
@@ -272,6 +274,57 @@ export class Mundo3D {
   }
 
   // ---------- Clics y ratón ----------
+  // Cajas físicas compartidas con los controles: los muros y sus huecos también bloquean tiros.
+  primerImpacto(origen, direccion, alcance, ignorados = []) {
+    const r = new THREE.Ray(origen, direccion.clone().normalize()), punto = new THREE.Vector3();
+    let cerca = Math.max(0, Math.min(1000, Number(alcance) || 0)), impacto = null;
+    const cajas = this.solidos.filter(s => !ignorados.includes(s.n));
+    for (const n of this.m.todos()) {
+      if (n.tipo === 'Personaje3D' && !n.eliminado && n.visible !== false && !ignorados.includes(n)) cajas.push({ n, b: this.cajaPersonaje(n, this.posicionGlobal(n)) });
+    }
+    for (const { n, b } of cajas) {
+      if (n.eliminado || n.visible === false || !r.intersectBox(b, punto)) continue;
+      const distancia = origen.distanceTo(punto);
+      if (distancia <= cerca) { cerca = distancia; impacto = { nodo: n, punto: punto.clone(), distancia }; }
+    }
+    return impacto;
+  }
+
+  dispararRayo(alcance = 100) {
+    const cam = this.camaraUsada;
+    const jugador = this.controles.buscarJugador(this.m.todos());
+    if (!cam || !jugador) return null;
+    const origen = new THREE.Vector3(), direccion = new THREE.Vector3();
+    cam.getWorldPosition(origen); cam.getWorldDirection(direccion);
+    const objetivo = this.primerImpacto(origen, direccion, alcance, [jugador]);
+    // Desde el cañón hacia la retícula: evita disparar a través de la cobertura del hombro.
+    const boca = new THREE.Vector3(...this.posicionGlobal(jugador)); boca.y += (jugador.props.altura || 1.8) * 0.8;
+    const destino = objetivo ? objetivo.punto : origen.clone().addScaledVector(direccion, Math.max(0, Math.min(1000, Number(alcance) || 0)));
+    const tiro = destino.clone().sub(boca), longitud = tiro.length();
+    const real = this.primerImpacto(boca, tiro, Math.min(longitud + 0.02, Math.max(0, Number(alcance) || 0)), [jugador]);
+    const linea = new THREE.Line(new THREE.BufferGeometry().setFromPoints([boca, real ? real.punto : destino]), new THREE.LineBasicMaterial({ color: '#FFDC8C', transparent: true, opacity: 0.8 }));
+    this.escena.scene.add(linea); this.trazas.push({ linea, hasta: this.m.tiempo + 0.07 });
+    return real ? real.nodo : null;
+  }
+
+  limpiarTrazas(todas = false) {
+    this.trazas = this.trazas.filter(t => {
+      if (!todas && this.m.tiempo < t.hasta) return true;
+      t.linea.removeFromParent(); t.linea.geometry.dispose(); t.linea.material.dispose(); return false;
+    });
+  }
+
+  lineaVision(desde, hasta, alcance = 30) {
+    if (!desde || !hasta || desde.eliminado || hasta.eliminado) return false;
+    const a = new THREE.Vector3(...this.posicionGlobal(desde)); a.y += (desde.props.altura || 1.8) * 0.8;
+    const b = new THREE.Vector3(...this.posicionGlobal(hasta)); b.y += (hasta.props.altura || 1.8) * 0.7;
+    const d = b.sub(a), largo = d.length();
+    if (largo > Math.max(0, Number(alcance) || 0)) return false;
+    if (largo < 0.01) return true;
+    const hit = this.primerImpacto(a, d, largo + 0.02, [desde]);
+    return !!hit && hit.nodo === hasta;
+  }
+
   rayo(sx, sy) {
     const [W, H] = this.m.resolucion;
     const cam = this.camaraUsada || this.camaraPorDefecto;
@@ -303,6 +356,7 @@ export class Mundo3D {
   // ---------- Dibujo ----------
   dibujar() {
     const m = this.m;
+    this.limpiarTrazas();
     // Luces y colores que los scripts pueden cambiar.
     for (const [id, o] of this.escena.objetos) {
       const n = this.escena.nodos.get(id);
@@ -396,3 +450,4 @@ function proxyDesplazado(c, ox, oy) {
     set(t, k, v) { t[k] = v; return true; },
   });
 }
+

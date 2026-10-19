@@ -342,6 +342,8 @@ export const TIPOS = {
     ],
     miembros: [...M_NODO, ...M_3D,
       { nombre: 'mover', firma: 'mover(x, z)', descripcion: 'Mueve al personaje este fotograma (relativo a la cámara).' },
+      { nombre: 've_a', firma: 've_a(objetivo, alcance)', descripcion: 'Comprueba visión 3D; paredes y coberturas la bloquean.' },
+      { nombre: 'perseguir', firma: 'perseguir(objetivo, velocidad)', descripcion: 'Avanza hacia el objetivo con colisión física. No calcula rutas alrededor de paredes.' },
       { nombre: 'saltar', firma: 'saltar(fuerza)', descripcion: 'Salta. Sin dato usa su «salto».' },
       { nombre: 'en_el_suelo', firma: 'en_el_suelo()', descripcion: 'Verdadero si está en el suelo.' },
       { nombre: 'velocidad', tipo: 'decimal', descripcion: 'Velocidad al andar.' },
@@ -466,3 +468,4 @@ export function clonarNodo(n) {
 
 // Dimensión de un tipo para elegir el editor (2D o 3D).
 export function esTipo3D(id) { return tipo(id).dim === '3D'; }
+

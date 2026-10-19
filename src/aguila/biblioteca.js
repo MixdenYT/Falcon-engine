@@ -95,6 +95,7 @@ export const FUNCIONES = [
   { nombre: 'raton_x', firma: 'raton_x()', categoria: 'Entrada', motor: true, descripcion: 'Posición horizontal del ratón en el mundo.', ejemplo: 'x = raton_x()' },
   { nombre: 'raton_y', firma: 'raton_y()', categoria: 'Entrada', motor: true, descripcion: 'Posición vertical del ratón en el mundo.', ejemplo: 'y = raton_y()' },
   { nombre: 'raton_pulsado', firma: 'raton_pulsado()', categoria: 'Entrada', motor: true, descripcion: 'Verdadero mientras el botón izquierdo del ratón esté pulsado.', ejemplo: 'si raton_pulsado():\n    disparar()' },
+  { nombre: 'disparar_rayo', firma: 'disparar_rayo(alcance)', categoria: 'Escena', motor: true, descripcion: 'En 3D devuelve el primer nodo sólido bajo la retícula, o nulo. Muros y cobertura detienen el disparo; no aplica daño por sí solo.', ejemplo: 'variable impacto = disparar_rayo(100)\nsi impacto != nulo y impacto.es("enemigos"):\n    impacto.llamar("recibir_dano", 34)' },
   // Juego
   { nombre: 'ganar_partida', firma: 'ganar_partida()', categoria: 'Juego', motor: true, descripcion: 'Termina el nivel y muestra la pantalla de victoria. Úsala cuando el jugador cumpla el objetivo.', ejemplo: 'si monedas >= 10:\n    ganar_partida()' },
   { nombre: 'perder_partida', firma: 'perder_partida()', categoria: 'Juego', motor: true, descripcion: 'Termina la partida y muestra la pantalla de derrota.', ejemplo: 'si vida <= 0:\n    perder_partida()' },
@@ -293,3 +294,4 @@ export function miembrosNativos(obj, nombre, interp) {
   }
   return undefined;
 }
+

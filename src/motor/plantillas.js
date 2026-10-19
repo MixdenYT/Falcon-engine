@@ -591,7 +591,7 @@ async function recursos3D(archivos) {
   archivos['sonidos/golpe.wav'] = gen.sintetizar('golpe');
   archivos['sonidos/salto.wav'] = gen.sintetizar('salto');
   archivos['música/tema.wav'] = gen.sintetizar('tema');
-  try { archivos['modelos/cofre.glb'] = await generarCofreGlb(); } catch (e) { console.warn('No se pudo generar cofre.glb', e); }
+  archivos['modelos/cofre.glb'] = await generarCofreGlb();
   archivos['modelos/cofre.malla'] = {
     formato: 'falcon-malla', version: 1, fuente: 'modelos/cofre.glb', primitiva: null,
     ranuras: [{ nombre: 'cuerpo', material: 'materiales/madera.mat' }, { nombre: 'herrajes', material: 'materiales/metal_oxidado.mat' }],

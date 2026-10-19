@@ -23,6 +23,11 @@ for (const a of process.argv.slice(1)) {
   const m = /^--([\w-]+)=(.*)$/.exec(a);
   if (m) args[m[1]] = m[2];
 }
+// Las pruebas del paquete no comparten ajustes ni proyectos con una sesión de usuario.
+if (args.captura && args['datos-prueba']) {
+  fs.mkdirSync(path.resolve(args['datos-prueba']), { recursive: true });
+  app.setPath('userData', path.resolve(args['datos-prueba']));
+}
 
 // ---- Datos persistentes del usuario ----
 const RUTA_DATOS = () => path.join(app.getPath('userData'), 'falcon-datos.json');

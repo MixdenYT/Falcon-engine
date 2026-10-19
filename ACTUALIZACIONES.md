@@ -55,6 +55,10 @@ instaladores actualizables → Run workflow, indicando la versión de package.js
 La versión debe coincidir también con package-lock.json y existir en
 `notas/v<version>.md`. Ejecuta pruebas, compila las tres plataformas sin publicar,
 verifica tamaños y SHA-512, genera SHA256SUMS.txt y sube todo a un borrador.
+Antes de subir artefactos, instala el NSIS o extrae la AppImage y crea, abre en
+el editor y ejecuta las 11 plantillas con la aplicación empaquetada. Guarda JSON,
+logs y capturas en los artefactos `pruebas-instalador-*`. Cualquier fallo impide
+publicar. Las pruebas no comparten los datos de una sesión de usuario.
 Solo publica el borrador cuando sus archivos están completos. Si falla una
 plataforma, no aparece una actualización incompleta. Una versión ya publicada
 no se sobrescribe: se necesita un número superior.

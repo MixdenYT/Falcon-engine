@@ -1,7 +1,7 @@
 {
   "name": "falcon-engine",
   "productName": "Falcon Engine",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Motor de videojuegos 2D y 3D con el lenguaje Águila",
   "main": "src/principal/main.js",
   "author": "Falcon Engine",
@@ -11,12 +11,18 @@
     "test": "node pruebas/ejecutar.js",
     "build:win": "node herramientas/construir.js win32 x64",
     "build:linux": "node herramientas/construir.js linux x64",
-    "build:linux-arm": "node herramientas/construir.js linux arm64"
+    "build:linux-arm": "node herramientas/construir.js linux arm64",
+    "release:win": "electron-builder --config electron-builder.config.cjs --win nsis --x64",
+    "release:linux": "electron-builder --config electron-builder.config.cjs --linux AppImage --x64",
+    "release:linux-arm": "electron-builder --config electron-builder.config.cjs --linux AppImage --arm64",
+    "test:actualizaciones": "node --test pruebas/actualizaciones.test.cjs"
   },
   "dependencies": {
     "@electron/get": "^5.1.0",
     "@fontsource/jetbrains-mono": "^5.3.0",
     "@fontsource/manrope": "^5.3.0",
+    "electron-updater": "^6.8.9",
+    "semver": "^7.8.5",
     "three": "^0.186.1",
     "three-bvh-csg": "0.0.18",
     "three-mesh-bvh": "0.9.7",
@@ -24,6 +30,10 @@
   },
   "devDependencies": {
     "@electron/packager": "^20.3.0",
-    "electron": "^44.9.0"
+    "electron": "^44.9.0",
+    "electron-builder": "^26.15.3"
+  },
+  "falconUpdates": {
+    "repository": "MixdenYT/Falcon-engine"
   }
 }

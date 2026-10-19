@@ -1,0 +1,39 @@
+name: Publicar instaladores actualizables
+on:
+  release:
+    types: [published]
+permissions:
+  contents: write
+jobs:
+  publicar:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            script: release:win
+          - os: ubuntu-24.04
+            script: release:linux
+          - os: ubuntu-24.04-arm
+            script: release:linux-arm
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Validar tag y versión
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: node -e "const p=require('./package.json'), l=require('./package-lock.json'); if(process.env.RELEASE_TAG!=='v'+p.version || l.version!==p.version || l.packages[''].version!==p.version) process.exit(1)"
+      - run: npm ci
+      - run: npm test
+      - run: npm run test:actualizaciones
+      - name: Compilar y publicar archivos de actualización
+        run: npm run ${{ matrix.script }} -- --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

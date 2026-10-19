@@ -4,6 +4,7 @@ import { el, esc, $, $$, dialogo, confirmar, avisar, menu, controlesVentana, bar
 import { PLANTILLAS, crearProyecto } from '../motor/plantillas.js';
 import { GUIAS } from '../ui/guias.js';
 import { LECCIONES } from '../editor/lecciones.js';
+import { tarjetaApoyo, botonApoyo, iniciarComunidad } from './comunidad.js';
 
 const falcon = window.falcon;
 let info, datos;
@@ -24,6 +25,7 @@ async function iniciar() {
   pintarMarco();
   await comprobarRecientes();
   pintar();
+  iniciarComunidad();
   if (datos.ajustes.abrirUltimo && datos.recientes[0] && !sessionStorage.getItem('falcon-ya-abierto')) {
     sessionStorage.setItem('falcon-ya-abierto', '1');
     if (await falcon.fs.existe(datos.recientes[0].ruta)) falcon.app.abrirProyecto(datos.recientes[0].ruta);
@@ -55,11 +57,12 @@ function pintarMarco() {
           <button data-vista="aprender">${icono('libro')}Aprender</button>
           <button data-vista="ajustes">${icono('ajustes')}Ajustes</button>
         </nav>
+        ${tarjetaApoyo()}
         <div class="aviso-talon" role="button" style="cursor:pointer">
           <b>¿Venías de Talon Engine?</b>
           <p>Tus proyectos anteriores se abren sin conversión. Falcon los reconoce automáticamente.</p>
         </div>
-        <div class="version">Falcon Engine ${esc(info.version)}</div>
+        <div class="version">Falcon Engine ${esc(info.version)}<button class="buscar-actualizaciones" data-comunidad="actualizar">Buscar actualizaciones</button></div>
       </aside>
       <main class="contenido"><div class="contenido-interior"></div></main>
     </div>`;
@@ -97,6 +100,7 @@ function vistaProyectos(c) {
     <header class="cabecera">
       <div><h1>Hola, ¿qué vamos a crear hoy?</h1><p>Empieza un proyecto nuevo o continúa donde lo dejaste.</p></div>
       <div class="acciones">
+        ${botonApoyo()}
         <button class="btn secundario" data-a="importar">${icono('descargar', '', 17)}Importar</button>
         <button class="btn secundario" data-a="abrir">${icono('carpeta', '', 17)}Abrir proyecto</button>
         <button class="btn principal" data-a="nuevo">${icono('mas', '', 17)}Nuevo proyecto</button>
@@ -387,3 +391,4 @@ function vistaAjustes(c) {
 }
 
 iniciar();
+

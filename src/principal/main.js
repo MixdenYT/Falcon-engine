@@ -7,6 +7,7 @@ const fs = require('node:fs');
 const fsp = require('node:fs/promises');
 const { pathToFileURL } = require('node:url');
 const { exportarJuego } = require('./exportar.js');
+const { crearActualizaciones } = require('./actualizaciones.js');
 
 const RAIZ_APP = path.resolve(__dirname, '..', '..');
 const ICONO = path.join(RAIZ_APP, 'recursos', 'icono.png');
@@ -333,6 +334,14 @@ ipcMain.handle('exportar', async (e, op) => {
 // ---- Inicio ----
 app.whenReady().then(async () => {
   registrarProtocolo();
+  crearActualizaciones({
+    app, ipcMain, net,
+    esGestor: (wc) => wc === ventanaPrincipal?.webContents && wc.getURL().split('?')[0] === urlApp('src/gestor/gestor.html'),
+    publicar: (estado) => {
+      const wc = ventanaPrincipal?.webContents;
+      if (wc && !wc.isDestroyed() && wc.getURL().split('?')[0] === urlApp('src/gestor/gestor.html')) wc.send('actualizaciones:estado', estado);
+    },
+  });
   if (process.platform === 'win32') app.setAppUserModelId('com.falcon.engine');
   if (args.captura) return modoCaptura();
   const rutaArg = process.argv.slice(1).find(a => !a.startsWith('-') && a !== '.' && fs.existsSync(path.join(a, 'proyecto.falcon')));
@@ -369,3 +378,4 @@ async function modoCaptura() {
   console.log('captura guardada', args.captura);
   app.quit();
 }
+

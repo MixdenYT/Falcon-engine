@@ -45,12 +45,30 @@ export class Tactico3D {
   agarrar(animador, arma, raiz, recargando = false) {
     if (!animador || !arma || !raiz) return;
     raiz.updateWorldMatrix(true, true);
-    for (const [lado, punto, signo] of [['r', 'GripR', 1], ['l', 'GripL', -1]]) {
-      const p = arma.getObjectByName(punto)?.getWorldPosition(new THREE.Vector3()); if (!p) continue;
-      if (recargando && lado === 'l') {
-        const cargador = arma.getObjectByName('Cargador');
-        if (cargador) p.copy(cargador.localToWorld(new THREE.Vector3(-0.025, -0.04, 0)));
+    const palma = (lado, punto) => recargando && lado === 'l' && arma.getObjectByName('Cargador')
+      ? arma.getObjectByName('Cargador').localToWorld(new THREE.Vector3(-0.025, -0.04, 0))
+      : arma.getObjectByName(punto)?.getWorldPosition(new THREE.Vector3());
+    // El arma acompaña al cuerpo durante la recarga: los clips de cuerpo
+    // completo pueden alejar el hombro del arma. Proyectamos ambos agarres al
+    // alcance real de los brazos antes de resolver IK, sin estirar el esqueleto.
+    if (recargando) for (let iteracion = 0; iteracion < 12; iteracion++) {
+      let ajuste = 0;
+      for (const [lado, punto] of [['r', 'GripR'], ['l', 'GripL']]) {
+        const cadena = animador.huesos[lado], p = palma(lado, punto);
+        if (!p || !cadena?.brazo || !cadena.antebrazo || !cadena.mano) continue;
+        const a = cadena.brazo.getWorldPosition(new THREE.Vector3()), b = cadena.antebrazo.getWorldPosition(new THREE.Vector3()), c = cadena.mano.getWorldPosition(new THREE.Vector3());
+        const l1 = a.distanceTo(b), l2 = b.distanceTo(c), meta = objetivoMano(animador, lado, arma, p, !!arma.getObjectByName('lynx')).posicion;
+        const v = meta.clone().sub(a), distancia = v.length(), alcance = Math.max(Math.abs(l1 - l2) + 0.002, Math.min(l1 + l2 - 0.002, distancia));
+        if (Math.abs(distancia - alcance) < 0.00001) continue;
+        const delta = v.multiplyScalar(alcance / Math.max(distancia, 0.00001) - 1);
+        const posicion = arma.getWorldPosition(new THREE.Vector3()).add(delta);
+        arma.position.copy(arma.parent ? arma.parent.worldToLocal(posicion) : posicion); arma.updateWorldMatrix(true, true);
+        ajuste += delta.length();
       }
+      if (ajuste < 0.00001) break;
+    }
+    for (const [lado, punto, signo] of [['r', 'GripR', 1], ['l', 'GripL', -1]]) {
+      const p = palma(lado, punto); if (!p) continue;
       const codo = raiz.localToWorld(new THREE.Vector3(signo * 0.43, -0.40, 0.05));
       const objetivo = objetivoMano(animador, lado, arma, p, !!arma.getObjectByName('lynx'));
       animador.agarrar(lado, objetivo.posicion, codo, objetivo.rotacion);

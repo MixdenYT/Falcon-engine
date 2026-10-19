@@ -5,6 +5,8 @@ import fs from 'node:fs';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { Animador3D, clonarRig, normalizarRig, sinDesplazamiento, soloBrazos } from '../src/motor/animacion3d.js';
 import { objetivoMano } from '../src/motor/agarre3d.js';
+import { crearArmaCQB } from '../src/motor/armas3d.js';
+import { Tactico3D } from '../src/motor/tactico3d.js';
 
 function rig() {
   const root = new THREE.Group(), hombro = new THREE.Bone(), codo = new THREE.Bone(), mano = new THREE.Bone();
@@ -53,6 +55,30 @@ test('rig Meshy real: medir tras actualizar la piel mantiene la escala y el agar
       assert.ok(real.distanceTo(palma) < 0.005, nombre + '/' + lado + ': palma en el agarre ' + real.distanceTo(palma));
     }
     a.destruir();
+  }
+});
+test('rig Meshy real: las dos palmas siguen el arma y el cargador durante toda la recarga', async () => {
+  for (const [modelo, tipo, fp, duracion] of [['operador', 'lynx', true, 1.75], ['operador', 'kestrel', true, 2.25], ['enemigo', 'hostil', false, 2.6]]) {
+    const altura = fp ? 1.78 : 1.76, r = normalizarRig(await rigReal(modelo), altura); r.rotation.y = Math.PI;
+    const raiz = new THREE.Group(), pivote = new THREE.Group(); if (fp) pivote.position.set(0.08, -altura * 0.92, -0.22); pivote.add(r); raiz.add(pivote);
+    const arma = crearArmaCQB(tipo); raiz.add(arma);
+    const clips = Object.fromEntries(['aim', 'reload'].map(n => [n, THREE.AnimationClip.parse(JSON.parse(fs.readFileSync(new URL('../recursos/cqb/modelos/animaciones/' + modelo + '-' + n + '.json', import.meta.url))))]));
+    const perfiles_manos = JSON.parse(fs.readFileSync(new URL('../recursos/cqb/modelos/personajes/' + modelo + '-manos.json', import.meta.url)));
+    const a = new Animador3D(r, clips, { primeraPersona: fp, perfiles_manos }); let tiempo = 0;
+    const n = { _tactico: { arma: tipo === 'lynx' ? 1 : 0, animacion: 'reload', hasta: duracion, duracion, evento: 1 }, aguilaObtener: nombre => nombre === 'recargando' ? true : nombre === 'recarga' ? duracion - tiempo : 0 };
+    const tac = new Tactico3D({ controles: { jugador: fp ? n : null }, m: { tiempo: 0 } });
+    let peor = 0;
+    for (tiempo = 0.05; tiempo < duracion; tiempo += 0.05) {
+      a.actualizar(n, tiempo, 0.05);
+      arma.position.set(fp ? 0.12 : 0.10, fp ? 0.02 : 1.33, fp ? -0.50 : -0.16); arma.rotation.set(fp ? 0.13 : 0, fp ? 0.32 : 0, fp ? -0.35 : 0);
+      tac.recargaVisual(n, arma); raiz.updateMatrixWorld(true); tac.agarrar(a, arma, raiz, true);
+      for (const lado of ['r', 'l']) {
+        const real = a.huesos[lado].mano.localToWorld(new THREE.Vector3(...perfiles_manos.perfiles[lado].palma));
+        const punto = lado === 'r' ? arma.getObjectByName('GripR').getWorldPosition(new THREE.Vector3()) : arma.getObjectByName('Cargador').localToWorld(new THREE.Vector3(-0.025, -0.04, 0));
+        peor = Math.max(peor, real.distanceTo(punto));
+      }
+    }
+    assert.ok(peor < 0.01, modelo + '/' + tipo + ': separación máxima de palma ' + peor + ' m'); a.destruir();
   }
 });
 test('rig: IK coloca la mano en el agarre sin cambiar las longitudes de los huesos', () => {

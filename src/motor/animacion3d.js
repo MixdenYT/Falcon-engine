@@ -49,6 +49,19 @@ export class Animador3D {
     this.bones = [];
     this.modificados = new Map();
     raiz.traverse(o => { if (o.isBone) this.bones.push(o); });
+    // Los clips son de cuerpo completo. En la vista de brazos el torso se
+    // mantiene en la postura de apuntar para que una torsión de cadera de la
+    // recarga no saque el hombro del alcance del arma frente a la cámara.
+    this.torsoFP = [];
+    if (config.primeraPersona && clips.aim) for (const nombre of ['Hips', 'Spine', 'Spine01', 'Spine02', 'LeftShoulder', 'RightShoulder']) {
+      const hueso = this.bones.find(b => b.name === nombre); if (!hueso) continue;
+      const pose = { hueso, posicion: hueso.position.clone(), rotacion: hueso.quaternion.clone() };
+      for (const t of clips.aim.tracks) {
+        if (t.name === nombre + '.position') pose.posicion.fromArray(t.values);
+        if (t.name === nombre + '.quaternion') pose.rotacion.fromArray(t.values);
+      }
+      this.torsoFP.push(pose);
+    }
     this.huesos = {};
     const nombre = (lado, parte) => {
       const opciones = this.bones.filter(b => new RegExp(lado === 'r' ? 'right|(^|_)r(_|$)' : 'left|(^|_)l(_|$)', 'i').test(b.name));
@@ -76,6 +89,7 @@ export class Animador3D {
     this.ultimoEvento = e?.evento;
     if (this.actual) this.actual.setEffectiveTimeScale(['walk', 'run'].includes(nombre) ? Math.max(0.3, Math.min(1.6, Math.hypot(n.vx || 0, n.vz || 0) / (nombre === 'run' ? 3.6 : 1.6))) : ['fire', 'reload', 'hit'].includes(nombre) && e?.duracion ? this.actual.getClip().duration / e.duracion : 1);
     this.mixer.update(Math.min(0.05, Math.max(0, dt)));
+    for (const p of this.torsoFP) { this.recordar(p.hueso); p.hueso.position.copy(p.posicion); p.hueso.quaternion.copy(p.rotacion); }
     this.agachar(n);
   }
   recordar(...huesos) { for (const b of huesos) if (b && !this.modificados.has(b)) this.modificados.set(b, { posicion: b.position.clone(), rotacion: b.quaternion.clone() }); }

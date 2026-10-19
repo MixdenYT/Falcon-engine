@@ -63,10 +63,11 @@ module.exports = async function verificarCQB({ directorio, reabrir = false }) {
     await falcon.fs.escribir(directorio + '/cqb-progreso.json', JSON.stringify({ checks, hitos }, null, 2));
     console.log('CQB QA:', nombre);
   };
-  const agarres = () => Object.fromEntries(['r', 'l'].map(lado => {
+  const agarres = (recargando = false) => Object.fromEntries(['r', 'l'].map(lado => {
     const a = d.tactico.animadorBrazos, perfil = a.config.perfiles_manos.perfiles[lado];
     const palma = a.huesos[lado].mano.localToWorld(new THREE.Vector3(...perfil.palma));
-    const punto = d.tactico.armaVistaActual.getObjectByName(lado === 'r' ? 'GripR' : 'GripL').getWorldPosition(new THREE.Vector3());
+    const arma = d.tactico.armaVistaActual;
+    const punto = recargando && lado === 'l' ? arma.getObjectByName('Cargador').localToWorld(new THREE.Vector3(-0.025, -0.04, 0)) : arma.getObjectByName(lado === 'r' ? 'GripR' : 'GripL').getWorldPosition(new THREE.Vector3());
     return [lado, palma.distanceTo(punto)];
   }));
   await avanzar(0.25);
@@ -110,9 +111,22 @@ module.exports = async function verificarCQB({ directorio, reabrir = false }) {
   tecla('KeyJ', true); await avanzar(0.75); tecla('KeyJ', false); await avanzar(0.07);
   exigir(j.aguilaObtener('municion') === 11, 'Mantener disparo produce más de una bala');
   await pulsar('KeyR'); exigir(j.aguilaObtener('recargando'), 'No inicia recarga'); await pulsar('Digit1'); exigir(!j.aguilaObtener('recargando'), 'Cambiar arma no cancela recarga');
-  await pulsar('Digit2'); exigir(j.aguilaObtener('municion') === 11, 'Se perdió inventario de la pistola'); await pulsar('KeyR'); await avanzar(0.6); await foto('cqb-recarga'); await avanzar(1.3);
+  const verificarRecarga = async nombre => {
+    const peor = { r: 0, l: 0 }; await pulsar('KeyR'); exigir(j.aguilaObtener('recargando'), 'No inicia recarga de ' + nombre);
+    const inicio = m.tiempo; let capturada = false;
+    while (j.aguilaObtener('recargando')) {
+      const g = agarres(true);
+      for (const lado of ['r', 'l']) { peor[lado] = Math.max(peor[lado], g[lado]); exigir(g[lado] < 0.01, nombre + ': mano separada del arma/cargador: ' + JSON.stringify(g)); }
+      if (!capturada && m.tiempo - inicio > 0.55) { await foto('cqb-recarga-' + nombre); capturada = true; }
+      await avanzar(0.05);
+    }
+    await registrar('Recarga con ambas palmas en contacto real: ' + nombre, { errorMaximoMetros: peor });
+  };
+  await pulsar('Digit2'); exigir(j.aguilaObtener('municion') === 11, 'Se perdió inventario de la pistola'); await verificarRecarga('lynx');
   exigir(j.aguilaObtener('municion') === 12 && j.aguilaObtener('reserva') === 47, 'Recarga no transfiere una bala real');
   await pulsar('KeyT'); await avanzar(0.45); exigir(j.aguilaObtener('arma') === 0 && j.aguilaObtener('municion') === 24, 'T no conserva inventarios');
+  await pulsar('KeyJ'); exigir(j.aguilaObtener('municion') === 23, 'No dispara la carabina'); await verificarRecarga('kestrel');
+  exigir(j.aguilaObtener('municion') === 24 && j.aguilaObtener('reserva') === 95, 'Recarga de carabina no conserva munición');
   await registrar('Disparo manual, recarga visible, cancelación y dos inventarios reales');
 
   const abrir = async (nombre, punto) => { await mirar(...punto); exigir(d.tactico.interaccion(j)?.nombre === nombre, 'Objeto F no alcanzable: ' + nombre); await pulsar('KeyF'); await avanzar(1.2); exigir(d.tactico.estado(m.buscarPorNombre(nombre)).angulo > 85, 'No se abrió ' + nombre); };

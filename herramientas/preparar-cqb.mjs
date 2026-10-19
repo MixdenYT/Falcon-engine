@@ -55,7 +55,7 @@ for (const tipo of Object.keys(carpetas)) {
   resumen.push({personaje:tipo,tareas,animaciones:Object.fromEntries(Object.entries(animaciones).map(([k,v])=>[k,{id:v.id,action_id:v.action_id,creditos:v.consumed_credits}])),triangulos:tipo==='operador'?18692:18665});
 }
 fs.writeFileSync(path.join(destino,'procedencia.json'),JSON.stringify({generador:'Meshy CLI 0.4.0',fecha:'2026-10-19',creditos_confirmados:110,personajes:resumen,armas:'Diseños originales de Falcon Engine; generados desde armas3d.js',superficies:'Texturas procedurales originales de Falcon Engine'},null,2));
-function listar(dir, prefijo='') { return fs.readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?listar(path.join(dir,e.name),prefijo+e.name+'/'):[prefijo+e.name]); }
+function listar(dir, prefijo='') { return fs.readdirSync(dir,{withFileTypes:true}).filter(e=>!e.name.startsWith('.')).flatMap(e=>e.isDirectory()?listar(path.join(dir,e.name),prefijo+e.name+'/'):[prefijo+e.name]); }
 const fragmentos = {};
 fs.mkdirSync(path.join(destino, 'fragmentos'), {recursive:true});
 for (const tipo of ['operador','enemigo']) {

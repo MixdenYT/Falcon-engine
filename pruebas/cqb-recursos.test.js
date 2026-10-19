@@ -8,6 +8,7 @@ const base = fileURLToPath(new URL('../recursos/cqb', import.meta.url));
 const manifest = JSON.parse(fs.readFileSync(path.join(base, 'manifest.json')));
 const sha = b => crypto.createHash('sha256').update(b).digest('hex');
 test('CQB: cada recurso incluido coincide con su hash de distribución', () => {
+  assert.ok(manifest.archivos.every(rel => rel.split('/').every(parte => !parte.startsWith('.'))), 'el manifiesto excluye archivos temporales de sincronización');
   for (const rel of manifest.archivos) assert.equal(sha(fs.readFileSync(path.join(base, rel))), manifest.hashes[rel], rel);
 });
 test('CQB: los bloques reconstruyen exactamente ambos GLB y conservan su cabecera', () => {

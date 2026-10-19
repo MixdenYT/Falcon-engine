@@ -1,0 +1,29 @@
+{
+  "name": "falcon-engine",
+  "productName": "Falcon Engine",
+  "version": "1.0.0",
+  "description": "Motor de videojuegos 2D y 3D con el lenguaje Águila",
+  "main": "src/principal/main.js",
+  "author": "Falcon Engine",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "test": "node pruebas/ejecutar.js",
+    "build:win": "node herramientas/construir.js win32 x64",
+    "build:linux": "node herramientas/construir.js linux x64",
+    "build:linux-arm": "node herramientas/construir.js linux arm64"
+  },
+  "dependencies": {
+    "@electron/get": "^5.1.0",
+    "@fontsource/jetbrains-mono": "^5.3.0",
+    "@fontsource/manrope": "^5.3.0",
+    "three": "^0.186.1",
+    "three-bvh-csg": "0.0.18",
+    "three-mesh-bvh": "0.9.7",
+    "yauzl": "^2.10.0"
+  },
+  "devDependencies": {
+    "@electron/packager": "^20.3.0",
+    "electron": "^44.9.0"
+  }
+}

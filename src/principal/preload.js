@@ -28,6 +28,14 @@ contextBridge.exposeInMainWorld('falcon', {
     gestor: () => ipcRenderer.send('app:gestor'),
     archivoProyecto: (ruta) => ipcRenderer.invoke('app:archivo-proyecto', ruta),
   },
+  actualizaciones: {
+    estado: () => ipcRenderer.invoke('actualizaciones:estado'),
+    comprobar: (manual = true) => ipcRenderer.invoke('actualizaciones:comprobar', manual),
+    descargar: () => ipcRenderer.invoke('actualizaciones:descargar'),
+    instalar: (alSalir = false) => ipcRenderer.invoke('actualizaciones:instalar', alSalir),
+    configurar: (op) => ipcRenderer.invoke('actualizaciones:configurar', op),
+    alCambiar: escuchar('actualizaciones:estado'),
+  },
   fs: {
     leer: async (ruta, codificacion) => {
       const r = await ipcRenderer.invoke('fs:leer', ruta, codificacion);
@@ -66,3 +74,4 @@ contextBridge.exposeInMainWorld('falcon', {
   exportar: (op) => ipcRenderer.invoke('exportar', op),
   alProgresoExportar: escuchar('exportar:progreso'),
 });
+

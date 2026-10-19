@@ -43,6 +43,22 @@ Para comprobar el lenguaje y el compilador de Blueprints:
 npm test
 ```
 
+## Actualizaciones y apoyo
+
+El gestor de proyectos incluye **Apoyar** y la selección de niveles de Patreon.
+El pago se completa en Patreon, en el navegador. Estos controles no aparecen
+en el editor ni en los juegos exportados.
+
+**Buscar actualizaciones**, junto a la versión del gestor, consulta las releases
+de GitHub usando SemVer. Muestra las notas reales agrupadas según Keep a Changelog,
+los canales Estable y Pruebas, el progreso y los errores de consulta o descarga.
+Los instaladores NSIS de Windows y AppImage de Linux admiten instalación al
+cerrar; los paquetes portátiles anteriores ofrecen descarga manual.
+
+Consulta [ACTUALIZACIONES.md](ACTUALIZACIONES.md) para publicar los instaladores,
+sus metadatos y las notas de versión. La versión publicada y el tag deben coincidir
+con la versión del paquete; esta integración prepara la **1.0.1**.
+
 ## El editor en imágenes
 
 Capturas reales a **1920 × 1080**. Pulsa una imagen para verla a tamaño completo.
@@ -177,3 +193,4 @@ redistribute or modify the engine or publish its source. Third-party licenses
 and valid earlier grants remain in effect.
 
 [Inventario de terceros](THIRD_PARTY_NOTICES.md) · [Aplicación y revisión de la licencia](LICENSING.md)
+

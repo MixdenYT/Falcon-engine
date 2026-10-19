@@ -1,0 +1,26 @@
+name: Verificar gestor y actualizaciones
+on:
+  pull_request:
+    paths:
+      - 'src/gestor/**'
+      - 'src/principal/**'
+      - 'pruebas/**'
+      - 'package*.json'
+      - 'electron-builder.config.cjs'
+      - '.github/workflows/verificar-actualizaciones.yml'
+permissions:
+  contents: read
+jobs:
+  pruebas:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm test
+      - run: npm run test:actualizaciones
+      - name: Validar configuración de paquetes
+        run: node -e "require('app-builder-lib/out/util/config/config').validateConfiguration(require('./electron-builder.config.cjs'), require('electron-builder/package.json').version).catch(e => { console.error(e); process.exit(1); })"

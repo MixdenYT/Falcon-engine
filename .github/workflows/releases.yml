@@ -44,8 +44,6 @@ jobs:
             /LICENSE
             /THIRD_PARTY_NOTICES.md
             /.gitattributes
-      - name: Descargar recursos LFS del motor
-        run: git lfs pull --include="recursos/**"
       - uses: actions/setup-node@v4
         with:
           node-version: '22'

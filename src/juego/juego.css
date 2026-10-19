@@ -1,0 +1,64 @@
+#app { height: 100vh; display: flex; flex-direction: column; background: var(--fondo); }
+.barra-titulo { border-bottom: 1px solid var(--borde-suave); }
+.barra-titulo .nombre { font-weight: 800; font-size: 14px; }
+.barra-titulo .prueba { font-size: 11px; font-weight: 800; color: #04140B; background: var(--verde); border-radius: 6px; padding: 3px 7px; letter-spacing: .03em; }
+.barra-titulo .escena { color: var(--texto-2); font-size: 13px; }
+
+.herramientas { height: 48px; display: flex; align-items: center; gap: 8px; padding: 0 10px; border-bottom: 1px solid var(--borde-suave); flex: none; }
+.herramientas .grupo { display: flex; gap: 2px; padding: 3px; border-radius: 10px; background: var(--panel); border: 1px solid var(--borde); }
+.herramientas .grupo button { height: 28px; min-width: 32px; padding: 0 9px; border: 0; border-radius: 7px; background: none; color: var(--texto-2); display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-weight: 700; font-size: 13px; }
+.herramientas .grupo button:hover { color: var(--texto); background: var(--panel-elevado); }
+.herramientas .grupo button.activo { background: var(--panel-elevado); color: var(--texto); }
+.herramientas .btn.peq { height: 34px; border-radius: 9px; }
+.herramientas .btn.contorno { height: 34px; }
+.herramientas .fps { margin-left: auto; font-family: var(--mono); font-size: 13px; color: var(--texto-2); padding: 0 6px; }
+
+.area { flex: 1; position: relative; overflow: hidden; background: #000; }
+.area canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; outline: none; }
+.area canvas.oculto { display: none; }
+.area.libre canvas { cursor: grab; }
+
+.pista-atajos {
+  position: absolute; top: 18px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 8px;
+  padding: 7px 12px; border-radius: 12px; background: rgba(8, 12, 10, .82); font-size: 13px; color: var(--texto); pointer-events: none;
+  transition: opacity .6s;
+}
+.pista-atajos .kbd { background: #1B221E; color: var(--texto); }
+.pista-atajos.fuera { opacity: 0; }
+
+.vivos {
+  position: absolute; right: 18px; bottom: 18px; width: 242px; border-radius: 14px; background: rgba(10, 14, 12, .94);
+  border: 1px solid var(--borde); box-shadow: var(--sombra); font-size: 13px;
+}
+.vivos .cab { display: flex; align-items: center; gap: 8px; padding: 11px 12px; border-bottom: 1px solid var(--borde-suave); font-weight: 800; }
+.vivos .cab .punto { width: 8px; height: 8px; border-radius: 50%; background: var(--verde); }
+.vivos .cab button { margin-left: auto; border: 0; background: none; color: var(--texto-2); cursor: pointer; }
+.vivos .filas { padding: 8px 12px; }
+.vivos .fila { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 12.5px; padding: 3px 0; }
+.vivos .fila .n { color: var(--texto-2); }
+.vivos .fila .v { font-weight: 700; color: var(--lima); }
+.vivos .fila .v.entero { color: var(--azul); }
+.vivos .fila .v.si { color: var(--verde); }
+.vivos .fila .v.texto { color: var(--aviso); }
+.vivos .nota { padding: 0 12px 11px; color: var(--texto-2); font-size: 12px; line-height: 1.45; }
+.vivos.min .filas, .vivos.min .nota { display: none; }
+
+.errores-juego { position: absolute; left: 18px; bottom: 18px; display: flex; flex-direction: column; gap: 8px; max-width: min(560px, 60%); }
+.error-juego { padding: 10px 12px; border-radius: 10px; background: rgba(40, 12, 12, .92); border: 1px solid rgba(240, 122, 122, .4); font-size: 13px; }
+.error-juego b { color: var(--error); display: block; margin-bottom: 2px; }
+.error-juego span { color: var(--texto-2); }
+.mensaje-juego { padding: 7px 11px; border-radius: 9px; background: rgba(8, 12, 10, .8); font-size: 13px; font-family: var(--mono); animation: aparecer .15s; }
+
+.pausa-velo { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(0, 0, 0, .35); pointer-events: none; }
+.pausa-velo div { padding: 10px 18px; border-radius: 12px; background: rgba(8, 12, 10, .9); font-weight: 800; display: flex; gap: 8px; align-items: center; }
+
+.final { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(2, 4, 3, .62); animation: fundido .3s; }
+.final .tarjeta { padding: 30px 34px; text-align: center; min-width: 340px; }
+.final h2 { margin: 0 0 6px; font-size: 32px; font-weight: 800; }
+.final .gana h2 { color: var(--verde); }
+.final .pierde h2 { color: var(--error); }
+.final p { color: var(--texto-2); margin: 0 0 22px; font-size: 15px; }
+.final .botones { display: flex; gap: 10px; justify-content: center; }
+
+.cargando-juego { position: absolute; inset: 0; display: grid; place-items: center; color: var(--texto-2); gap: 12px; }
+body.exportado .barra-titulo, body.exportado .herramientas, body.exportado .vivos, body.exportado .pista-atajos { display: none; }

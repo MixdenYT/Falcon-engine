@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Falcon Engine · Prueba</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' falcon:; img-src 'self' falcon: data: blob:; media-src falcon: blob: data:; style-src 'self' falcon: 'unsafe-inline'; script-src 'self' falcon: 'unsafe-inline'; font-src falcon: data:; connect-src falcon: data: blob:">
+  <link rel="stylesheet" href="../ui/base.css">
+  <link rel="stylesheet" href="juego.css">
+  <script type="importmap">
+    { "imports": {
+      "three": "falcon://app/node_modules/three/build/three.module.js",
+      "three/addons/": "falcon://app/node_modules/three/examples/jsm/",
+      "three-mesh-bvh": "falcon://app/node_modules/three-mesh-bvh/build/index.module.js"
+    } }
+  </script>
+</head>
+<body>
+  <div id="app"></div>
+  <script type="module" src="juego.js"></script>
+</body>
+</html>

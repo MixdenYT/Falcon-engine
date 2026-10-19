@@ -1,0 +1,187 @@
+FALCON ENGINE PROPRIETARY LICENSE
+Version 1.0 | Español / English
+
+ESPAÑOL
+
+1. Titularidad y ámbito
+El código original y los recursos propios de Falcon Engine pertenecen a sus
+respectivos titulares. Mixden, responsable del proyecto bajo la cuenta
+MixdenYT, concede únicamente los derechos que posee o está autorizado a
+licenciar. Todos los derechos no concedidos expresamente quedan reservados.
+Esta licencia se aplica al material propio que se distribuya expresamente
+con ella. No es una licencia de código abierto y no se extiende a componentes
+de terceros ni a materiales sujetos a otra licencia identificada.
+
+2. Uso autorizado del editor
+Quien obtenga legítimamente una distribución oficial puede instalar y ejecutar
+Falcon Engine para aprender, evaluar y crear juegos o aplicaciones, con fines
+personales, educativos o comerciales. Puede hacer las copias locales necesarias
+para ese uso. Esta licencia no cobra regalías ni exige una suscripción o una
+aportación a Patreon. No autoriza a redistribuir el editor o su código fuente.
+
+3. Juegos y motor de ejecución
+El usuario conserva los derechos sobre sus propios juegos, scripts, Blueprints,
+escenas, recursos y demás contenido original. Puede publicar, vender y distribuir
+sus juegos sin pagar regalías a Falcon Engine bajo esta versión de la licencia.
+Para ello recibe permiso mundial, no exclusivo y sin regalías para reproducir y
+distribuir el motor de ejecución y los componentes de Falcon Engine que la
+exportación oficial incorpore y que sean necesarios para ejecutar su juego,
+únicamente como parte de ese juego y sin ofrecerlos como motor, editor,
+biblioteca o kit de desarrollo independiente. Este permiso incluye las copias
+que realicen tiendas y distribuidores para entregar el juego y las copias
+necesarias para que sus usuarios finales lo instalen y ejecuten.
+Debe conservar los avisos de titularidad y licencias de esos componentes y de
+terceros, sin atribuirse su autoría. Los archivos propios del usuario y el código
+generado para su juego pueden distribuirse como parte de ese juego. La licencia
+no reclama la propiedad del contenido del usuario ni obliga a publicar su código.
+
+4. Código fuente y restricciones
+Recibir acceso al repositorio o al código, incluso mediante Patreon, no concede
+por sí mismo permiso para publicarlo, redistribuirlo, modificarlo, sublicenciarlo
+ni desarrollar o distribuir derivados del motor. La consulta del código requiere
+acceso autorizado; cualquier trabajo de colaboración o modificación requiere
+autorización escrita adicional del titular correspondiente.
+Salvo los permisos de los apartados 2 y 3, los de componentes de terceros, una
+autorización escrita o los derechos legales irrenunciables, queda prohibido:
+a) copiar, publicar, vender, alquilar, sublicenciar o redistribuir el motor, su
+código fuente, editor o recursos propios;
+b) modificar, traducir, descompilar, desensamblar o realizar ingeniería inversa
+del motor, o usar su código protegido para crear un motor derivado;
+c) eliminar avisos legales o usar las marcas o logotipos para aparentar autoría,
+respaldo o una distribución oficial.
+La creación independiente de herramientas o juegos no queda prohibida por el
+mero hecho de compartir ideas, funciones o conceptos no protegibles.
+
+5. Terceros, derechos legales y versiones anteriores
+Los componentes de terceros conservan sus respectivas licencias y titulares.
+Esta licencia no restringe los derechos que esas licencias otorgan. Los avisos,
+licencias y atribuciones exigidos deben acompañar cada distribución aplicable.
+Nada de este texto limita derechos que no puedan excluirse por contrato,
+incluidos los de copia de seguridad, estudio o interoperabilidad en los
+supuestos y condiciones de la legislación aplicable.
+El cambio de licencia no revoca derechos válidamente concedidos sobre versiones
+o materiales distribuidos previamente bajo MIT u otras condiciones. Tampoco
+relicencia aportaciones ajenas sin autorización. Un acuerdo escrito específico
+con el titular prevalece respecto del material que identifique.
+
+6. Actualizaciones y continuidad de los juegos
+No se garantiza una fecha de actualización, soporte o disponibilidad permanente.
+Las nuevas condiciones podrán aplicarse a versiones futuras que las incorporen;
+no alteran retroactivamente los permisos de una copia obtenida bajo esta versión.
+Los juegos exportados legítimamente y los derechos de sus usuarios finales no
+pierden su permiso de distribución y ejecución por un cambio posterior de licencia
+o por finalizar una aportación a Patreon.
+
+7. Incumplimiento
+Ante un incumplimiento sustancial, el titular podrá notificarlo y exigir su cese.
+Si no se subsana en los treinta días siguientes a la recepción de la notificación,
+podrán resolverse los permisos afectados en la medida permitida por la ley.
+En caso de publicación o redistribución no autorizada del código o del editor,
+el titular podrá exigir su retirada inmediata y ejercer las acciones legales
+disponibles. Las medidas no afectan a los derechos independientes de terceros,
+a permisos concedidos anteriormente ni a los derechos legales irrenunciables.
+
+8. Garantías, responsabilidad e interpretación
+Falcon Engine está en desarrollo. En la máxima medida permitida por la ley se
+ofrece tal como está, sin garantías adicionales de funcionamiento ininterrumpido,
+adecuación o ausencia de errores. No se excluyen responsabilidades ni garantías
+que legalmente no puedan excluirse, ni las derivadas de dolo u otros supuestos
+imperativos. Las garantías u obligaciones específicas pactadas por escrito
+siguen siendo aplicables.
+Se aplica el Derecho español, sin privar a los consumidores de las protecciones
+imperativas o de los tribunales que les correspondan legalmente. La invalidez
+de una cláusula no invalida las restantes. Las versiones española e inglesa
+describen la misma licencia; en caso de discrepancia prevalece la española,
+salvo exigencia legal en contrario.
+Para autorizaciones adicionales, utilice los canales oficiales de MixdenYT
+en https://github.com/MixdenYT/Falcon-engine.
+
+ENGLISH
+
+1. Ownership and scope
+Falcon Engine's original code and original assets belong to their respective
+rights holders. Mixden, who maintains the project under the MixdenYT account,
+grants only rights they own or are authorized to license. All rights not
+expressly granted are reserved. This license covers original material expressly
+distributed under it. It is not an open-source license and does not cover
+third-party components or material identified as having a separate license.
+
+2. Authorized editor use
+Anyone who lawfully obtains an official distribution may install and run
+Falcon Engine to learn, evaluate, and create games or applications for personal,
+educational, or commercial purposes, and make local copies necessary for that
+use. This license charges no royalties and requires no subscription or Patreon
+contribution. It does not authorize redistribution of the editor or source code.
+
+3. Games and runtime
+Users retain rights to their own games, scripts, Blueprints, scenes, assets,
+and other original content. They may publish, sell, and distribute their games
+without paying royalties to Falcon Engine under this license version.
+For that purpose, they receive worldwide, nonexclusive, royalty-free permission
+to reproduce and distribute the runtime and Falcon Engine components included
+by the official export process and necessary to run their game, solely as part
+of that game, without offering those components as a standalone engine, editor,
+library, or development kit. This includes copies made by stores and distributors
+to deliver the game and copies necessary for end users to install and run it.
+Required ownership notices, licenses, and third-party attributions must be
+preserved; users must not claim authorship of those components. Users' own files
+and code generated for their game may be distributed as part of that game.
+This license neither claims ownership of user content nor requires disclosure
+of users' source code.
+
+4. Source access and restrictions
+Receiving repository or source access, including through Patreon, does not by
+itself grant permission to publish, redistribute, modify, sublicense, or develop
+or distribute derivative versions of the engine. Viewing source requires
+authorized access; collaboration or modification requires additional written
+permission from the relevant rights holder.
+Except as allowed by sections 2 and 3, third-party licenses, written permission,
+or non-waivable legal rights, users must not:
+a) copy, publish, sell, rent, sublicense, or redistribute the engine, source,
+editor, or original assets;
+b) modify, translate, decompile, disassemble, or reverse engineer the engine,
+or use its protected code to create a derivative engine;
+c) remove legal notices or use trademarks or logos to imply authorship,
+endorsement, or official distribution.
+Independent creation of tools or games is not prohibited merely because they
+share unprotectable ideas, functionality, or concepts.
+
+5. Third parties, statutory rights, and earlier versions
+Third-party components retain their own licenses and rights holders. This
+license does not restrict permissions granted by those licenses. Required
+notices, licenses, and attributions must accompany applicable distributions.
+Nothing here limits rights that cannot be excluded by contract, including
+backup, study, and interoperability rights where applicable law provides them
+and subject to that law's conditions.
+This license change does not revoke valid rights granted for versions or
+materials previously distributed under MIT or other terms. It does not
+relicense others' contributions without authorization. A specific written
+agreement with the rights holder prevails for the material it identifies.
+
+6. Updates and game continuity
+No update date, support, or permanent availability is guaranteed. New terms
+may apply to future versions incorporating them, but do not retroactively
+change permissions for a copy obtained under this version. Games lawfully
+exported, and their end users' distribution and execution permissions, are not
+revoked by a later license change or the end of a Patreon contribution.
+
+7. Breach
+For a material breach, the rights holder may give notice requiring it to stop.
+If not cured within thirty days after receipt, the affected permissions may
+be terminated to the extent permitted by law. For unauthorized publication or
+redistribution of source or the editor, the rights holder may require immediate
+removal and pursue available legal remedies. Such measures do not affect
+independent third-party rights, earlier grants, or non-waivable statutory rights.
+
+8. Warranties, liability, and interpretation
+Falcon Engine is in development. To the maximum extent permitted by law, it is
+provided as is, without additional warranties of uninterrupted operation, fitness,
+or freedom from errors. No liability or warranty that cannot legally be excluded
+is excluded, including liability for intentional misconduct or other mandatory
+cases. Specific written warranties and obligations remain applicable.
+Spanish law applies without depriving consumers of mandatory protections or
+legally competent courts. An invalid provision does not invalidate the rest.
+The Spanish and English texts describe the same license; the Spanish text
+prevails in a discrepancy unless applicable law requires otherwise.
+For additional permissions, use MixdenYT's official channels at
+https://github.com/MixdenYT/Falcon-engine.

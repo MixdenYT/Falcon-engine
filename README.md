@@ -160,3 +160,20 @@ herramientas    Empaquetado e iconos
 | `*.mat` | Material (grafo) o instancia de material |
 | `*.malla` | Malla: modelo o forma básica, materiales, colisión y física |
 | `.falcon/` | Ajustes de importación, sesión del editor y miniatura |
+
+## Licencia / License
+
+Propuesta de licencia propietaria: consulta [LICENSE](LICENSE) para los términos
+en español e inglés. Permite usar distribuciones oficiales para crear y vender
+juegos y distribuir el runtime necesario dentro de ellos; no concede permiso
+general para redistribuir o modificar el motor o publicar su código fuente.
+Los componentes de terceros conservan sus propias licencias. Los permisos
+válidamente concedidos sobre versiones anteriores no se revocan.
+
+Proposed proprietary license: see [LICENSE](LICENSE) for Spanish and English terms.
+It permits using official distributions to create and sell games and distribute
+the required runtime within those games, without granting a general right to
+redistribute or modify the engine or publish its source. Third-party licenses
+and valid earlier grants remain in effect.
+
+[Inventario de terceros](THIRD_PARTY_NOTICES.md) · [Aplicación y revisión de la licencia](LICENSING.md)

@@ -4,7 +4,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const yaml = require('js-yaml');
 const VERSION = require('../package.json').version;
-const METADATOS = { 'latest.yml': ['win-x64', 'exe'], 'latest-linux.yml': ['linux-x64', 'AppImage'], 'latest-linux-arm64.yml': ['linux-arm64', 'AppImage'] };
+const METADATOS = { 'latest.yml': ['win-x64', 'exe'], 'latest-linux.yml': ['linux-x86_64', 'AppImage'], 'latest-linux-arm64.yml': ['linux-arm64', 'AppImage'] };
 
 function verificarDirectorio(directorio, version = VERSION) {
   const nombres = fs.readdirSync(directorio).sort();

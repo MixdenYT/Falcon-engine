@@ -10,7 +10,7 @@ const { verificarDirectorio } = require('../herramientas/verificar-release.cjs')
 
 function fixture() {
   const dir = mkdtempSync(join(tmpdir(), 'falcon-release-'));
-  for (const [meta, plataforma, ext] of [['latest.yml', 'win-x64', 'exe'], ['latest-linux.yml', 'linux-x64', 'AppImage'], ['latest-linux-arm64.yml', 'linux-arm64', 'AppImage']]) {
+  for (const [meta, plataforma, ext] of [['latest.yml', 'win-x64', 'exe'], ['latest-linux.yml', 'linux-x86_64', 'AppImage'], ['latest-linux-arm64.yml', 'linux-arm64', 'AppImage']]) {
     const nombre = `Falcon-Engine-1.1.0-${plataforma}.${ext}`, datos = Buffer.alloc(1024 * 1024, 7);
     Buffer.from(ext === 'exe' ? '4d5a' : '7f454c46', 'hex').copy(datos);
     writeFileSync(join(dir, nombre), datos);

@@ -1,18 +1,95 @@
-# Falcon Engine
+<p align="center"><strong>FALCON ENGINE</strong></p>
 
-Motor de videojuegos 2D y 3D para **Windows y Linux**, con el lenguaje de programación en español **Águila** y lógica visual con **Blueprints**. La interfaz sigue la propuesta «Falcon Engine — Propuestas de interfaz».
+# Crea tu próximo juego, en tu idioma.
 
-## Cómo se usa
+Motor de videojuegos **2D y 3D para Windows y Linux**, con **Blueprints visuales**, scripts en español con **Águila** e iluminación global **Lumbre**. Construye una escena, dale comportamiento y prueba tu idea desde el mismo editor.
 
-| Acción | Cómo |
+[Web oficial](https://mixden.net/falcon-engine/) · [Instalar y probar](#instalar-y-probar) · [Capturas](#el-editor-en-imágenes) · [Exportar](#exportar-y-empaquetar)
+
+![Editor 3D de Falcon Engine con una mazmorra iluminada](docs/images/falcon-editor-3d.webp)
+
+> **En desarrollo activo.** Las capturas corresponden al editor actual. La compatibilidad y el rendimiento pueden variar según el equipo y el proyecto.
+
+## Qué puedes crear
+
+| Herramienta | Para qué sirve |
 | --- | --- |
-| Abrir el motor en desarrollo | `npm start` |
-| Pasar las pruebas del lenguaje y los Blueprints | `npm test` |
-| Empaquetar para Windows | `npm run build:win` → `dist/Falcon Engine-win32-x64/` |
-| Empaquetar para Linux x64 | `npm run build:linux` → `dist/Falcon Engine-linux-x64.tar.gz` |
-| Empaquetar para Linux ARM64 | `npm run build:linux-arm` → `dist/Falcon Engine-linux-arm64.tar.gz` |
+| Editor 2D | Niveles con sprites, mosaicos, colisiones y cámaras |
+| Editor 3D | Escenas con mallas, materiales, luces y personajes |
+| Blueprints | Lógica visual con eventos, condiciones y acciones; compilación a Águila |
+| Águila | Scripts en español con ayuda contextual y análisis de errores |
+| Lumbre | Iluminación global mediante sondas, sombras y reflejos |
+| Materiales | Grafos, vista previa, parámetros e instancias reutilizables |
 
-En Linux, descomprime el `.tar.gz` y abre `./falcon.sh` (usa `--no-sandbox` solo si el sandbox de Chromium no está disponible).
+## Instalar y probar
+
+Necesitas **Git, Git LFS, Node.js y npm**, además de acceso a este repositorio si es privado. Usa una versión de Node.js compatible con las dependencias indicadas en `package.json`.
+
+```sh
+git lfs install
+git clone https://github.com/MixdenYT/Falcon-engine.git
+cd Falcon-engine
+npm install
+npm start
+```
+
+Las dependencias incluidas en el repositorio se gestionan con Git LFS. Si faltan archivos tras clonar, ejecuta `git lfs pull`. `npm install` prepara las dependencias para tu plataforma.
+
+En el gestor de proyectos, crea un proyecto 2D o 3D o elige una plantilla. Abre la escena, selecciona un nodo en el Inspector y pulsa **Probar** para ejecutar el juego. El **Modo Sencillo** y el curso **Mi primer juego** ofrecen un inicio guiado.
+
+Para comprobar el lenguaje y el compilador de Blueprints:
+
+```sh
+npm test
+```
+
+## El editor en imágenes
+
+Capturas reales a **1920 × 1080**. Pulsa una imagen para verla a tamaño completo.
+
+### Escena 2D
+
+Organiza sprites, mosaicos, colisiones y cámaras. Ajusta tu escena en la cuadrícula y prueba el movimiento de tu personaje.
+
+![Editor 2D con un nivel de plataformas, monedas y árbol de escena](docs/images/falcon-editor-2d.webp)
+
+### Blueprints
+
+Une eventos, condiciones y acciones con cables tipados. Compila tu grafo a Águila y consulta el código generado.
+
+![Blueprint del jugador con movimiento, salto y reproducción de sonido](docs/images/falcon-blueprints.webp)
+
+### Águila
+
+Escribe scripts con palabras como cuando, variable y si. Usa el diccionario, la ayuda contextual y el análisis de errores del editor.
+
+![Editor Águila con código del jugador en español y ayuda contextual](docs/images/falcon-aguila.webp)
+
+### Lumbre
+
+Experimenta con iluminación global mediante sondas, sombras y reflejos. Ajusta la calidad de Lumbre a tu escena y a tu equipo.
+
+![Laboratorio Lumbre con Caja de Cornell, luces, sombras y reflejos](docs/images/falcon-lumbre.webp)
+
+### Materiales
+
+Conecta color, metal y rugosidad en un grafo con vista previa. Crea parámetros e instancias para reutilizar tus materiales.
+
+![Grafo de un material metálico con vista previa y parámetros](docs/images/falcon-materiales.webp)
+
+## Exportar y empaquetar
+
+**Para exportar tu juego**, abre **Proyecto › Exportar juego…** y elige Windows x64, Linux x64 o Linux ARM64. La primera exportación a otra plataforma descarga el motor de ejecución correspondiente.
+
+**Para empaquetar el editor** desde el código:
+
+| Plataforma | Comando | Resultado |
+| --- | --- | --- |
+| Windows x64 | `npm run build:win` | `dist/Falcon Engine-win32-x64/` |
+| Linux x64 | `npm run build:linux` | `dist/Falcon Engine-linux-x64.tar.gz` |
+| Linux ARM64 | `npm run build:linux-arm` | `dist/Falcon Engine-linux-arm64.tar.gz` |
+
+En Linux, descomprime el paquete y abre `./falcon.sh`. Usa `--no-sandbox` solo si el sandbox de Chromium no está disponible.
 
 ## Pantallas
 

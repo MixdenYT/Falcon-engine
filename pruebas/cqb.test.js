@@ -104,3 +104,14 @@ test('CQB: el enemigo consume seis disparos y recarga sin disparar durante 2,6 s
   actualizar(m, e, 0.11); assert.equal(e.aguilaObtener('municion'), 6); assert.equal(e.aguilaObtener('recargando'), false);
   assert.deepEqual(m.errores, []);
 });
+test('CQB: a quemarropa los personajes reciben el rayo aunque la boca entre en su collider', () => {
+  const m = mundo(), j = m.buscarPorNombre('Jugador'), e = m.buscarPorNombre('Enemigo0'), d = m.d3;
+  d.fijarPosicionGlobal(e, 0, 0, 4.1);
+  d.obj(e).userData.visual.rotation.y = Math.PI;
+  d.tactico.boca = n => n === j ? new THREE.Vector3(0, 1.3, 4.2) : new THREE.Vector3(0, 1.37, 4.95);
+  m.emitirNodo(j, 'se_pulsa', ['disparar']);
+  assert.equal(e.aguilaObtener('vida'), 60, 'un cuerpo cercano no baja el arma ni evita el daño');
+  assert.equal(d.tactico.disparar(e, 8, 20), true);
+  assert.equal(j.aguilaObtener('vida'), 92, 'el puente de la boca enemiga también resuelve el contacto cercano');
+  assert.deepEqual(m.errores, []);
+});

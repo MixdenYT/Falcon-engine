@@ -146,7 +146,8 @@ module.exports = async function verificarCQB({ directorio, reabrir = false }) {
   await avanzar(3.6);
   const muertos = m.grupo('enemigos').map(n => ({ nombre: n.nombre, muerto: n._muerto, clip: d.obj(n).userData.animador.nombre }));
   exigir(j.aguilaObtener('bajas') === 3 && muertos.every(n => n.muerto && n.clip === 'death'), 'Las tres bajas o clips de muerte no coinciden');
-  await foto('cqb-despejado'); await ir(0, -9.9); await mirar(0, 1.05, -11.1); await pulsar('KeyF');
+  await foto('cqb-despejado'); await ir(0, -9.9); await mirar(0, 1.05, -11.1);
+  tecla('KeyF', true); await esperar(() => m.estado === 'ganado', 'El terminal no completa la misión'); tecla('KeyF', false);
   exigir(m.estado === 'ganado', 'El terminal no completa la misión');
   await foto('cqb-victoria');
   await registrar('Recorrido completo: tres enemigos neutralizados, puertas y terminal, victoria por Blueprint', { muertos, saludFinal: j.aguilaObtener('vida') });

@@ -177,17 +177,19 @@ export class Tactico3D {
       if (n._muerto) return false;
       const visual = this.d3.obj(n)?.userData.visual, dir = new THREE.Vector3(0, 0, -1);
       if (visual) dir.applyQuaternion(visual.getWorldQuaternion(new THREE.Quaternion()));
-      return !this.d3.primerImpacto(this.ojos(n, 0.78), dir, 0.88, [n]);
+      const hit = this.d3.primerImpacto(this.ojos(n, 0.78), dir, 0.88, [n]);
+      return !hit || hit.nodo.tipo === 'Personaje3D';
     }
     if (n._correr || n._muerto) return false;
     const cam = this.d3.camaraUsada || c.camara, dir = new THREE.Vector3(); cam.getWorldDirection(dir);
     const p = this.d3.primerImpacto(cam.position, dir, this.estado(n).arma ? 0.68 : 1.03, [n]);
-    if (p) return false;
+    if (p && p.nodo.tipo !== 'Personaje3D') return false;
     const arma = this.armasVista?.[this.estado(n).arma], nodoBoca = arma?.getObjectByName('Boca');
     if (nodoBoca) {
       const ads = c.ads || 0, mira = arma.getObjectByName('Mira')?.position.y || 0.08;
       const listo = nodoBoca.position.clone().add(new THREE.Vector3(0.19 * (1 - ads), -0.24 * (1 - ads) - mira * ads, -0.35)).applyQuaternion(cam.quaternion).add(cam.position);
-      const puente = listo.sub(cam.position); if (this.d3.primerImpacto(cam.position, puente, puente.length(), [n])) return false;
+      const puente = listo.sub(cam.position), obstruccion = this.d3.primerImpacto(cam.position, puente, puente.length(), [n]);
+      if (obstruccion && obstruccion.nodo.tipo !== 'Personaje3D') return false;
     }
     return true;
   }
@@ -199,7 +201,9 @@ export class Tactico3D {
     if (n === jugador) impacto = d.dispararRayo(numero(alcance, 65));
     else if (jugador && d.lineaVision(n, jugador, numero(alcance, 65))) {
       const a = this.boca(n) || this.ojos(n, 0.78), b = this.ojos(jugador, 0.68), dir = b.clone().sub(a);
-      const hit = d.primerImpacto(a, dir, dir.length() + 0.03, [n]);
+      const origen = this.ojos(n, 0.78), puente = a.clone().sub(origen);
+      const previo = d.primerImpacto(origen, puente, puente.length(), [n]);
+      const hit = previo || d.primerImpacto(a, dir, dir.length() + 0.03, [n]);
       impacto = hit?.nodo || null;
       d.trazar(a, hit?.punto || b);
     }

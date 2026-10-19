@@ -1,7 +1,7 @@
 {
   "name": "falcon-engine",
   "productName": "Falcon Engine",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Motor de videojuegos 2D y 3D con el lenguaje Águila",
   "main": "src/principal/main.js",
   "author": "Falcon Engine",

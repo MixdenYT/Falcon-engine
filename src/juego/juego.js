@@ -127,7 +127,7 @@ function pintar(escena) {
 }
 
 function teclas(e) {
-  if (e.key === 'F7') { e.preventDefault(); pausar(); }
+  if (e.key === 'F7' || e.code === 'KeyP' && proyecto?.datos.cqb && !e.repeat && !e.target?.closest?.('input,textarea,select,[contenteditable=true]')) { e.preventDefault(); pausar(); }
   else if (e.key === 'F8' && MODO === 'prueba') { e.preventDefault(); falcon.ventana.cerrar(); }
   else if (e.key === 'F12') { e.preventDefault(); captura(); }
   else if (e.key === 'F11') { e.preventDefault(); falcon.ventana.pantallaCompleta(); }
@@ -140,6 +140,7 @@ function pausar(forzar) {
   const b = $('[data-a=pausa]');
   b.innerHTML = mundo.pausado ? `${icono('play', '', 15)}<span>Seguir</span>` : `${icono('pausa', '', 15)}<span>Pausar</span>`;
   $('.pausa-velo')?.remove();
+  if (mundo.pausado && document.pointerLockElement) document.exitPointerLock();
   if (mundo.pausado) $('.area').append(el(`<div class="pausa-velo"><div>${icono('pausa', '', 16)}En pausa · F7 para seguir</div></div>`));
   falcon.juego.informar({ tipo: 'estado', pausado: mundo.pausado });
 }
@@ -356,3 +357,4 @@ iniciar().then(prepararArrastre).catch((e) => {
   document.body.innerHTML = `<div style="padding:30px;color:#F07A7A;font:14px Manrope">No se pudo iniciar el juego: ${esc(e.mensajeCompleto || e.message)}</div>`;
   if (MODO === 'prueba') falcon.juego.informar({ tipo: 'error', error: { mensaje: 'No se pudo iniciar el juego: ' + (e.mensajeCompleto || e.message), linea: e.linea, archivo: e.archivo } });
 });
+

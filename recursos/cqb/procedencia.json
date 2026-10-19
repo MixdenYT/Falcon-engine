@@ -1,0 +1,183 @@
+{
+  "generador": "Meshy CLI 0.4.0",
+  "fecha": "2026-10-19",
+  "creditos_confirmados": 110,
+  "personajes": [
+    {
+      "personaje": "operador",
+      "tareas": [
+        {
+          "id": "01a15580-b118-740f-b758-de5bdf17d708",
+          "tipo": "text-to-3d-preview",
+          "estado": "SUCCEEDED",
+          "creditos": 20
+        },
+        {
+          "id": "01a15586-196f-75f4-be39-f8af41f53072",
+          "tipo": "text-to-3d-refine",
+          "estado": "SUCCEEDED",
+          "creditos": 10
+        },
+        {
+          "id": "01a1558d-6f65-718a-a4b4-3a3cf097b676",
+          "tipo": "remesh",
+          "estado": "SUCCEEDED",
+          "creditos": 5
+        },
+        {
+          "id": "01a15596-de80-70fa-a004-59c474e7fb23",
+          "tipo": "rig",
+          "estado": "SUCCEEDED",
+          "creditos": 5
+        },
+        {
+          "id": "01a1559f-521a-702c-ba2c-e59a608012fc",
+          "tipo": "animate",
+          "estado": "SUCCEEDED",
+          "creditos": 3
+        },
+        {
+          "id": "01a1559f-80ca-716f-a368-6f3d95984396",
+          "tipo": "animate",
+          "estado": "SUCCEEDED",
+          "creditos": 3
+        },
+        {
+          "id": "01a1559f-a92c-738d-81b2-fdc37dcd1c3f",
+          "tipo": "animate",
+          "estado": "SUCCEEDED",
+          "creditos": 3
+        },
+        {
+          "id": "01a1559f-cf98-7784-a768-244600acd92e",
+          "tipo": "animate",
+          "estado": "SUCCEEDED",
+          "creditos": 3
+        },
+        {
+          "id": "01a1559f-f26e-76ce-b48b-7235a3a94580",
+          "tipo": "animate",
+          "estado": "SUCCEEDED",
+          "creditos": 3
+        }
+      ],
+      "animaciones": {
+        "aim": {
+          "id": "01a1559f-521a-702c-ba2c-e59a608012fc",
+          "action_id": 585,
+          "creditos": 3
+        },
+        "fire": {
+          "id": "01a1559f-80ca-716f-a368-6f3d95984396",
+          "action_id": 234,
+          "creditos": 3
+        },
+        "reload": {
+          "id": "01a1559f-a92c-738d-81b2-fdc37dcd1c3f",
+          "action_id": 170,
+          "creditos": 3
+        },
+        "hit": {
+          "id": "01a1559f-cf98-7784-a768-244600acd92e",
+          "action_id": 178,
+          "creditos": 3
+        },
+        "death": {
+          "id": "01a1559f-f26e-76ce-b48b-7235a3a94580",
+          "action_id": 188,
+          "creditos": 3
+        }
+      },
+      "triangulos": 18692
+    },
+    {
+      "personaje": "enemigo",
+      "tareas": [
+        {
+          "id": "01a15581-d80c-75ac-aa7a-0917fedae299",
+          "tipo": "text-to-3d-preview",
+          "estado": "SUCCEEDED",
+          "creditos": 20
+        },
+        {
+          "id": "01a15586-1f69-71a2-a5e2-6083f923e15f",
+          "tipo": "text-to-3d-refine",
+          "estado": "SUCCEEDED",
+          "creditos": 10
+        },
+        {
+          "id": "01a1558c-171e-7647-836e-b7b2fdd8b280",
+          "tipo": "remesh",
+          "estado": "SUCCEEDED",
+          "creditos": 5
+        },
+        {
+          "id": "01a15594-7357-709b-8375-66f403aa2d76",
+          "tipo": "rig",
+          "estado": "SUCCEEDED",
+          "creditos": 5
+        },
+        {
+          "id": "01a1559f-565e-7602-a7ed-0f5174e151fe",
+          "tipo": "animate",
+          "estado": "SUCCEEDED",
+          "creditos": 3
+        },
+        {
+          "id": "01a1559f-8573-718d-a78b-8d8e3450417e",
+          "tipo": "animate",
+          "estado": "SUCCEEDED",
+          "creditos": 3
+        },
+        {
+          "id": "01a1559f-b3ea-71a8-860b-5a7711a5306f",
+          "tipo": "animate",
+          "estado": "SUCCEEDED",
+          "creditos": 3
+        },
+        {
+          "id": "01a1559f-e9c7-76c1-95d2-8c5b469281bc",
+          "tipo": "animate",
+          "estado": "SUCCEEDED",
+          "creditos": 3
+        },
+        {
+          "id": "01a155a0-1fcd-7692-adab-f54a145a80df",
+          "tipo": "animate",
+          "estado": "SUCCEEDED",
+          "creditos": 3
+        }
+      ],
+      "animaciones": {
+        "aim": {
+          "id": "01a1559f-565e-7602-a7ed-0f5174e151fe",
+          "action_id": 585,
+          "creditos": 3
+        },
+        "fire": {
+          "id": "01a1559f-8573-718d-a78b-8d8e3450417e",
+          "action_id": 234,
+          "creditos": 3
+        },
+        "reload": {
+          "id": "01a1559f-b3ea-71a8-860b-5a7711a5306f",
+          "action_id": 170,
+          "creditos": 3
+        },
+        "hit": {
+          "id": "01a1559f-e9c7-76c1-95d2-8c5b469281bc",
+          "action_id": 178,
+          "creditos": 3
+        },
+        "death": {
+          "id": "01a155a0-1fcd-7692-adab-f54a145a80df",
+          "action_id": 188,
+          "creditos": 3
+        }
+      },
+      "triangulos": 18665
+    }
+  ],
+  "armas": "Diseños originales de Falcon Engine; generados desde armas3d.js",
+  "superficies": "Texturas procedurales originales de Falcon Engine"
+}

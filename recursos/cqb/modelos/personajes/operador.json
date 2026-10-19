@@ -1,0 +1,18 @@
+{
+  "formato": "falcon-personaje-3d",
+  "version": 1,
+  "modelo": "modelos/personajes/operador.glb",
+  "frente": 180,
+  "textura_max": 1024,
+  "manos": "modelos/personajes/operador-manos.json",
+  "recorte_uv": "modelos/personajes/operador-recorte.json",
+  "clips": {
+    "walk": "modelos/animaciones/operador-walk.json",
+    "run": "modelos/animaciones/operador-run.json",
+    "aim": "modelos/animaciones/operador-aim.json",
+    "fire": "modelos/animaciones/operador-fire.json",
+    "reload": "modelos/animaciones/operador-reload.json",
+    "hit": "modelos/animaciones/operador-hit.json",
+    "death": "modelos/animaciones/operador-death.json"
+  }
+}

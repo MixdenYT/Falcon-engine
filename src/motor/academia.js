@@ -57,6 +57,10 @@ const CASOS = {
   var_obtener: ['E lee contador = 3.', 'Cambia el valor inicial de la variable.'],
   var_fijar: ['E reemplaza contador por 20 y lo muestra.', 'Observa la diferencia con Sumar a variable.'],
   var_sumar: ['Cada E añade 1: 4, 5, 6…', 'Usa -1 para gastar munición.'],
+  ob_leer: ['E lee la coordenada x real del personaje.', 'Conecta Nodo por nombre y lee la propiedad visible de Baliza.'],
+  ob_fijar: ['E oculta la baliza cambiando visible a falso.', 'Cambia el valor a verdadero para mostrarla.'],
+  ob_consultar: ['E consulta en_el_suelo() del personaje.', 'Consulta distancia_a con Baliza como primer argumento.'],
+  ob_llamar: ['E ejecuta saltar(420) sobre el personaje.', 'Conecta otro personaje a objeto y compara los resultados.'],
   fn_llamar: ['E llama saludar con cantidad = 7.', 'Abre la pestaña de función y cambia el parámetro.'],
   fn_devolver: ['La función muestra 7 y Devolver termina su ejecución.', 'Conecta un valor al retorno y revisa el código generado.'],
   es_yo: ['E muestra el propio nodo de laboratorio.', 'Conéctalo a Distancia junto a la baliza.'],
@@ -134,6 +138,8 @@ export function ejemploBloque(id) {
     au_musica: { musica: 'tema.wav' }, es_crear: { plantilla: 'Plantilla', x: 800, y: 490 },
     es_escena: { escena: 'escenas/llegada.fscn' }, es_emitir: { senal: 'abrir' },
     ev_recibir: { senal: 'abrir' }, ev_pulsar: { accion: 'accion' }, ev_soltar: { accion: 'accion' },
+    ob_leer: { miembro: 'x' }, ob_fijar: { miembro: 'visible', valor: false },
+    ob_consultar: { miembro: 'en_el_suelo' }, ob_llamar: { miembro: 'saltar', a: 420 },
   };
   if (id.startsWith('fn_')) {
     bp.funciones = [{ nombre: 'saludar', params: [{ nombre: 'cantidad', tipo: 'entero' }] }];
@@ -195,6 +201,7 @@ export function ejemploBloque(id) {
   if (['lg_es', 'mt_distancia', 'es_eliminar'].includes(id)) {
     const obj = g.n('es_nodo', { nombre: 'Baliza' }); g.c(obj, 'nodo', n, id === 'mt_distancia' ? 'b' : 'objeto');
   }
+  if (id === 'ob_fijar') { const obj = g.n('es_nodo', { nombre: 'Baliza' }); g.c(obj, 'nodo', n, 'objeto'); }
   if (id === 'mt_distancia') { const yo = g.n('es_yo'); g.c(yo, 'yo', n, 'a'); }
   if (['var_fijar', 'var_sumar'].includes(id)) { const v = g.n('var_obtener', {}, { variable: 'contador' }); g.c(v, 'valor', fin, 'texto'); }
   return ordenarEjemplo(bp);
@@ -222,7 +229,7 @@ export function plantillaAcademia(nombre) {
     });
   });
   archivos['escenas/academia.fscn'] = escenaVacia('2D', N('Nodo2D', 'Academia', {}, [N('Interfaz', 'Índice', {}, indice)]));
-  const manual = ['# Academia completa de Blueprints — Falcon Engine 1.1.1', '', 'Crea esta plantilla en el gestor, abre la escena principal y pulsa Jugar (F5). El índice da acceso directo a todos los laboratorios. H: índice; R: repetir; E: ejecutar; Q: parar música. Para victoria/derrota usa la opción de volver a jugar del reproductor.', '', 'Cada escena contiene el Blueprint editable en el nodo Laboratorio (o Baliza, Temporizador o botón para sus eventos). En el explorador abre blueprints/<id>.bp. Los comentarios explican el experimento. generado/<id>.agl permite comparar con Águila; edita el .bp, no el archivo generado.', '', '## Conceptos', '', 'Las flechas blancas marcan orden; los cables de color llevan datos y se evalúan cuando una acción los necesita. Los valores sin cable son constantes. Decimal y entero son compatibles. Variables pertenecen a cada instancia; exportadas se pueden ajustar en el Inspector. Una función tiene su propio grafo y parámetros; Devolver termina su ejecución. Los eventos de contacto necesitan colisión y un cuerpo que entre/salga. Mostrar escribe en Salida; Cambiar texto escribe en la interfaz.', '', 'Movimiento usa píxeles/segundo en 2D. Los bloques Mover, Posición y Colocar en de este catálogo tienen dos ejes: no constituyen una API completa de shooter 3D. Los ejemplos shooter usan Águila para Z, disparos y visión. Los recursos de audio se generan localmente sin descargas.', '', '## Recetas combinadas', '', 'Movimiento: Al actualizar → Mover; Eje × velocidad → velocidad x. Salto: Acción pulsada Y En suelo → Si → Saltar. Recogible: Al tocar → Es Jugador → Si → Ganar puntos → Eliminar. Puerta: Emitir abrir → Al recibir abrir → Desplazar. Vida: Restar daño → Limitar 0..100 → Fijar vida → Comparar <= 0 → Si → Perder. Después de cada receta, modifica una sola constante y comprueba el efecto.', ''];
+  const manual = ['# Academia completa de Blueprints — Falcon Engine 1.2.0', '', 'Crea esta plantilla en el gestor, abre la escena principal y pulsa Jugar (F5). El índice da acceso directo a todos los laboratorios. H: índice; R: repetir; E: ejecutar; Q: parar música. Para victoria/derrota usa la opción de volver a jugar del reproductor.', '', 'Cada escena contiene el Blueprint editable en el nodo Laboratorio (o Baliza, Temporizador o botón para sus eventos). En el explorador abre blueprints/<id>.bp. Los comentarios explican el experimento. generado/<id>.agl permite comparar con Águila; edita el .bp, no el archivo generado.', '', '## Conceptos', '', 'Las flechas blancas marcan orden; los cables de color llevan datos y se evalúan cuando una acción los necesita. Los valores sin cable son constantes. Decimal y entero son compatibles. Variables pertenecen a cada instancia; exportadas se pueden ajustar en el Inspector. Una función tiene su propio grafo y parámetros; Devolver termina su ejecución. Los eventos de contacto necesitan colisión y un cuerpo que entre/salga. Mostrar escribe en Salida; Cambiar texto escribe en la interfaz.', '', 'Movimiento usa píxeles/segundo en 2D. Los bloques Mover, Posición y Colocar en de este catálogo tienen dos ejes: no constituyen una API completa de shooter 3D. La plantilla CQB usa los bloques generales Leer propiedad, Cambiar propiedad, Consultar método y Ejecutar método para controlar Z, disparos y visión desde Blueprints que compilan a Águila. Los recursos de audio se generan localmente sin descargas.', '', '## Recetas combinadas', '', 'Movimiento: Al actualizar → Mover; Eje × velocidad → velocidad x. Salto: Acción pulsada Y En suelo → Si → Saltar. Recogible: Al tocar → Es Jugador → Si → Ganar puntos → Eliminar. Puerta: Emitir abrir → Al recibir abrir → Desplazar. Vida: Restar daño → Limitar 0..100 → Fijar vida → Comparar <= 0 → Si → Perder. Después de cada receta, modifica una sola constante y comprueba el efecto.', ''];
   ids.forEach((id, i) => {
     const d = NODOS[id], bp = ejemploBloque(id), ruta = `blueprints/${id}.bp`;
     archivos[ruta] = bp; archivos[`generado/${id}.agl`] = compilarBlueprint(bp, ruta).codigo;
@@ -244,7 +251,7 @@ export function plantillaAcademia(nombre) {
   });
   archivos['escenas/llegada.fscn'] = escenaVacia('2D', N('Nodo2D', 'Llegada', {}, [N('Interfaz', 'Interfaz', {}, [label('Llegada', 'Cambio de escena completado', 100, 200, 32), button('Volver al índice', 'escenas/academia.fscn', 100, 300)])]));
   archivos['GUIA_BLUEPRINTS.md'] = manual.join('\n');
-  archivos['cobertura-blueprints.json'] = { versionMotor: '1.1.1', bloques: ids.map(id => ({ id, escena: `escenas/${id}.fscn`, blueprint: `blueprints/${id}.bp` })) };
+  archivos['cobertura-blueprints.json'] = { versionMotor: '1.2.0', bloques: ids.map(id => ({ id, escena: `escenas/${id}.fscn`, blueprint: `blueprints/${id}.bp` })) };
   archivos['sonidos/golpe.wav'] = sintetizar('golpe'); archivos['musica/tema.wav'] = sintetizar('tema');
   return { datos, archivos, carpetas: ['escenas', 'blueprints', 'scripts', 'generado', 'sonidos', 'musica'], abrir: ['escenas/academia.fscn'], importacion: {} };
 }

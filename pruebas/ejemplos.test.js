@@ -8,6 +8,7 @@ import { analizar } from '../src/aguila/index.js';
 import { Mundo, NodoVivo } from '../src/motor/mundo.js';
 import { Mundo3D } from '../src/motor/mundo3d.js';
 import { crearProyecto } from '../src/motor/plantillas.js';
+import { readFile } from 'node:fs/promises';
 
 const academia = plantillaAcademia('Academia'), shooter = plantillaShooter('Shooter');
 const recorrer = n => [n, ...(n.hijos || []).flatMap(recorrer)];
@@ -115,6 +116,9 @@ test('cobertura entre cañón y objetivo impide disparar aunque la cámara lo ve
 });
 
 test('crear las tres plantillas escribe proyectos completos, incluyendo WAV y metadatos', async () => {
+  const fetchAnterior = globalThis.fetch;
+  globalThis.fetch = async url => new Response(await readFile(new URL(url)));
+  try {
   for (const id of ['academia_blueprints', 'shooter_tercera', 'shooter_primera']) {
     const escritos = new Map(); globalThis.window = { falcon: { fs: { existe: async () => false, crearCarpeta: async () => {}, escribir: async (p, d) => escritos.set(p, d) } } };
     await crearProyecto('/ejemplo', id, id);
@@ -123,4 +127,5 @@ test('crear las tres plantillas escribe proyectos completos, incluyendo WAV y me
     const audio = [...escritos].find(([p]) => p.endsWith('.wav'))[1]; assert.equal(new TextDecoder().decode(audio.slice(0, 4)), 'RIFF');
   }
   delete globalThis.window;
+  } finally { globalThis.fetch = fetchAnterior; }
 });

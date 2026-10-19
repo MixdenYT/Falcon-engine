@@ -1,0 +1,17 @@
+{
+  "formato": "falcon-personaje-3d",
+  "version": 1,
+  "modelo": "modelos/personajes/enemigo.glb",
+  "frente": 180,
+  "textura_max": 1024,
+  "manos": "modelos/personajes/enemigo-manos.json",
+  "clips": {
+    "walk": "modelos/animaciones/enemigo-walk.json",
+    "run": "modelos/animaciones/enemigo-run.json",
+    "aim": "modelos/animaciones/enemigo-aim.json",
+    "fire": "modelos/animaciones/enemigo-fire.json",
+    "reload": "modelos/animaciones/enemigo-reload.json",
+    "hit": "modelos/animaciones/enemigo-hit.json",
+    "death": "modelos/animaciones/enemigo-death.json"
+  }
+}

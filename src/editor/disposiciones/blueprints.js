@@ -122,7 +122,7 @@ export async function crearDisposicionBlueprints(contenedor) {
     const cat = CATEGORIAS.find(c => c.id === d.cat);
     const { entradas, salidas } = pinesDe(n, bp());
     const campo = (t) => t === 'texto' || t === 'cualquiera' ? 'texto' : t === 'decimal' || t === 'entero' ? 'numero' : t === 'bool' ? 'bool' : t === 'opcion' ? 'opcion' : null;
-    const ent = entradas.map(p => ({ n: p.n, t: p.t === 'opcion' ? 'opcion' : p.t, etq: p.etq, def: p.def, campo: p.t === 'exec' ? null : campo(p.t), opciones: d.opciones && d.opciones[p.n], conectable: !d.soloValor && p.t !== 'opcion' }));
+    const ent = entradas.map(p => ({ n: p.n, t: p.t === 'opcion' ? 'opcion' : p.t, etq: p.etq, def: p.def, campo: p.t === 'exec' ? null : campo(p.t), opciones: d.opciones && d.opciones[p.n], conectable: !d.soloValor && p.t !== 'opcion' && !(n.def.startsWith('ob_') && p.n === 'miembro') }));
     if (n.def === 'var_obtener') {
       const v = bp().variables.find(x => x.nombre === n.variable);
       return { compacto: true, titulo: n.variable || '¿variable?', sub: v ? NOMBRE_TIPO[v.tipo] : 'no existe', entradas: [], salidas: salidas.map(p => ({ n: p.n, t: p.t, etq: '' })) };
@@ -462,3 +462,4 @@ export async function crearDisposicionBlueprints(contenedor) {
     grafo: () => grafo,
   };
 }
+

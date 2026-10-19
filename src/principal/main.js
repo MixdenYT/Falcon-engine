@@ -102,6 +102,7 @@ function crearVentana(opciones = {}) {
     },
     ...opciones,
   });
+  v.setMenu(null); // Alt se reserva para el paso lento del juego; la app usa sus propios menús.
   v.once('ready-to-show', () => { if (!args.captura) v.show(); });
   v.on('maximize', () => v.webContents.send('ventana:estado', { maximizada: true }));
   v.on('unmaximize', () => v.webContents.send('ventana:estado', { maximizada: false }));
@@ -360,7 +361,7 @@ app.on('window-all-closed', () => app.quit());
 // Uso: electron . --captura=salida.png --pagina=src/editor/editor.html?proyecto=... --espera=1500 --guion=archivo.js
 async function modoCaptura() {
   const [ancho, alto] = (args.tamano || '1389x868').split('x').map(Number);
-  const v = crearVentana({ width: ancho, height: alto, show: false, paintWhenInitiallyHidden: true, useContentSize: true });
+  const v = crearVentana({ width: ancho, height: alto, minWidth: ancho, minHeight: alto, show: false, paintWhenInitiallyHidden: true, useContentSize: true });
   v.webContents.setFrameRate(60);
   ventanaPrincipal = v;
   v.webContents.on('console-message', (ev) => {

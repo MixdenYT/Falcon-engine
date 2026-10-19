@@ -3,6 +3,8 @@ import * as THREE from 'three';
 import { ajustarSesgo } from './lumbre-parche.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { Animador3D, clonarRig, aplicarRecorteUV, normalizarRig } from './animacion3d.js';
+import { prepararManos } from './agarre3d.js';
 import { construirMaterial, resolverInstancia } from './materiales.js';
 import { RECORTABLES, cargarCSG, csgListo, recortar, solapan } from './huecos.js';
 
@@ -66,6 +68,32 @@ function mezclarGeometrias(lista) {
 
 // Reflejos suaves para que los metales no se vean negros.
 const reflejos = new WeakMap();
+const texturasRig = new WeakMap(), materialesRig = new WeakMap();
+function limitarTexturasRig(raiz, maximo) {
+  if (!maximo) return;
+  raiz.traverse(o => {
+    if (!o.isMesh || !o.material) return;
+    const adaptar = material => {
+      if (materialesRig.has(material)) return materialesRig.get(material);
+      const copia = material.clone();
+      for (const clave of ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'aoMap']) {
+        const t = material[clave]; if (!t?.image) continue;
+        if (!texturasRig.has(t)) {
+          const imagen = t.image, factor = Math.min(1, maximo / Math.max(imagen.width, imagen.height));
+          if (factor === 1) texturasRig.set(t, t);
+          else {
+            const canvas = document.createElement('canvas'); canvas.width = Math.round(imagen.width * factor); canvas.height = Math.round(imagen.height * factor);
+            canvas.getContext('2d').drawImage(imagen, 0, 0, canvas.width, canvas.height);
+            const textura = t.clone(); textura.source = new THREE.TextureSource(canvas); textura.needsUpdate = true; texturasRig.set(t, textura);
+          }
+        }
+        copia[clave] = texturasRig.get(t);
+      }
+      materialesRig.set(material, copia); return copia;
+    };
+    o.material = Array.isArray(o.material) ? o.material.map(adaptar) : adaptar(o.material);
+  });
+}
 export function aplicarReflejos(renderer, scene, intensidad = 0.5) {
   let t = reflejos.get(renderer);
   if (!t) {
@@ -185,7 +213,7 @@ export class Escena3D {
 
   modelo(rel) {
     if (!this.modelos.has(rel)) {
-      this.modelos.set(rel, this.cargador.loadAsync(this.proyecto.url(rel)).then(g => g.scene).catch((e) => {
+      this.modelos.set(rel, this.cargador.loadAsync(this.proyecto.url(rel)).then(g => { g.scene.animations = g.animations; return g.scene; }).catch((e) => {
         console.warn('Modelo', rel, e);
         return null;
       }));
@@ -205,6 +233,7 @@ export class Escena3D {
   }
 
   limpiar() {
+    for (const o of this.objetos.values()) o.userData.animador?.destruir();
     for (const o of this.objetos.values()) if (o.parent) o.parent.remove(o);
     this.objetos.clear();
     this.nodos.clear();
@@ -246,14 +275,26 @@ export class Escena3D {
         const alt = p.altura || 1.8;
         const visual = new THREE.Group();
         const base = p.modelo && /.(glb|gltf)$/i.test(p.modelo) ? await this.modelo(p.modelo) : null;
+        if (p.modelo && p.animaciones_3d && !base) throw Error('No se pudo cargar el personaje riggeado: ' + p.modelo);
         if (base) {
           // El modelo se escala a la altura del personaje y se apoya en el suelo.
-          const m = base.clone(true);
-          const caja = new THREE.Box3().setFromObject(m);
-          const alto = Math.max(0.01, caja.max.y - caja.min.y);
-          m.scale.multiplyScalar(alt / alto);
-          m.position.y = -caja.min.y * (alt / alto);
+          const m = normalizarRig(clonarRig(base), alt);
           visual.add(m);
+          if (p.animaciones_3d) {
+            const config = await this.proyecto.leerJSON(p.animaciones_3d), clips = {};
+            limitarTexturasRig(m, config.textura_max);
+            if (config.recorte_uv) g.userData.recorte = aplicarRecorteUV(m, await this.proyecto.leerJSON(config.recorte_uv));
+            if (config.manos) { config.perfiles_manos = await this.proyecto.leerJSON(config.manos); g.userData.manos = prepararManos(m, config.perfiles_manos); }
+            for (const [nombre, ruta] of Object.entries(config.clips || {})) {
+              if (/\.json$/i.test(ruta)) { clips[nombre] = THREE.AnimationClip.parse(await this.proyecto.leerJSON(ruta)); continue; }
+              const modelo = await this.modelo(ruta);
+              if (!modelo?.animations.length) throw Error(`No se encuentra el clip 3D ${nombre}: ${ruta}`);
+              clips[nombre] = modelo.animations[0];
+            }
+            m.rotation.y = (config.frente || 0) * RAD;
+            g.userData.animador = new Animador3D(m, clips, config);
+            g.userData.modeloRig = m; g.userData.configRig = config;
+          }
         } else {
           const cuerpo = new THREE.Mesh(new THREE.CapsuleGeometry(0.38, Math.max(0.1, alt - 0.76), 8, 20), new THREE.MeshStandardMaterial({ color: p.color || '#3DDC84', roughness: 0.55 }));
           cuerpo.position.y = alt / 2;
@@ -263,7 +304,7 @@ export class Escena3D {
           visual.add(cuerpo, ojo, ojo2);
         }
         // Los personajes proyectan sombra con el sol, las bombillas y los focos, y también la reciben.
-        visual.traverse(o => { if (o.isMesh) { o.castShadow = p.sombras !== false; o.receiveShadow = true; } });
+        visual.traverse(o => { if (o.isMesh) { o.castShadow = p.sombras !== false; o.receiveShadow = true; if (o.isSkinnedMesh) o.frustumCulled = false; } });
         visual.name = '__visual';
         g.add(visual);
         g.userData.visual = visual;
@@ -552,3 +593,4 @@ export class Escena3D {
     return null;
   }
 }
+

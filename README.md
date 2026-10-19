@@ -2,6 +2,8 @@
 
 # Crea tu próximo juego, en tu idioma.
 
+En **Gestor → Plantillas** encontrarás **Academia de Blueprints** (63 laboratorios, uno por cada bloque del catálogo actual, con grafos comentados, pruebas y ejercicios), **Shooter · Base abierta** (tercera persona) y **Shooter · CQB** (primera persona). Los dos shooters incluyen ambos escenarios, seis enemigos por mapa, cobertura, disparos, vida, munición y recarga. Cada proyecto genera su guía completa: `GUIA_BLUEPRINTS.md` o `GUIA_SHOOTER.md`. Crea el proyecto y pulsa **F5**; en los shooters, **E** inicia el combate.
+
 Motor de videojuegos **2D y 3D para Windows y Linux**, con **Blueprints visuales**, scripts en español con **Águila** e iluminación global **Lumbre**. Construye una escena, dale comportamiento y prueba tu idea desde el mismo editor.
 
 [Web oficial](https://mixden.net/falcon-engine/) · [Instalar y probar](#instalar-y-probar) · [Capturas](#el-editor-en-imágenes) · [Exportar](#exportar-y-empaquetar)

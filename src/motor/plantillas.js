@@ -3,10 +3,15 @@ import { crearNodo } from './tipos.js';
 import { datosProyecto, escenaVacia } from './proyecto.js';
 import { blueprintVacio, compilarBlueprint, idNodoBp } from './blueprints.js';
 import * as gen from './generadores.js';
+import { plantillaAcademia } from './academia.js';
+import { plantillaShooter } from './shooters.js';
 
 export const PLANTILLAS = [
   { id: 'vacio2d', nombre: 'Juego 2D', tipo: '2D', descripcion: 'Sprites, mosaicos y física 2D', icono: 'imagen', basica: true },
   { id: 'vacio3d', nombre: 'Juego 3D', tipo: '3D', descripcion: 'Mallas, luces y cámara en primera o tercera persona', icono: 'cubo', basica: true },
+  { id: 'academia_blueprints', nombre: 'Academia de Blueprints', tipo: '2D', descripcion: '63 laboratorios: todos los bloques, funciones, señales y ejercicios con guía completa.', icono: 'libro', etiqueta: 'Curso completo' },
+  { id: 'shooter_tercera', nombre: 'Shooter · Base abierta', tipo: '3D', descripcion: 'Tercera persona, flancos, cobertura y seis enemigos. Incluye también el mapa CQB.', icono: 'cubo', etiqueta: 'Combate 3D' },
+  { id: 'shooter_primera', nombre: 'Shooter · CQB', tipo: '3D', descripcion: 'Primera persona, pasillos, salas y enemigos. Incluye también la base abierta.', icono: 'cubo', etiqueta: 'Combate 3D' },
   { id: 'plataformas', nombre: 'Plataformas', tipo: '2D', descripcion: 'Salta, recoge monedas, esquiva enemigos y llega a la bandera.', icono: 'persona', etiqueta: 'Blueprints + Águila' },
   { id: 'topdown', nombre: 'Aventura top-down', tipo: '2D', descripcion: 'Vista desde arriba: recoge gemas y huye de las babosas.', icono: 'estrella', etiqueta: 'Águila' },
   { id: 'puzzle', nombre: 'Puzle de cajas', tipo: '2D', descripcion: 'Empuja las cajas hasta las marcas, casilla a casilla.', icono: 'plantillas', etiqueta: 'Águila' },
@@ -877,6 +882,9 @@ async function plantillaCurso(nombre) {
 }
 
 const CONSTRUCTORES = {
+  academia_blueprints: plantillaAcademia,
+  shooter_tercera: (nombre) => plantillaShooter(nombre, 'tercera_persona'),
+  shooter_primera: (nombre) => plantillaShooter(nombre, 'primera_persona'),
   vacio2d: plantillaVacio2D, vacio3d: plantillaVacio3D, plataformas: plantillaPlataformas,
   topdown: plantillaTopdown, puzzle: plantillaPuzzle, mazmorra: plantillaMazmorra, pruebas_luz: plantillaPruebasLuz, curso: plantillaCurso,
 };
@@ -903,3 +911,4 @@ export async function crearProyecto(rutaCarpeta, nombre, idPlantilla, alProgreso
   await fs.escribir(raiz + '/.falcon/importacion.json', JSON.stringify(p.importacion || {}, null, 2));
   return raiz;
 }
+

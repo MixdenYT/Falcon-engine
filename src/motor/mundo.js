@@ -83,6 +83,16 @@ export class NodoVivo {
       mover_a: (x, y, z) => { m.fijarPosicion(yo, x, y, z); return null; },
       desplazar: (dx, dy, dz) => { m.desplazar(yo, dx, dy, dz); return null; },
       distancia_a: (o) => m.distancia(yo, o),
+      ve_a: (o, alcance = 30) => !!(m.d3 && m.d3.lineaVision(yo, o, alcance)),
+      perseguir: (o, velocidad = 2) => {
+        if (!m.d3 || !o || o.eliminado) return null;
+        const a = m.posicion(yo), b = m.posicion(o), dx = b[0] - a[0], dz = b[2] - a[2];
+        const largo = Math.hypot(dx, dz);
+        const v = Math.max(0, Math.min(40, Number(velocidad) || 0));
+        yo.mueveX = largo > 0.1 ? dx / largo * v : 0;
+        yo.mueveZ = largo > 0.1 ? dz / largo * v : 0;
+        return null;
+      },
       mirar_a: (o) => { const a = m.posicion(yo), b = m.posicion(o); yo.props.rotacion = Math.atan2(b[1] - a[1], b[0] - a[0]) * 180 / Math.PI; return null; },
       // Personajes
       mover: (vx = 0, vy = null) => {
@@ -157,7 +167,7 @@ export class NodoVivo {
       case 'emitiendo': return !!this.props.emitiendo;
     }
     const met = this.metodos();
-    if (Object.prototype.hasOwnProperty.call(met, nombre) && (nombresMiembros(this.tipo).includes(nombre) || ['es', 'eliminar', 'hijo', 'llamar', 'mover_a', 'desplazar', 'distancia_a', 'en_grupo', 'añadir_a_grupo', 'quitar_de_grupo', 'girar'].includes(nombre))) return met[nombre];
+    if (Object.prototype.hasOwnProperty.call(met, nombre) && (nombresMiembros(this.tipo).includes(nombre) || ['es', 'eliminar', 'hijo', 'llamar', 'mover_a', 'desplazar', 'distancia_a', 'en_grupo', 'añadir_a_grupo', 'quitar_de_grupo', 'girar', 've_a', 'perseguir'].includes(nombre))) return met[nombre];
     if (Object.prototype.hasOwnProperty.call(this.props, nombre)) {
       const v = this.props[nombre];
       return Array.isArray(v) ? v.slice() : (v !== null && typeof v === 'object') ? undefined : v;
@@ -281,6 +291,7 @@ export class Mundo {
     g('raton_x', () => m.ratonMundo()[0]);
     g('raton_y', () => m.ratonMundo()[1]);
     g('raton_pulsado', () => e.raton.pulsado);
+    g('disparar_rayo', (alcance = 100) => m.d3 ? m.d3.dispararRayo(alcance) : null);
     g('ganar_partida', () => { m.terminar('ganado'); return null; });
     g('perder_partida', () => { m.terminar('perdido'); return null; });
     g('ganar_puntos', (n = 1) => { m.interp.globales.vars.set('puntos', (m.interp.globales.vars.get('puntos') || 0) + Number(n)); m.telemetria('puntos'); return null; });
@@ -1199,3 +1210,4 @@ function deserializar(v) {
   if (Array.isArray(v)) return v.map(deserializar);
   return v;
 }
+

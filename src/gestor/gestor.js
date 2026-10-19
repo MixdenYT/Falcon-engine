@@ -306,6 +306,9 @@ async function nuevoProyecto(idPlantilla = 'vacio2d') {
 
 // ---------- Vista Plantillas ----------
 const ILUSTRACION_PLANTILLA = {
+  academia_blueprints: () => `<svg viewBox="0 0 360 150"><rect width="360" height="150" fill="#10231C"/><path d="M92 65H157V102H230M92 65H230V38" stroke="#4FD1C5" stroke-width="3" fill="none"/><g fill="#284E3B" stroke="#5DDC9B"><rect x="30" y="45" width="90" height="40" rx="7"/><rect x="230" y="18" width="100" height="40" rx="7"/><rect x="230" y="82" width="100" height="40" rx="7"/></g><g fill="#E7EDE9" font-family="sans-serif" font-size="13"><text x="45" y="70">Evento</text><text x="245" y="43">Condición</text><text x="245" y="107">Acción</text><text x="30" y="140">63 bloques · aprende probando</text></g></svg>`,
+  shooter_tercera: () => `<svg viewBox="0 0 360 150"><rect width="360" height="150" fill="#87ABBA"/><path d="M0 82H360V150H0Z" fill="#355B49"/><path d="M150 150 173 82H190L230 150" fill="#929782"/><path d="M30 100V48H103V100ZM257 100V30H330V100Z" fill="#52788B"/><path d="M210 107H267V126H210Z" fill="#B7A17B"/><circle cx="153" cy="100" r="9" fill="#61C8C0"/><path d="M145 112H162V146H145Z" fill="#61C8C0"/><path d="M175 75h10m-5-5v10" stroke="white"/><circle cx="195" cy="92" r="5" fill="#F36B64"/></svg>`,
+  shooter_primera: () => `<svg viewBox="0 0 360 150"><rect width="360" height="150" fill="#172830"/><path d="M0 0 138 50V100L0 150ZM360 0 222 50V100L360 150Z" fill="#506879"/><path d="M0 150 138 100H222L360 150" fill="#414953"/><path d="M35 115V45L87 54V108ZM273 108V54L325 45V115Z" fill="#0C1C24"/><path d="M175 75h10m-5-5v10" stroke="#E7EDE9" stroke-width="2"/><rect x="167" y="88" width="18" height="28" fill="#F36B64"/><path d="M155 30H205" stroke="#A3DFFF" stroke-width="5"/></svg>`,
   vacio2d: () => ilustracion('2D', 0), vacio3d: () => ilustracion('3D', 0), plataformas: () => ilustracion('2D', 0),
   topdown: () => ilustracion('2D', 2), puzzle: () => ilustracion('2D', 1), mazmorra: () => ilustracion('3D', 0), curso: () => ilustracion('2D', 0),
 };
@@ -315,7 +318,7 @@ function vistaPlantillas(c) {
     <header class="cabecera"><div><h1>Plantillas</h1><p>Proyectos completos para empezar: con escenas, Blueprints, scripts en Águila, sprites y sonidos.</p></div></header>
     <section class="plantillas">${PLANTILLAS.map(p => `
       <article class="plantilla">
-        <div class="miniatura">${ILUSTRACION_PLANTILLA[p.id]()}</div>
+        <div class="miniatura">${ILUSTRACION_PLANTILLA[p.id]?.() || ilustracion(p.tipo)}</div>
         <div class="info"><b>${esc(p.nombre)}</b><p>${esc(p.descripcion)}</p>
           <div class="fila-flex"><span class="etiqueta-plantilla">${p.tipo}${p.etiqueta ? ' · ' + esc(p.etiqueta) : ''}</span><button class="btn principal peq" data-p="${p.id}">Usar plantilla</button></div>
         </div>

@@ -92,6 +92,28 @@ function grafo(bp, clave = 'eventos') {
   };
 }
 
+function ordenarEjemplo(bp) {
+  for (const g of Object.values(bp.grafos)) {
+    const porId = new Map(g.nodos.map(n => [n.id, n]));
+    const cola = g.nodos.filter(n => NODOS[n.def].esEvento).map((n, i) => ({ n, nivel: 0, fila: i }));
+    const vistos = new Set(); let filaDatos = 0;
+    while (cola.length) {
+      const { n, nivel, fila } = cola.shift(); if (vistos.has(n.id)) continue;
+      vistos.add(n.id); n.x = 40 + nivel * 300; n.y = 80 + fila * 220;
+      const salidas = pinesDe(n, bp).salidas.filter(p => p.t === 'exec');
+      salidas.forEach((p, i) => {
+        const c = g.conexiones.find(c => c.de === n.id && c.salida === p.n);
+        if (c) cola.push({ n: porId.get(c.a), nivel: nivel + 1, fila: fila + i });
+      });
+    }
+    const suelo = Math.max(320, ...g.nodos.filter(n => vistos.has(n.id)).map(n => n.y + 230));
+    for (const n of g.nodos) if (!vistos.has(n.id)) {
+      n.x = 40 + (filaDatos % 4) * 300; n.y = suelo + Math.floor(filaDatos / 4) * 240; filaDatos++;
+    }
+  }
+  return bp;
+}
+
 export function ejemploBloque(id) {
   const d = NODOS[id];
   if (!CASOS[id]) throw new Error('Falta la lección del bloque ' + id);
@@ -123,7 +145,7 @@ export function ejemploBloque(id) {
     const ret = h.n('fn_devolver');
     h.c(en, 'salida', msg); h.c(en, 'cantidad', msg, 'texto'); h.c(msg, 'salida', ret);
     h.comentario('Parámetro cantidad → Resultado. Devolver finaliza la función. La flecha no devuelve un dato al bloque de llamada.');
-    return bp;
+    return ordenarEjemplo(bp);
   }
   const n = g.n(id, valores[id] || {}, id.startsWith('var_') ? { variable: 'contador' } : {});
   const fin = informar('Ejecutado: ' + d.titulo);
@@ -175,7 +197,7 @@ export function ejemploBloque(id) {
   }
   if (id === 'mt_distancia') { const yo = g.n('es_yo'); g.c(yo, 'yo', n, 'a'); }
   if (['var_fijar', 'var_sumar'].includes(id)) { const v = g.n('var_obtener', {}, { variable: 'contador' }); g.c(v, 'valor', fin, 'texto'); }
-  return bp;
+  return ordenarEjemplo(bp);
 }
 
 export function plantillaAcademia(nombre) {

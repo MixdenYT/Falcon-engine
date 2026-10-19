@@ -222,7 +222,7 @@ export function plantillaShooter(nombre, vista = 'tercera_persona') {
     'escenas/base_abierta.fscn': escenaShooter(true), 'escenas/cqb.fscn': escenaShooter(false),
     'scripts/jugador.agl': SCRIPT_JUGADOR_SHOOTER, 'scripts/enemigo.agl': SCRIPT_ENEMIGO_SHOOTER,
     'sonidos/tiro.wav': sintetizar('golpe'), 'sonidos/baja.wav': sintetizar('moneda'),
-    'GUIA_SHOOTER.md': `# Falcon Engine 1.0.1 — Shooter 3D de ejemplo
+    'GUIA_SHOOTER.md': `# Falcon Engine 1.1.0 — Shooter 3D de ejemplo
 
 Dos mapas completos en el mismo proyecto: base_abierta.fscn (76 × 76 m, tercera persona) y cqb.fscn (32 × 44 m, primera persona). Elige la escena en el explorador y ejecútala. V cambia de vista en ambos mapas. Cada mapa tiene seis drones con tres impactos de 34 de daño para eliminarlos. Son prototipos didácticos con geometría editable, sin recursos externos.
 

@@ -7,9 +7,11 @@ on:
       - 'src/aguila/**'
       - 'src/principal/**'
       - 'pruebas/**'
+      - 'herramientas/**'
       - 'package*.json'
       - 'electron-builder.config.cjs'
       - '.github/workflows/verificar-actualizaciones.yml'
+      - '.github/workflows/releases.yml'
 permissions:
   contents: read
 jobs:

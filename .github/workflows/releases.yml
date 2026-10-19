@@ -1,39 +1,106 @@
 name: Publicar instaladores actualizables
 on:
-  release:
-    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Versión estable a publicar (por ejemplo 1.1.0)'
+        required: true
+        type: string
 permissions:
-  contents: write
+  contents: read
+concurrency:
+  group: falcon-release-${{ inputs.version }}
+  cancel-in-progress: false
 jobs:
-  publicar:
+  compilar:
     strategy:
       fail-fast: false
       matrix:
         include:
           - os: windows-latest
+            plataforma: win-x64
             script: release:win
           - os: ubuntu-24.04
+            plataforma: linux-x64
             script: release:linux
           - os: ubuntu-24.04-arm
+            plataforma: linux-arm64
             script: release:linux-arm
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
         with:
-          lfs: true
+          # El repositorio histórico contiene node_modules. Se instala desde el lockfile.
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /src/
+            /recursos/
+            /herramientas/
+            /pruebas/
+            /notas/
+            /package.json
+            /package-lock.json
+            /electron-builder.config.cjs
+            /LICENSE
+            /THIRD_PARTY_NOTICES.md
+            /.gitattributes
+      - name: Descargar recursos LFS del motor
+        run: git lfs pull --include="recursos/**"
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: npm
-      - name: Validar tag y versión
+      - name: Validar versión solicitada
         shell: bash
         env:
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
-        run: node -e "const p=require('./package.json'), l=require('./package-lock.json'); if(process.env.RELEASE_TAG!=='v'+p.version || l.version!==p.version || l.packages[''].version!==p.version) process.exit(1)"
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: node -e "const p=require('./package.json'), l=require('./package-lock.json'); if(process.env.RELEASE_VERSION!==p.version || !/^\d+\.\d+\.\d+$/.test(p.version) || l.version!==p.version || l.packages[''].version!==p.version) process.exit(1)"
       - run: npm ci
       - run: npm test
       - run: npm run test:actualizaciones
-      - name: Compilar y publicar archivos de actualización
-        run: npm run ${{ matrix.script }} -- --publish always
+      - name: Compilar sin publicar
+        run: npm run ${{ matrix.script }} -- --publish never
+      - uses: actions/upload-artifact@v4
+        with:
+          name: instaladores-${{ matrix.plataforma }}
+          if-no-files-found: error
+          retention-days: 7
+          path: |
+            dist-actualizaciones/*.exe
+            dist-actualizaciones/*.AppImage
+            dist-actualizaciones/*.blockmap
+            dist-actualizaciones/latest*.yml
+  publicar:
+    needs: compilar
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /herramientas/
+            /notas/
+            /package.json
+            /package-lock.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: instaladores-*
+          path: instaladores
+          merge-multiple: true
+      - name: Verificar todos los instaladores, metadatos y hashes
+        run: node herramientas/verificar-release.cjs instaladores
+      - name: Subir a borrador y publicar solo al completar los tres sistemas
+        shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_VERSION: ${{ inputs.version }}
+          RELEASE_COMMIT: ${{ github.sha }}
+        run: node herramientas/publicar-release.cjs

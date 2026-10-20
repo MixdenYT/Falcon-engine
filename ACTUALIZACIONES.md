@@ -50,8 +50,10 @@ Los scripts `build:win`, `build:linux` y `build:linux-arm` mantienen los paquete
 portátiles anteriores. Esos paquetes detectan versiones y abren la release
 para instalación manual: no prometen autoactualización.
 
-El workflow `.github/workflows/releases.yml` se inicia desde Actions → Publicar
-instaladores actualizables → Run workflow, indicando la versión de package.json.
+El workflow `.github/workflows/releases.yml` se inicia desde Actions → Verificar
+y publicar instaladores → Run workflow, seleccionando `main` e indicando la versión de package.json.
+Para una release completa, activa `publicar` y desactiva `solo_windows`.
+Para una entrega de prueba de Windows, deja `publicar` desactivado y `solo_windows` activado.
 La versión debe coincidir también con package-lock.json y existir en
 `notas/v<version>.md`. Ejecuta pruebas, compila las tres plataformas sin publicar,
 verifica tamaños y SHA-512, genera SHA256SUMS.txt y sube todo a un borrador.

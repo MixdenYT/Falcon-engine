@@ -2,7 +2,9 @@
 
 # Crea tu próximo juego, en tu idioma.
 
-En **Gestor → Plantillas** encontrarás **Academia de Blueprints** (63 laboratorios, uno por cada bloque del catálogo actual, con grafos comentados, pruebas y ejercicios), **Shooter · Base abierta** (tercera persona) y **Shooter · CQB** (primera persona). Los dos shooters incluyen ambos escenarios, seis enemigos por mapa, cobertura, disparos, vida, munición y recarga. Cada proyecto genera su guía completa: `GUIA_BLUEPRINTS.md` o `GUIA_SHOOTER.md`. Crea el proyecto y pulsa **F5**; en los shooters, **E** inicia el combate.
+En **Gestor → Plantillas** encontrarás **Academia de Blueprints** (67 laboratorios, uno por cada bloque del catálogo actual, con grafos comentados, pruebas y ejercicios), **Shooter · Base abierta** (tercera persona) y **Shooter · CQB** (primera persona). **Umbral CQB** incluye un recorrido de habitaciones y pasillos, cuatro puertas, tres enemigos, personajes originales con rig y animaciones, carabina y pistola. Su combate, inventario, puertas y victoria ejecutan Águila generado por Blueprints editables. Cada proyecto genera su guía: `GUIA_BLUEPRINTS.md`, `GUIA_SHOOTER.md` o `GUIA_CQB_ES.md` y `GUIA_CQB_EN.md`.
+
+Para probar CQB, crea un proyecto nuevo con **Shooter · CQB**, ábrelo y pulsa **F5** o **Probar**. Haz clic en la ventana para capturar el ratón. **WASD** mueve, **Alt** avanza despacio, **Shift** acelera, **Ctrl** agacha, **Q/E** inclina, **clic derecho** apunta, **clic izquierdo** dispara, **R** recarga, **1/2/T** cambia de arma y **F** interactúa. **H** muestra todos los controles y **L** alterna español e inglés. El terminal final se activa al eliminar los tres enemigos.
 
 Motor de videojuegos **2D y 3D para Windows y Linux**, con **Blueprints visuales**, scripts en español con **Águila** e iluminación global **Lumbre**. Construye una escena, dale comportamiento y prueba tu idea desde el mismo editor.
 
@@ -25,7 +27,9 @@ Motor de videojuegos **2D y 3D para Windows y Linux**, con **Blueprints visuales
 
 ## Instalar y probar
 
-Necesitas **Git, Git LFS, Node.js y npm**, además de acceso a este repositorio si es privado. Usa una versión de Node.js compatible con las dependencias indicadas en `package.json`.
+Descarga el instalador de Windows o la AppImage de Linux x64/ARM64 desde [Releases](https://github.com/MixdenYT/Falcon-engine/releases/latest). El instalador incluye las plantillas y todos sus modelos; no necesitas Node.js para jugar.
+
+Para trabajar desde el código necesitas **Git, Git LFS, Node.js y npm**, además de acceso a este repositorio si es privado. Usa una versión de Node.js compatible con las dependencias indicadas en `package.json`.
 
 ```sh
 git lfs install
@@ -59,7 +63,7 @@ cerrar; los paquetes portátiles anteriores ofrecen descarga manual.
 
 Consulta [ACTUALIZACIONES.md](ACTUALIZACIONES.md) para publicar los instaladores,
 sus metadatos y las notas de versión. La versión publicada y el tag deben coincidir
-con la versión del paquete; esta integración prepara la **1.0.1**.
+con la versión del paquete. La **1.2.0** incorpora Umbral CQB.
 
 ## El editor en imágenes
 

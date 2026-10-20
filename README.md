@@ -2,7 +2,7 @@
 
 # Crea tu próximo juego, en tu idioma.
 
-En **Gestor → Plantillas** encontrarás **Academia de Blueprints** (67 laboratorios, uno por cada bloque del catálogo actual, con grafos comentados, pruebas y ejercicios), **Shooter · Base abierta** (tercera persona) y **Shooter · CQB** (primera persona). **Umbral CQB** incluye un recorrido de habitaciones y pasillos, cuatro puertas, tres enemigos, personajes originales con rig y animaciones, carabina y pistola. Su combate, inventario, puertas y victoria ejecutan Águila generado por Blueprints editables. Cada proyecto genera su guía: `GUIA_BLUEPRINTS.md`, `GUIA_SHOOTER.md` o `GUIA_CQB_ES.md` y `GUIA_CQB_EN.md`.
+En **Gestor → Plantillas** encontrarás **Academia de Blueprints** (67 laboratorios, uno por cada bloque del catálogo actual, con grafos comentados, pruebas y ejercicios), **Shooter · Base abierta** (tercera persona) y **Shooter · CQB** (primera persona). **Umbral CQB** incluye un recorrido de habitaciones y pasillos, cuatro puertas, tres enemigos, personajes originales con rig y animaciones, carabina y pistola. Su combate, inventario, puertas y victoria ejecutan Águila generado por Blueprints editables. Cada proyecto genera su guía: `GUIA_BLUEPRINTS.md`, `GUIA_SHOOTER.md` o `GUIA_CQB.md` (español) y `GUIA_CQB_EN.md` (inglés).
 
 Para probar CQB, crea un proyecto nuevo con **Shooter · CQB**, ábrelo y pulsa **F5** o **Probar**. Haz clic en la ventana para capturar el ratón. **WASD** mueve, **Alt** avanza despacio, **Shift** acelera, **Ctrl** agacha, **Q/E** inclina, **clic derecho** apunta, **clic izquierdo** dispara, **R** recarga, **1/2/T** cambia de arma y **F** interactúa. **H** muestra todos los controles y **L** alterna español e inglés. El terminal final se activa al eliminar los tres enemigos.
 

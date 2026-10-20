@@ -73,17 +73,21 @@ const proyectos = capturar('crear-todas', 'src/gestor/gestor.html', `
 `).proyectos;
 
 for (const p of proyectos) capturar('editor-juego-' + p.id, 'src/editor/editor.html?proyecto=' + encodeURIComponent(p.ruta), `
-  const esperar=async(fn,mensaje)=>{const fin=Date.now()+30000;while(!fn()){if(Date.now()>fin)throw Error(mensaje);await new Promise(r=>setTimeout(r,100));}};
+  // Compilar shaders en SwiftShader puede superar 30 s en un ejecutor Windows
+  // compartido. Se exige el mismo inicio real, con un límite y tiempos medidos.
+  const esperar=async(fn,mensaje)=>{const fin=Date.now()+120000;while(!fn()){if(Date.now()>fin)throw Error(mensaje+' (120 s)');await new Promise(r=>setTimeout(r,100));}};
   await esperar(()=>window.__falconEditor&&!document.querySelector('.cargando-editor'),'El editor no terminó de cargar');
   if(document.body.innerText.includes('Error al mostrar esta vista:'))throw Error(document.body.innerText);
   if(!window.__falconEditor.est.docs.length||!document.querySelector('.visor'))throw Error('No se creó el visor de la escena');
   const errores=[];let iniciado=false;
   const quitar=falcon.juego.alInformar(m=>{if(m.tipo==='iniciado')iniciado=true;if(m.tipo==='error')errores.push(m.error);});
+  const inicio=Date.now();
   await window.__falconEditor.A.probar();
   await esperar(()=>iniciado||errores.length,'El juego no confirmó su inicio');
+  const inicioMs=Date.now()-inicio;
   await new Promise(r=>setTimeout(r,1500));quitar();
   if(errores.length)throw Error(JSON.stringify(errores));
-  return {id:${JSON.stringify(p.id)},editor:true,juego:iniciado,errores};
+  return {id:${JSON.stringify(p.id)},editor:true,juego:iniciado,inicioMs,errores};
 `, true);
 console.log(`INSTALADOR VERIFICADO: ${proyectos.length} plantillas creadas, abiertas en editor y ejecutadas.`);
 

@@ -116,6 +116,16 @@ function crearVentana(opciones = {}) {
   v.webContents.setWindowOpenHandler(({ url }) => { shell.openExternal(url); return { action: 'deny' }; });
   // Evita que soltar un archivo en la ventana navegue fuera de la app.
   v.webContents.on('will-navigate', (e, url) => { if (!url.startsWith('falcon://')) e.preventDefault(); });
+  if (args.captura) {
+    // Incluye la ventana de juego abierta por el editor: un fallo de carga no
+    // debe quedar reducido a un timeout sin el error original en las pruebas.
+    v.webContents.on('console-message', (ev) => {
+      const texto = ev.message ?? '';
+      if (args.consola || /error|Error|fallo|Uncaught/.test(texto)) console.log('[consola ventana ' + v.id + ']', texto);
+    });
+    v.webContents.on('did-fail-load', (ev, codigo, descripcion, url) => console.error('[carga ventana ' + v.id + ']', codigo, descripcion, url));
+    v.webContents.on('render-process-gone', (ev, detalles) => console.error('[renderer ventana ' + v.id + ']', detalles.reason, detalles.exitCode));
+  }
   return v;
 }
 
@@ -364,10 +374,6 @@ async function modoCaptura() {
   const v = crearVentana({ width: ancho, height: alto, minWidth: ancho, minHeight: alto, show: false, paintWhenInitiallyHidden: true, useContentSize: true });
   v.webContents.setFrameRate(60);
   ventanaPrincipal = v;
-  v.webContents.on('console-message', (ev) => {
-    const texto = ev.message ?? '';
-    if (args.consola || /error|Error|fallo|Uncaught/.test(texto)) console.log('[consola]', texto);
-  });
   await v.loadURL('falcon://app/' + args.pagina);
   const espera = (ms) => new Promise(r => setTimeout(r, ms));
   await espera(Number(args.espera || 1200));

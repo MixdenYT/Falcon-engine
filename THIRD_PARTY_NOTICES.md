@@ -361,3 +361,9 @@ inventory is not a substitute for those texts or a completed distribution audit.
 Las licencias se revisan de nuevo al actualizar dependencias o incorporar código,
 imágenes, modelos, sonidos, fuentes, plantillas o contribuciones externas.
 Recheck licenses when dependencies or external code, assets or contributions change.
+
+## Recursos CQB / CQB assets
+
+Los dos personajes originales de la plantilla CQB fueron generados con la cuenta de Meshy conectada para este proyecto. `recursos/cqb/procedencia.json` registra sus tareas y el consumo confirmado. Los GLB de distribución conservan la geometría, rig y texturas recibidos; el motor aplica adaptaciones de agarre e importación documentadas en la plantilla. Armas, superficies y efectos WAV son diseños originales del proyecto.
+
+The CQB characters were generated for this project through the connected Meshy account. Task IDs and confirmed consumption are recorded in `recursos/cqb/procedencia.json`. Distribution GLBs preserve the received geometry, rig and textures; documented grip/import adapters run in the engine. Weapons, surfaces and WAV effects are original project resources.

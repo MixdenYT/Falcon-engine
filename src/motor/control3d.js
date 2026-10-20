@@ -33,6 +33,7 @@ export class Controles3D {
     this.fovBase = 65; this.fov = 65;
     this.activo = false;
     this.cuerpoOculto = null;
+    this.inclinacion = 0; this.ads = 0; this.retroceso = 0;
   }
 
   conectar(lienzo) {
@@ -40,9 +41,15 @@ export class Controles3D {
     this._mov = (e) => { if (document.pointerLockElement === lienzo) { this.raton.x += e.movementX; this.raton.y += e.movementY; } };
     this._rueda = (e) => { if (this.activo && !this.primeraPersona) { this.raton.rueda += Math.sign(e.deltaY); e.preventDefault(); } };
     this._clic = () => { if (this.activo && document.pointerLockElement !== lienzo) lienzo.requestPointerLock?.(); };
+    this._capturaInicial = e => {
+      if (this.activo && this.jugador?.props.tactico && e.button === 0 && document.pointerLockElement !== lienzo) {
+        e.preventDefault(); e.stopImmediatePropagation(); lienzo.requestPointerLock?.();
+      }
+    };
     window.addEventListener('mousemove', this._mov);
     lienzo.addEventListener('wheel', this._rueda, { passive: false });
     lienzo.addEventListener('click', this._clic);
+    lienzo.addEventListener('mousedown', this._capturaInicial, true);
   }
 
   desconectar() {
@@ -50,6 +57,7 @@ export class Controles3D {
     window.removeEventListener('mousemove', this._mov);
     this.lienzo.removeEventListener('wheel', this._rueda);
     this.lienzo.removeEventListener('click', this._clic);
+    this.lienzo.removeEventListener('mousedown', this._capturaInicial, true);
     this.mostrarCuerpo();
   }
 
@@ -74,8 +82,23 @@ export class Controles3D {
     let x = e.eje('izquierda', 'derecha'), z = e.eje('adelante', 'atras');
     const l = Math.hypot(x, z);
     if (l > 1) { x /= l; z /= l; }
-    const correr = e.mantiene('correr') && l > 0.1;
-    const v = (n.props.velocidad ?? 5) * (correr ? 1.7 : 1);
+    const tactico = !!n.props.tactico;
+    if (tactico) {
+      if (e.pulsa('sensibilidad_menos')) n.props.sensibilidad = Math.max(0.2, (n.props.sensibilidad || 0.75) - 0.1);
+      if (e.pulsa('sensibilidad_mas')) n.props.sensibilidad = Math.min(3, (n.props.sensibilidad || 0.75) + 0.1);
+      const altura = n.props.altura || 1.8, agachar = e.mantiene('agacharse');
+      const p = this.d3.posicionGlobal(n), prueba = this.d3.cajaPersonaje(n, p);
+      prueba.min.y += 0.08; prueba.max.y = p[1] + altura;
+      const techo = !agachar && this.d3.solidos.some(s => s.b.intersectsBox(prueba));
+      n._agachado = agachar || !!techo;
+      const objetivoAltura = n._agachado ? 1.12 : altura;
+      n._alturaColision ??= altura;
+      n._alturaColision += Math.sign(objetivoAltura - n._alturaColision) * Math.min(Math.abs(objetivoAltura - n._alturaColision), dt * 4.5);
+      n._apuntando = e.mantiene('apuntar') && !n.aguilaObtener('recargando');
+      n._lento = e.mantiene('andar_lento');
+    }
+    const correr = e.mantiene('correr') && l > 0.1 && (!tactico || !n._agachado && !n._apuntando && !n._lento);
+    const v = n._muerto ? 0 : tactico ? (n._agachado ? 1.05 : n._lento ? 1.1 : n._apuntando ? 1.35 : correr ? 3.2 : 2.2) : (n.props.velocidad ?? 5) * (correr ? 1.7 : 1);
     let objX, objZ;
     if (this.activo && this.jugador === n) {
       // Relativo a hacia dónde mira la cámara de los controles.
@@ -89,7 +112,7 @@ export class Controles3D {
     }
     n._vx ??= 0; n._vz ??= 0;
     // Inercia: en el suelo acelera rápido y frena aún más rápido; en el aire se controla menos.
-    const tasa = n.enSuelo ? (l > 0.05 ? 14 : 20) : (l > 0.05 ? 4 : 1.2);
+    const tasa = tactico ? (l > 0.05 ? 32 : 42) : n.enSuelo ? (l > 0.05 ? 14 : 20) : (l > 0.05 ? 4 : 1.2);
     const k = 1 - Math.exp(-tasa * dt);
     n._vx += (objX - n._vx) * k;
     n._vz += (objZ - n._vz) * k;
@@ -101,7 +124,7 @@ export class Controles3D {
     // Salto: tiempo de coyote, salto recordado y altura variable.
     n._coyote = n.enSuelo ? 0.12 : Math.max(0, (n._coyote || 0) - dt);
     n._recordado = e.pulsa('saltar') ? 0.14 : Math.max(0, (n._recordado || 0) - dt);
-    if (n._recordado > 0 && n._coyote > 0) {
+    if (!tactico && n._recordado > 0 && n._coyote > 0) {
       n.vy = n.props.salto; n.enSuelo = false; n._coyote = 0; n._recordado = 0; n._saltando = true;
       m.telemetria('salto');
     }
@@ -120,12 +143,12 @@ export class Controles3D {
   /** Coloca la cámara de los controles. nodoCam: la Cámara3D hija del jugador (o null). */
   actualizarCamara(n, nodoCam, dt) {
     const fp = n.props.controles === 'primera_persona';
-    const alt = n.props.altura || 1.8;
+    const alt = n._alturaColision || n.props.altura || 1.8;
     const pos = this.d3.posicionGlobal(n);
     if (this.jugador !== n) this.iniciar(n, nodoCam, pos, alt, fp);
     else if (this._modo !== n.props.controles) this.cambiarModo(n, pos, alt, fp);
     // Entrada: ratón capturado, stick derecho del mando y rueda.
-    const sens = n.props.sensibilidad ?? 1;
+    const sens = (n.props.sensibilidad ?? 1) * (n.props.tactico && n._apuntando ? 0.62 : 1);
     const inv = n.props.invertir_y ? -1 : 1;
     const ejes = this.d3.m.entrada.ejesMando || [];
     const zona = (a) => Math.abs(a || 0) < 0.15 ? 0 : (a - Math.sign(a) * 0.15) / 0.85;
@@ -143,8 +166,8 @@ export class Controles3D {
     if (nodoCam) cam.far = 1000;
     if (fp) this.camaraPrimera(n, pos, alt, dt); else this.camaraTercera(n, pos, alt, dt);
     // Campo de visión: un poco más abierto al correr.
-    const objetivo = this.fovBase + (n._correr ? (fp ? 8 : 5) : 0);
-    this.fov += (objetivo - this.fov) * (1 - Math.exp(-dt * 6));
+    const objetivo = n.props.tactico ? (n._apuntando ? 52 : this.fovBase) + (n._correr ? 3 : 0) : this.fovBase + (n._correr ? (fp ? 8 : 5) : 0);
+    this.fov += (objetivo - this.fov) * (1 - Math.exp(-dt * (n.props.tactico ? 14 : 6)));
     if (Math.abs(cam.fov - this.fov) > 0.01) { cam.fov = this.fov; }
     return cam;
   }
@@ -227,9 +250,10 @@ export class Controles3D {
     if (Math.abs(ojos - this.pivote.y) > 3) this.pivote.y = ojos;
     this.pivote.x = pos[0]; this.pivote.z = pos[2];
     this.pivote.y += (ojos - this.pivote.y) * (1 - Math.exp(-dt * 18));
+    if (n.props.tactico) this.pivote.y = Math.min(this.pivote.y, pos[1] + alt - 0.08);
     // Balanceo al andar.
     const vel = Math.hypot(n._vx || 0, n._vz || 0);
-    const amp = n.enSuelo && vel > 0.5 ? Math.min(1, vel / 7) * 0.05 : 0;
+    const amp = n.enSuelo && vel > 0.5 ? Math.min(1, vel / 7) * (n.props.tactico ? (n._apuntando ? 0.006 : 0.022) : 0.05) : 0;
     this.bob += (amp - this.bob) * (1 - Math.exp(-dt * 8));
     if (amp > 0) this.fase += dt * (5 + vel * 0.9);
     // Golpe al aterrizar, según lo rápido que caía.
@@ -241,7 +265,24 @@ export class Controles3D {
     const lado = Math.sin(this.fase) * this.bob * 0.5;
     const arriba = Math.sin(this.fase * 2) * this.bob * 0.6;
     cam.position.set(this.pivote.x + Math.cos(this.yaw) * lado, this.pivote.y + arriba - this.golpe, this.pivote.z - Math.sin(this.yaw) * lado);
-    cam.rotation.set(this.pitch, this.yaw, Math.sin(this.fase) * this.bob * 0.03, 'YXZ');
+    let roll = Math.sin(this.fase) * this.bob * 0.03;
+    if (n.props.tactico) {
+      const e = this.d3.m.entrada, objetivo = n._correr ? 0 : (e.mantiene('inclinar_derecha') ? 1 : 0) - (e.mantiene('inclinar_izquierda') ? 1 : 0);
+      this.inclinacion += (objetivo - this.inclinacion) * (1 - Math.exp(-dt * 16));
+      const centro = cam.position.clone(), desplazar = new THREE.Vector3(Math.cos(this.yaw), 0, -Math.sin(this.yaw));
+      let distancia = Math.abs(this.inclinacion) * 0.28;
+      const direccion = desplazar.clone().multiplyScalar(Math.sign(this.inclinacion) || 1), rayo = new THREE.Ray(centro, direccion), punto = new THREE.Vector3();
+      for (const s of this.d3.solidos) {
+        const b = s.b.clone().expandByScalar(0.15);
+        if (b.containsPoint(centro)) { distancia = 0; break; }
+        if (rayo.intersectBox(b, punto)) distancia = Math.min(distancia, Math.max(0, centro.distanceTo(punto) - 0.015));
+      }
+      cam.position.addScaledVector(direccion, distancia);
+      roll = -Math.sign(this.inclinacion) * distancia / 0.28 * 0.10;
+      this.ads += ((n._apuntando ? 1 : 0) - this.ads) * (1 - Math.exp(-dt * 16));
+      this.retroceso *= Math.exp(-dt * 17);
+    }
+    cam.rotation.set(this.pitch + this.retroceso, this.yaw, roll, 'YXZ');
   }
 
   // El cuerpo pasa a una capa que la cámara del jugador no ve, pero las sombras y los espejos sí.
@@ -284,3 +325,4 @@ export class Controles3D {
     c.restore();
   }
 }
+

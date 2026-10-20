@@ -40,6 +40,10 @@ const ent = (n, t, def, etq) => ({ n, t, def, etq: etq ?? n });
 const sal = (n, t, etq) => ({ n, t, etq: etq ?? n });
 const EXEC_IN = ent('entrada', 'exec', null, '');
 const EXEC_OUT = sal('salida', 'exec', '');
+const identificador = v => /^[\p{L}_][\p{L}\p{N}_]*$/u.test(String(v || '')) ? String(v) : '__miembro_invalido';
+const OBJETO = ent('objeto', 'objeto', null, 'objeto (vacío = yo)');
+const ARGUMENTOS = [ent('a', 'cualquiera', null, 'argumento 1'), ent('b', 'cualquiera', null, 'argumento 2'), ent('c', 'cualquiera', null, 'argumento 3')];
+const llamadaObjeto = c => `${c.e('objeto', P.atomo)}.${identificador(c.valor('miembro'))}(${['a', 'b', 'c'].slice(0, Math.max(0, Math.min(3, Number(c.valor('cantidad')) || 0))).map(p => c.e(p)).join(', ')})`;
 
 function binaria(op, prec) {
   return (c) => ({ codigo: `${c.e('a', prec)} ${op} ${c.e('b', prec + (op === '-' || op === '/' ? 1 : 0))}`, prec });
@@ -102,6 +106,10 @@ export const NODOS = {
   var_sumar: { titulo: 'Sumar a variable', cat: 'Variables', variable: true, exec: true, entradas: [EXEC_IN, ent('cantidad', 'decimal', 1, 'cantidad')], salidas: [EXEC_OUT], gen: (c) => `${c.nodo.variable || 'x'} = ${c.nodo.variable || 'x'} + ${c.e('cantidad', P.suma + 1)}`, ayuda: 'Suma una cantidad a una variable numérica.' },
   fn_llamar: { titulo: 'Llamar función', cat: 'Variables', funcion: true, exec: true, entradas: [EXEC_IN], salidas: [EXEC_OUT], gen: (c) => `${c.nodo.funcion || 'funcion'}(${(c.params || []).map(p => c.e(p)).join(', ')})`, ayuda: 'Ejecuta una función del Blueprint.' },
   fn_devolver: { titulo: 'Devolver', cat: 'Variables', exec: true, entradas: [EXEC_IN, ent('valor', 'cualquiera', null, 'valor')], salidas: [], gen: (c) => c.conectado('valor') ? `devolver ${c.e('valor')}` : 'devolver', ayuda: 'Termina la función.' },
+  ob_leer: { titulo: 'Leer propiedad', cat: 'Variables', entradas: [OBJETO, ent('miembro', 'texto', 'vida', 'propiedad')], salidas: [sal('valor', 'cualquiera', 'valor')], gen: c => ({ codigo: `${c.e('objeto', P.atomo)}.${identificador(c.valor('miembro'))}`, prec: P.atomo }), ayuda: 'Lee una propiedad del objeto o una variable de su Blueprint. Sirve también para Z, munición y estados 3D. El nombre de propiedad es constante.' },
+  ob_fijar: { titulo: 'Cambiar propiedad', cat: 'Variables', exec: true, entradas: [EXEC_IN, OBJETO, ent('miembro', 'texto', 'visible', 'propiedad'), ent('valor', 'cualquiera', true, 'valor')], salidas: [EXEC_OUT], gen: c => `${c.e('objeto', P.atomo)}.${identificador(c.valor('miembro'))} = ${c.e('valor')}`, ayuda: 'Asigna una propiedad real del objeto, o una variable de su Blueprint. Sin objeto usa yo. No crea propiedades inexistentes.' },
+  ob_consultar: { titulo: 'Consultar método', cat: 'Variables', entradas: [OBJETO, ent('miembro', 'texto', 'en_el_suelo', 'método'), ent('cantidad', 'opcion', '0', 'argumentos'), ...ARGUMENTOS], opciones: { cantidad: ['0', '1', '2', '3'] }, salidas: [sal('valor', 'cualquiera', 'resultado')], gen: c => ({ codigo: llamadaObjeto(c), prec: P.atomo }), ayuda: 'Consulta un método real de Águila, por ejemplo ve_a(objetivo, alcance). Elige cuántos argumentos necesita. Se evalúa al utilizar el dato; para acciones usa Ejecutar método.' },
+  ob_llamar: { titulo: 'Ejecutar método', cat: 'Variables', exec: true, entradas: [EXEC_IN, OBJETO, ent('miembro', 'texto', 'saltar', 'método'), ent('cantidad', 'opcion', '1', 'argumentos'), ...ARGUMENTOS], opciones: { cantidad: ['0', '1', '2', '3'] }, salidas: [EXEC_OUT], gen: llamadaObjeto, ayuda: 'Ejecuta un método real del objeto o una función de su Blueprint, con hasta tres argumentos. Elige su cantidad exacta. Se compila a una llamada Águila, sin código JavaScript embebido.' },
 
   // ---------- Escena ----------
   es_yo: { titulo: 'Yo', cat: 'Escena', compacto: true, salidas: [sal('yo', 'objeto', 'este nodo')], gen: () => ({ codigo: 'yo', prec: P.atomo }), ayuda: 'El propio nodo que tiene este Blueprint.' },
@@ -142,6 +150,10 @@ export function pinesDe(nodo, bp) {
   const d = NODOS[nodo.def];
   if (!d) return { entradas: [], salidas: [] };
   let entradas = d.entradas, salidas = d.salidas;
+  if (nodo.def === 'ob_llamar' || nodo.def === 'ob_consultar') {
+    const cantidad = Number(nodo.valores?.cantidad ?? d.entradas.find(p => p.n === 'cantidad').def);
+    entradas = entradas.filter(p => !['a', 'b', 'c'].includes(p.n) || ['a', 'b', 'c'].indexOf(p.n) < cantidad);
+  }
   if (nodo.def === 'var_obtener' || nodo.def === 'var_fijar' || nodo.def === 'var_sumar') {
     const v = (bp.variables || []).find(x => x.nombre === nodo.variable);
     const t = v ? v.tipo : 'cualquiera';
@@ -204,6 +216,10 @@ export function compilarBlueprint(bp, archivo = 'blueprint.bp') {
   const errores = [];
   const avisos = [];
   const lineas = {};
+  for (const g of Object.values(bp.grafos || {})) for (const n of g.nodos || []) {
+    if (n.def.startsWith('ob_') && identificador(n.valores?.miembro || NODOS[n.def]?.entradas.find(p => p.n === 'miembro')?.def) === '__miembro_invalido') errores.push({ mensaje: 'Escribe un nombre de propiedad o método válido, sin puntos ni paréntesis.', nodo: n.id });
+    if (n.def.startsWith('ob_') && (g.conexiones || []).some(c => c.a === n.id && c.entrada === 'miembro')) errores.push({ mensaje: 'El nombre de miembro debe ser constante. Escribe el nombre en el bloque.', nodo: n.id });
+  }
   const L = (texto, nivel, idNodo) => {
     salida.push('    '.repeat(nivel) + texto);
     if (idNodo && !(idNodo in lineas)) lineas[idNodo] = salida.length;
@@ -397,3 +413,4 @@ export function compilarBlueprint(bp, archivo = 'blueprint.bp') {
 export function contarNodos(bp) {
   return Object.values(bp.grafos || {}).reduce((s, g) => s + (g.nodos || []).length, 0);
 }
+

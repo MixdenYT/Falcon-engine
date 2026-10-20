@@ -1,0 +1,111 @@
+{
+  "formato": "falcon-cqb-assets",
+  "version": 1,
+  "estado": "integrado",
+  "archivos": [
+    "materiales/hormigon.mat",
+    "materiales/pared.mat",
+    "modelos/animaciones/enemigo-aim.json",
+    "modelos/animaciones/enemigo-death.json",
+    "modelos/animaciones/enemigo-fire.json",
+    "modelos/animaciones/enemigo-hit.json",
+    "modelos/animaciones/enemigo-reload.json",
+    "modelos/animaciones/enemigo-run.json",
+    "modelos/animaciones/enemigo-walk.json",
+    "modelos/animaciones/operador-aim.json",
+    "modelos/animaciones/operador-death.json",
+    "modelos/animaciones/operador-fire.json",
+    "modelos/animaciones/operador-hit.json",
+    "modelos/animaciones/operador-reload.json",
+    "modelos/animaciones/operador-run.json",
+    "modelos/animaciones/operador-walk.json",
+    "modelos/armas/hostil.glb",
+    "modelos/armas/kestrel.glb",
+    "modelos/armas/lynx.glb",
+    "modelos/personajes/enemigo-manos.json",
+    "modelos/personajes/enemigo.glb",
+    "modelos/personajes/enemigo.json",
+    "modelos/personajes/operador-manos.json",
+    "modelos/personajes/operador-recorte.json",
+    "modelos/personajes/operador.glb",
+    "modelos/personajes/operador.json",
+    "procedencia.json",
+    "sonidos/carabina.wav",
+    "sonidos/enemigo.wav",
+    "sonidos/pistola.wav",
+    "texturas/hormigon.png",
+    "texturas/pared.png"
+  ],
+  "hashes": {
+    "materiales/hormigon.mat": "8cfdbefd9cd90084ac519728f24956319538512d958b3d517ec0c74a56f1669f",
+    "materiales/pared.mat": "ffd0063f3334c90154bef559f88154fa1385a78bed139f5d8d0a97e5d187bf69",
+    "modelos/animaciones/enemigo-aim.json": "d071a339be6f7eabcb59c2d86c6e589a8c04e9dc697a4bf623871bf5821aa52d",
+    "modelos/animaciones/enemigo-death.json": "8d00f468608d8a20052317b3b7577d1c650555a90e83ff416cce5df440cb64e7",
+    "modelos/animaciones/enemigo-fire.json": "dfd86619f547abd783d80d43e5b1279006375773248b0b424c61c857b7d1c3f2",
+    "modelos/animaciones/enemigo-hit.json": "79dddb0e6d1943263d52991e51f82ed1088bec8e87219cb48753aa57c4e99780",
+    "modelos/animaciones/enemigo-reload.json": "a74593f6947423c8a62b72e434bee80065b477e26d616069c9c352ef291dbf54",
+    "modelos/animaciones/enemigo-run.json": "d4c3e511177678235fa4df0a688b772f63ccffa4bc3a5251b99120f047679743",
+    "modelos/animaciones/enemigo-walk.json": "27034c4321b1931ee5035877dd03c3c24ddcf597ea1dcebc4205f8f0e098867b",
+    "modelos/animaciones/operador-aim.json": "1bb3c7e436d535b9e907870f6123e5f4d4437d0baeca14c47bfe52ddfdff6761",
+    "modelos/animaciones/operador-death.json": "7b36cf227cd8f92d4c273d8ca60818eafcd12b2355237013b6c540efd52de126",
+    "modelos/animaciones/operador-fire.json": "74f0f93794652f3ee227af417c44f9b5e23eaa64f7cfd420cb58ea9193f7e9e6",
+    "modelos/animaciones/operador-hit.json": "24f0728c03b6b01ecf01a922a084f6baba510757e7e9803f94dd60e74f90e780",
+    "modelos/animaciones/operador-reload.json": "58590770ed5093aa696466db32a5853745c40c85233e6ade4ff4efcc88e7456d",
+    "modelos/animaciones/operador-run.json": "2d55c9ab5dd373485c68a2404ddd7c59b544ea088b45ee21ebd5d2e9eea2fa55",
+    "modelos/animaciones/operador-walk.json": "c3cbdfee46e281dad678a0230026cf1afd7d8da046b97f96fb328ff48f9b0c64",
+    "modelos/armas/hostil.glb": "c83ed248ca80a6d7d7864e3ec70762f166df200cd7c7e76e20b5dcdfba3e55f1",
+    "modelos/armas/kestrel.glb": "dedf19542a7c4ce87858f12e789fc86b84d92831063c40e0f75ebd1ffc24253d",
+    "modelos/armas/lynx.glb": "629fbfde3feb0c0c8f426fb0610befae558f563e8bcefcb94ce7a349b9ab716e",
+    "modelos/personajes/enemigo-manos.json": "c9e37d418e3266dc9e23de291caf11ff5d33c91ddab0658fdec47f0b3636d43d",
+    "modelos/personajes/enemigo.glb": "ec54d5c2cc9bf035200fc67ef76d4da55dbab2579c96e572f4a981a2fd1fcede",
+    "modelos/personajes/enemigo.json": "174201616fe63668d806bb1eafbff64bbc21c02f51542d38565d8fbf75a68a8f",
+    "modelos/personajes/operador-manos.json": "2a405fca8c23ef9fb15ef70a2a29940172003efa44ab2e7e07a9874b12e0def5",
+    "modelos/personajes/operador-recorte.json": "c55b53ab1594b8d16b112011446a4fdde393c0655c7b40cb0cbcfcb845b5a8be",
+    "modelos/personajes/operador.glb": "0da22bb454f095ab0c167890e05db982ee70b364637651c915d39681b4edae07",
+    "modelos/personajes/operador.json": "196cc2e2f32b0dae2d1670d5ab3745f6e34bb14bb3b94c84e07175e94a1229ea",
+    "procedencia.json": "527ec5005dedda2aee4ff0ed1a9c99b5be0e1ec1e73414cc8431a8e5cb42ffa6",
+    "sonidos/carabina.wav": "78172797c04905577fce4c6affe36a042baa759c178c4c018965115bbae77878",
+    "sonidos/enemigo.wav": "5c9216eb60782e4f09895dde10cbe87a5cf15a1f5c57558b8a5e3a1b3d2e1617",
+    "sonidos/pistola.wav": "da5e00e2e48382248a05a94745411b1b8ff12ad5ef1bc8efa310410703a40d7c",
+    "texturas/hormigon.png": "e92a6e9e429de1045524f47b79c0b9cc3cdd60d2e4329608bfba28b62e1de93e",
+    "texturas/pared.png": "1fc2d4bbcc0bae57b329d0101d3c5fb5ce17c00f9c9d6bb7b94d916b33d9530c"
+  },
+  "fragmentos": {
+    "modelos/personajes/operador.glb": [
+      {
+        "ruta": "fragmentos/operador-000.bin",
+        "bytes": 8388608,
+        "sha256": "e5afa6985f93cdd17f5636be4957070a0684741f33949b5c672aae7e3b1b23b6"
+      },
+      {
+        "ruta": "fragmentos/operador-001.bin",
+        "bytes": 8388608,
+        "sha256": "71ab428195d372c6d74113431ac9b6e7dbe1c0f64b4c982b4c9bf7eb741a3a93"
+      },
+      {
+        "ruta": "fragmentos/operador-002.bin",
+        "bytes": 4982572,
+        "sha256": "bf0a32dc524823424b1730b6617e86e376e02321afed6111434847d5cfdc97b1"
+      }
+    ],
+    "modelos/personajes/enemigo.glb": [
+      {
+        "ruta": "fragmentos/enemigo-000.bin",
+        "bytes": 8388608,
+        "sha256": "d7a844c6542ab19e66fdbd3db705911614b165a03b3845ecdab96ec9695b1240"
+      },
+      {
+        "ruta": "fragmentos/enemigo-001.bin",
+        "bytes": 8388608,
+        "sha256": "45c3b89220929be9e4eb34c926ece22d46691d64a3547232f0688f07231a1d0d"
+      },
+      {
+        "ruta": "fragmentos/enemigo-002.bin",
+        "bytes": 4582828,
+        "sha256": "b0ab8ab45869e50971d275989ec0033cabae323587bc6cd709e9f832eeb8e500"
+      }
+    ]
+  },
+  "guia": "# Umbral CQB — Falcon Engine 1.2.0\n\nCrea Shooter · CQB en el gestor y pulsa Jugar. Los modelos, texturas y sonidos están incluidos; no necesitas Meshy para jugar. Despeja las oficinas, el archivo y control y asegura el terminal.\n\n## Controles\n\n| Acción | Tecla / ratón |\n|---|---|\n| Mover / mirar | WASD / ratón |\n| Paso lento / avance rápido | Alt / Shift, mantener |\n| Agacharse | Ctrl, mantener |\n| Inclinarse izquierda / derecha | Q / E, mantener |\n| Apuntar con miras | Clic derecho, mantener |\n| Disparo manual | Un clic izquierdo o J por disparo |\n| Recargar | R |\n| Principal / secundaria / alternar | 1 / 2 / T |\n| Puertas, suministros, terminal | F, a menos de 2,2 m y mirando el objeto |\n| Ayuda / idioma | H / L |\n| Sensibilidad | [ / ] |\n| Soltar ratón / pausa | Esc / P o F7 |\n| Reiniciar / cerrar prueba | F5 / F8 en el reproductor del editor |\n\n## Combate\n\nKestrel C9: 24 cartuchos, reserva 96, intervalo 0,16 s, recarga 2,25 s, daño 40. Lynx P8: 12 cartuchos, reserva 48, intervalo 0,23 s, recarga 1,75 s, daño 34. Cada pulsación dispara una vez. Cambiar de arma cancela la recarga y conserva ambos inventarios. La mira marca la dirección real del rayo; la cobertura próxima también puede detener el disparo. El arma baja ante obstáculos.\n\n## Blueprints y Águila\n\nAbre blueprints/operador.bp, enemigo_cqb.bp, puerta_cqb.bp, terminal_cqb.bp y suministros_cqb.bp. Munición, vida, tiempos, cambio de arma, reacción enemiga y victoria se ejecutan desde esos grafos. generado/ permite comparar el resultado en Águila; edita el Blueprint. El motor aporta rayos, física, cámara, navegación y animación. Leer propiedad, Cambiar propiedad, Consultar método y Ejecutar método son bloques generales del catálogo y tienen lecciones en Academia.\n\nLa IA utiliza visión de 105 grados y rayos bloqueados por paredes/puertas, memoria temporal de la última posición y audición de disparos. Tras recibir daño intenta alcanzar una de las coberturas del mapa mediante A*. Sin visión no dispara. Las balizas Ruta… y Cubierta… son editables en la escena; los muros siguen siendo Malla3D.\n\n## Recursos\n\nDos personajes originales creados con Meshy, optimizados a aproximadamente 19.000 triángulos, rig de 24 huesos, siete clips por personaje y texturas PBR. operador.json configura el recorte de una pieza de arma incorporada al modelo y la adaptación de las palmas para el agarre. Se reutiliza el mismo modelo del operador para los brazos y el mismo enemigo para los tres contactos. Las tres armas, superficies y efectos WAV son originales del proyecto. procedencia.json conserva los IDs y el consumo confirmado de 110 créditos.\n",
+  "guia_en": "# Threshold CQB — Falcon Engine 1.2.0\n\nCreate Shooter · CQB in the project manager and press Play. All assets are included. Clear the offices, storage and control room, then secure the terminal.\n\nWASD move; mouse look; hold Alt to walk slowly, Shift to move quickly, Ctrl to crouch, Q/E to lean and right mouse to aim. Left click or J fires once per press. R reloads. 1/2 select the carbine/sidearm; T swaps. F interacts with doors, supplies and the terminal within 2.2 m. H shows help, L changes language, [/] adjust sensitivity. Esc releases the mouse; P or F7 pauses. F5 restarts and F8 closes an editor playtest.\n\nThe C9 holds 24 rounds with 96 in reserve, a 0.16 s interval, 2.25 s reload and 40 damage. The P8 holds 12/48, a 0.23 s interval, 1.75 s reload and 34 damage. Swapping cancels reloads and preserves both inventories. Camera aim and muzzle obstruction are checked against real collisions.\n\nEditable Blueprints implement ammunition, health, timers, AI decisions, doors and the objective and compile to executable Águila. The engine provides collision, rays, animation and A* navigation. AI uses a 105-degree initial view cone, occlusion, gunshot hearing, short memory and authored cover markers. Hidden targets are not shot.\n\nThe two original Meshy characters share a coherent PBR style, about 19,000 triangles each, 24-bone rigs and seven clips each. The operator asset is reused for first-person arms and the enemy for all three hostiles. Source task IDs and the confirmed 110-credit cost are recorded in procedencia.json. Weapons, surfaces and generated WAV effects are original Falcon resources.\n"
+}

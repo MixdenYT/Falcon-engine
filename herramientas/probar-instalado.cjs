@@ -4,12 +4,13 @@ const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
 const { spawnSync } = require('node:child_process');
+const guionCQB = require('./guion-cqb.cjs');
 const version = require('../package.json').version;
 const salida = path.resolve(process.env.FALCON_QA_DIR || 'pruebas-instalador');
 fs.mkdirSync(salida, { recursive: true });
 const trabajo = fs.mkdtempSync(path.join(os.tmpdir(), 'Falcon instalado ñ '));
 const ejecutar = (binario, args, opciones = {}) => {
-  const r = spawnSync(binario, args, { encoding: 'utf8', timeout: 120000, maxBuffer: 8 * 1024 * 1024, ...opciones });
+  const r = spawnSync(binario, args, { encoding: 'utf8', timeout: 2400000, maxBuffer: 8 * 1024 * 1024, ...opciones });
   if (r.error || r.status !== 0) throw Error(`${binario}: ${r.error?.message || r.status}\n${r.stdout || ''}\n${r.stderr || ''}`);
   return r;
 };
@@ -36,6 +37,9 @@ function capturar(caso, pagina, cuerpo, juego = false) {
     '--captura=' + path.join(salida, caso + '.png'), '--pagina=' + pagina, '--guion=' + guion,
     '--espera=800', '--esperaGuion=250', '--datos-prueba=' + path.join(trabajo, 'datos'), '--consola=1'];
   if (process.platform === 'linux') args.push('--ozone-platform=headless');
+  // El ejecutor Windows usa SwiftShader. Estas resoluciones mantienen el juego
+  // y el editor reales y permiten terminar el recorrido sin depender de una GPU.
+  args.push('--tamano=' + (caso.startsWith('cqb-') ? '640x360' : '960x600'));
   if (juego) args.push('--ventana=juego');
   const r = ejecutar(ejecutable, args);
   fs.writeFileSync(path.join(salida, caso + '.log'), r.stdout + '\n' + r.stderr);
@@ -82,3 +86,26 @@ for (const p of proyectos) capturar('editor-juego-' + p.id, 'src/editor/editor.h
   return {id:${JSON.stringify(p.id)},editor:true,juego:iniciado,errores};
 `, true);
 console.log(`INSTALADOR VERIFICADO: ${proyectos.length} plantillas creadas, abiertas en editor y ejecutadas.`);
+
+const cqb = proyectos.find(p => p.id === 'shooter_primera');
+if (!cqb) throw Error('El instalador no ofrece la plantilla CQB');
+const paginaCQB = 'src/juego/juego.html?proyecto=' + encodeURIComponent(cqb.ruta) + '&modo=exportado';
+const datosCQB = { directorio: salida.replace(/\\/g, '/') };
+capturar('cqb-jugabilidad', paginaCQB, `return await (${guionCQB.toString()})(${JSON.stringify(datosCQB)});`);
+// Nuevo proceso, mismo proyecto creado por el instalador: no se reconstruye ni
+// se sustituyen modelos con los del checkout entre las dos aperturas.
+capturar('cqb-reabrir-juego', paginaCQB, `return await (${guionCQB.toString()})(${JSON.stringify({ ...datosCQB, reabrir: true })});`);
+capturar('cqb-reabrir-editor', 'src/editor/editor.html?proyecto=' + encodeURIComponent(cqb.ruta), `
+  const fin=Date.now()+90000;while(!window.__falconEditor||document.querySelector('.cargando-editor')){if(Date.now()>fin)throw Error('No reabre el editor');await new Promise(r=>setTimeout(r,100));}
+  if(!window.__falconEditor.est.docs.length||!document.querySelector('.visor'))throw Error('No reabrió la escena CQB');
+  return {reabierto:true,documentos:window.__falconEditor.est.docs.map(d=>d.rel||d.ruta)};
+`);
+// El paquete independiente conserva exactamente el proyecto generado por esta
+// instalación. No añade el código fuente del motor ni los archivos de trabajo.
+const plantilla = path.join(salida, 'Umbral-CQB-' + version + '.zip');
+if (process.platform === 'win32') {
+  const origen = cqb.ruta.replace(/'/g, "''"), destino = plantilla.replace(/'/g, "''");
+  ejecutar('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', `Compress-Archive -LiteralPath '${origen}' -DestinationPath '${destino}' -Force`]);
+} else ejecutar('python3', ['-c', 'import pathlib,sys,zipfile; p=pathlib.Path(sys.argv[1]); z=zipfile.ZipFile(sys.argv[2],"w",zipfile.ZIP_DEFLATED); [z.write(f,"Umbral-CQB/"+str(f.relative_to(p))) for f in p.rglob("*") if f.is_file()]; z.close()', cqb.ruta, plantilla]);
+fs.writeFileSync(path.join(salida, 'instalacion.json'), JSON.stringify({ version, plataforma: process.platform, arquitectura: process.arch, instalador: process.env.FALCON_QA_EXE ? 'Ejecutable indicado explícitamente' : process.platform === 'win32' ? 'NSIS /S' : 'AppImage extraída', plantillas: proyectos.map(p => p.id), cqb: 'crear → editor → jugar hasta victoria → cerrar → reabrir juego y editor', paquete: path.basename(plantilla) }, null, 2));
+console.log('CQB VERIFICADO: recursos, controles, combate, cobertura, misión completa y reapertura.');

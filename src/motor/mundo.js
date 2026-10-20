@@ -7,6 +7,7 @@ import { normalizarEscena, tipoRecurso, sinExtension, nombreBase } from './proye
 import { matrizLocal, tamanoNodo, Render2D, CacheImagenes, recorrerConMatriz } from './render2d.js';
 import { Entrada } from './entrada.js';
 import { Audio } from './audio.js';
+import { EQUIPO_CQB } from './tactico3d.js';
 
 const norm = (s) => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 const sinNumero = (s) => String(s).replace(/\s*\d+$/, '');
@@ -93,6 +94,21 @@ export class NodoVivo {
         yo.mueveZ = largo > 0.1 ? dz / largo * v : 0;
         return null;
       },
+      animar_3d: (clip, segundos) => m.d3?.tactico.animar(yo, clip, segundos) ?? null,
+      equipar_arma: indice => m.d3?.tactico.equipar(yo, indice) ?? null,
+      arma_dato: (campo, indice) => EQUIPO_CQB[Math.max(0, Math.min(1, Math.trunc(Number(indice) || 0)))]?.[String(campo)] ?? null,
+      arma_libre: () => !!m.d3?.tactico.libre(yo),
+      disparar_arma: (dano, alcance) => m.d3?.tactico.disparar(yo, dano, alcance) ?? false,
+      interactuar: () => m.d3?.tactico.interactuar(yo) ?? null,
+      objetivo_interaccion: () => m.d3?.tactico.interaccion(yo) ?? null,
+      mover_puerta: (abierta, delta) => m.d3?.tactico.puerta(yo, abierta, delta) ?? false,
+      detectar: (o, alcance, angulo) => !!m.d3?.tactico.detectar(yo, o, alcance, angulo),
+      oir_disparo: (o, alcance) => !!m.d3?.tactico.oir(yo, o, alcance),
+      recordar_objetivo: o => m.d3?.tactico.recordar(yo, o) ?? null,
+      patrullar: velocidad => m.d3?.tactico.patrullar(yo, velocidad) ?? null,
+      investigar: velocidad => m.d3?.tactico.investigar(yo, velocidad) ?? null,
+      buscar_cobertura: (o, velocidad) => m.d3?.tactico.cobertura(yo, o, velocidad) ?? null,
+      apuntar_a: o => m.d3?.tactico.mirar(yo, o) ?? null,
       mirar_a: (o) => { const a = m.posicion(yo), b = m.posicion(o); yo.props.rotacion = Math.atan2(b[1] - a[1], b[0] - a[0]) * 180 / Math.PI; return null; },
       // Personajes
       mover: (vx = 0, vy = null) => {
@@ -167,7 +183,7 @@ export class NodoVivo {
       case 'emitiendo': return !!this.props.emitiendo;
     }
     const met = this.metodos();
-    if (Object.prototype.hasOwnProperty.call(met, nombre) && (nombresMiembros(this.tipo).includes(nombre) || ['es', 'eliminar', 'hijo', 'llamar', 'mover_a', 'desplazar', 'distancia_a', 'en_grupo', 'añadir_a_grupo', 'quitar_de_grupo', 'girar', 've_a', 'perseguir'].includes(nombre))) return met[nombre];
+    if (Object.prototype.hasOwnProperty.call(met, nombre) && (nombresMiembros(this.tipo).includes(nombre) || ['es', 'eliminar', 'hijo', 'llamar', 'mover_a', 'desplazar', 'distancia_a', 'en_grupo', 'añadir_a_grupo', 'quitar_de_grupo', 'girar', 've_a', 'perseguir', 'mover_puerta'].includes(nombre))) return met[nombre];
     if (Object.prototype.hasOwnProperty.call(this.props, nombre)) {
       const v = this.props[nombre];
       return Array.isArray(v) ? v.slice() : (v !== null && typeof v === 'object') ? undefined : v;

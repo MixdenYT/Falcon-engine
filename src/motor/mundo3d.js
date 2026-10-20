@@ -3,6 +3,7 @@ import { Escena3D, THREE, aplicarTransformacion, aplicarReflejos } from './escen
 import { RECORTABLES, restarCajas, solapan } from './huecos.js';
 import { Lumbre } from './lumbre.js';
 import { Controles3D } from './control3d.js';
+import { Tactico3D } from './tactico3d.js';
 import { resolverCalidad, AjusteAutomatico, CALIDADES } from './graficos.js';
 
 const RAD = Math.PI / 180;
@@ -20,6 +21,7 @@ export class Mundo3D {
     this.solidos = [];
     this.raycaster = new THREE.Raycaster();
     this.controles = new Controles3D(this);
+    this.tactico = new Tactico3D(this);
     this.trazas = [];
   }
 
@@ -32,6 +34,7 @@ export class Mundo3D {
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     await this.escena.construir(this.m.raiz);
+    await this.tactico.preparar();
     aplicarReflejos(this.renderer, this.escena.scene, 0.35);
     // Lumbre: iluminación global y posproceso según la calidad gráfica.
     if (this.lumbre) this.lumbre.destruir();
@@ -73,6 +76,7 @@ export class Mundo3D {
   }
 
   destruir() {
+    this.tactico.destruir();
     this.limpiarTrazas(true);
     if (this.lumbre) { this.lumbre.destruir(); this.lumbre = null; }
     this.escena.limpiar();
@@ -139,7 +143,7 @@ export class Mundo3D {
   }
 
   cajaPersonaje(n, pos) {
-    const r = 0.38, h = n.props.altura || 1.8;
+    const r = n.props.tactico ? 0.42 : 0.38, h = n._alturaColision || n.props.altura || 1.8;
     return new THREE.Box3(new THREE.Vector3(pos[0] - r, pos[1], pos[2] - r), new THREE.Vector3(pos[0] + r, pos[1] + h, pos[2] + r));
   }
 
@@ -201,17 +205,18 @@ export class Mundo3D {
         pos[i] += d;
         let caja = this.cajaPersonaje(n, pos);
         caja.min.y += 0.05;
-        for (const s of solidos) {
+        const cuerpos = n.props.tactico || n.grupos.has('enemigos_cqb') ? nodos.filter(o => o !== n && o.tipo === 'Personaje3D' && !o._muerto).map(o => ({ n: o, b: this.cajaPersonaje(o, this.posicionGlobal(o)), cuerpo: true })) : [];
+        for (const s of [...solidos, ...cuerpos]) {
           if (!s.b.intersectsBox(caja)) continue;
           // Escalones bajos: se suben solos.
-          if (s.b.max.y - pos[1] < 0.35 && !s.movil) { pos[1] = s.b.max.y; caja = this.cajaPersonaje(n, pos); continue; }
+          if (s.b.max.y - pos[1] < 0.35 && !s.movil && !s.cuerpo) { pos[1] = s.b.max.y; caja = this.cajaPersonaje(n, pos); continue; }
           if (s.movil) {
             const desp = new THREE.Vector3(); desp.setComponent(i === 0 ? 0 : 2, d);
             const b2 = s.b.clone().translate(desp);
             const libre = !solidos.some(o => o !== s && o.b.intersectsBox(b2) && b2.min.y < o.b.max.y - 0.05);
             if (libre) { s.n.props.posicion[i] += d; s.b.copy(b2); n._contactosSolidos.add(s.n); continue; }
           }
-          const mitad = 0.38;
+          const mitad = n.props.tactico ? 0.42 : 0.38;
           if (d > 0) pos[i] = Math.min(pos[i], (i === 0 ? s.b.min.x : s.b.min.z) - mitad - 0.001);
           else pos[i] = Math.max(pos[i], (i === 0 ? s.b.max.x : s.b.max.z) + mitad + 0.001);
           n.enPared = true;
@@ -237,6 +242,8 @@ export class Mundo3D {
         n._contactosSolidos.add(s.n);
       }
       if (!n.props.usa_gravedad) n.enSuelo = true;
+      n.vx = dt > 0 ? (pos[0] - ini[0]) / dt : 0;
+      n.vz = dt > 0 ? (pos[2] - ini[2]) / dt : 0;
       this.fijarPosicionGlobal(n, ...pos);
       // Gira el cuerpo hacia donde anda.
       const o = this.obj(n);
@@ -280,7 +287,7 @@ export class Mundo3D {
     let cerca = Math.max(0, Math.min(1000, Number(alcance) || 0)), impacto = null;
     const cajas = this.solidos.filter(s => !ignorados.includes(s.n));
     for (const n of this.m.todos()) {
-      if (n.tipo === 'Personaje3D' && !n.eliminado && n.visible !== false && !ignorados.includes(n)) cajas.push({ n, b: this.cajaPersonaje(n, this.posicionGlobal(n)) });
+      if (n.tipo === 'Personaje3D' && !n.eliminado && !n._muerto && n.visible !== false && !ignorados.includes(n)) cajas.push({ n, b: this.cajaPersonaje(n, this.posicionGlobal(n)) });
     }
     for (const { n, b } of cajas) {
       if (n.eliminado || n.visible === false || !r.intersectBox(b, punto)) continue;
@@ -298,13 +305,21 @@ export class Mundo3D {
     cam.getWorldPosition(origen); cam.getWorldDirection(direccion);
     const objetivo = this.primerImpacto(origen, direccion, alcance, [jugador]);
     // Desde el cañón hacia la retícula: evita disparar a través de la cobertura del hombro.
-    const boca = new THREE.Vector3(...this.posicionGlobal(jugador)); boca.y += (jugador.props.altura || 1.8) * 0.8;
+    const boca = this.tactico?.boca?.(jugador) || new THREE.Vector3(...this.posicionGlobal(jugador));
+    if (!this.tactico?.boca?.(jugador)) boca.y += (jugador._alturaColision || jugador.props.altura || 1.8) * 0.8;
     const destino = objetivo ? objetivo.punto : origen.clone().addScaledVector(direccion, Math.max(0, Math.min(1000, Number(alcance) || 0)));
+    const puente = boca.clone().sub(origen), largoPuente = puente.length();
+    const obstruccion = largoPuente > 0.01 ? this.primerImpacto(origen, puente, largoPuente, [jugador]) : null;
+    if (obstruccion) { this.trazar(origen, obstruccion.punto); return obstruccion.nodo; }
     const tiro = destino.clone().sub(boca), longitud = tiro.length();
     const real = this.primerImpacto(boca, tiro, Math.min(longitud + 0.02, Math.max(0, Number(alcance) || 0)), [jugador]);
-    const linea = new THREE.Line(new THREE.BufferGeometry().setFromPoints([boca, real ? real.punto : destino]), new THREE.LineBasicMaterial({ color: '#FFDC8C', transparent: true, opacity: 0.8 }));
-    this.escena.scene.add(linea); this.trazas.push({ linea, hasta: this.m.tiempo + 0.07 });
+    this.trazar(boca, real ? real.punto : destino);
     return real ? real.nodo : null;
+  }
+
+  trazar(desde, hasta) {
+    const linea = new THREE.Line(new THREE.BufferGeometry().setFromPoints([desde, hasta]), new THREE.LineBasicMaterial({ color: '#FFDC8C', transparent: true, opacity: 0.7 }));
+    this.escena.scene.add(linea); this.trazas.push({ linea, hasta: this.m.tiempo + 0.055 });
   }
 
   limpiarTrazas(todas = false) {
@@ -316,13 +331,17 @@ export class Mundo3D {
 
   lineaVision(desde, hasta, alcance = 30) {
     if (!desde || !hasta || desde.eliminado || hasta.eliminado) return false;
-    const a = new THREE.Vector3(...this.posicionGlobal(desde)); a.y += (desde.props.altura || 1.8) * 0.8;
-    const b = new THREE.Vector3(...this.posicionGlobal(hasta)); b.y += (hasta.props.altura || 1.8) * 0.7;
+    const a = this.puntoVista(desde, 0.8), b = this.puntoVista(hasta, 0.7);
     const d = b.sub(a), largo = d.length();
     if (largo > Math.max(0, Number(alcance) || 0)) return false;
     if (largo < 0.01) return true;
     const hit = this.primerImpacto(a, d, largo + 0.02, [desde]);
     return !!hit && hit.nodo === hasta;
+  }
+
+  puntoVista(n, factor = 0.8) {
+    if (n === this.controles.jugador && n.props.tactico && this.controles.activo && this.controles.primeraPersona) return (this.camaraUsada || this.controles.camara).position.clone();
+    const p = new THREE.Vector3(...this.posicionGlobal(n)); p.y += (n._alturaColision || n.props.altura || 1.8) * factor; return p;
   }
 
   rayo(sx, sy) {
@@ -415,6 +434,12 @@ export class Mundo3D {
     cam.aspect = ancho / Math.max(1, alto);
     cam.updateProjectionMatrix();
     this.camaraUsada = cam;
+    const dtAnimacion = m.pausado || m.estado !== 'jugando' ? 0 : (m.dtPaso || dtR);
+    for (const n of m.todos()) {
+      if (n.tipo !== 'Personaje3D') continue;
+      const o = this.obj(n); o?.userData.animador?.actualizar(n, m.tiempo, dtAnimacion);
+    }
+    this.tactico.actualizar(dtAnimacion);
     // Temblor de cámara
     const t = m.camara.tiempoTemblor > 0 ? m.camara.temblor * 0.004 * (m.camara.tiempoTemblor / m.camara.duracionTemblor) : 0;
     if (m.camara.tiempoTemblor > 0 && !m.pausado) m.camara.tiempoTemblor -= dtR * (m.velocidad || 1);
@@ -437,6 +462,7 @@ export class Mundo3D {
     m.render.dibujarInterfaz(proxyDesplazado(c, v.ox, v.oy), m.raiz, { ancho: v.ancho, alto: v.alto, escala: v.escala }, {});
     c.restore();
     this.controles.dibujarAyudas(c, m.lienzo.width, m.lienzo.height, v.escala || 1);
+    this.tactico.dibujarHUD(c, m.lienzo.width, m.lienzo.height);
   }
 }
 

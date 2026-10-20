@@ -1,11 +1,21 @@
-name: Publicar instaladores actualizables
+name: Verificar y publicar instaladores
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Versión estable a publicar (por ejemplo 1.1.0)'
+        description: 'Versión a compilar y verificar (por ejemplo 1.2.0)'
         required: true
         type: string
+      publicar:
+        description: 'Publicar release después de las pruebas; desactivado conserva solo instaladores y evidencias'
+        required: true
+        type: boolean
+        default: false
+      solo_windows:
+        description: 'Verificar solo Windows para una entrega de prueba (sin release pública)'
+        required: true
+        type: boolean
+        default: true
 permissions:
   contents: read
 concurrency:
@@ -16,16 +26,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - os: windows-latest
-            plataforma: win-x64
-            script: release:win
-          - os: ubuntu-24.04
-            plataforma: linux-x64
-            script: release:linux
-          - os: ubuntu-24.04-arm
-            plataforma: linux-arm64
-            script: release:linux-arm
+        include: ${{ fromJSON(inputs.solo_windows && '[{"os":"windows-latest","plataforma":"win-x64","script":"release:win"}]' || '[{"os":"windows-latest","plataforma":"win-x64","script":"release:win"},{"os":"ubuntu-24.04","plataforma":"linux-x64","script":"release:linux"},{"os":"ubuntu-24.04-arm","plataforma":"linux-arm64","script":"release:linux-arm"}]') }}
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -67,18 +68,19 @@ jobs:
           name: pruebas-instalador-${{ matrix.plataforma }}
           path: pruebas-instalador/
           if-no-files-found: ignore
-          retention-days: 7
+          retention-days: 30
       - uses: actions/upload-artifact@v4
         with:
           name: instaladores-${{ matrix.plataforma }}
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 30
           path: |
             dist-actualizaciones/*.exe
             dist-actualizaciones/*.AppImage
             dist-actualizaciones/*.blockmap
             dist-actualizaciones/latest*.yml
   publicar:
+    if: ${{ inputs.publicar && !inputs.solo_windows }}
     needs: compilar
     runs-on: ubuntu-24.04
     permissions:

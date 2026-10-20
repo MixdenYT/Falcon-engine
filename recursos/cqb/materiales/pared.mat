@@ -1,0 +1,43 @@
+{
+  "formato": "falcon-material",
+  "version": 1,
+  "nombre": "pared",
+  "grafo": {
+    "nodos": [
+      {
+        "id": "salida",
+        "tipo": "salida",
+        "x": 560,
+        "y": 80
+      },
+      {
+        "id": "color",
+        "tipo": "textura",
+        "archivo": "texturas/pared.png",
+        "x": 40,
+        "y": 40
+      },
+      {
+        "id": "rugosidad",
+        "tipo": "numero",
+        "valor": 0.9,
+        "x": 40,
+        "y": 240
+      }
+    ],
+    "conexiones": [
+      {
+        "de": "color",
+        "salida": "color",
+        "a": "salida",
+        "entrada": "color_base"
+      },
+      {
+        "de": "rugosidad",
+        "salida": "valor",
+        "a": "salida",
+        "entrada": "rugosidad"
+      }
+    ]
+  }
+}

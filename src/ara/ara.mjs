@@ -1,3 +1,4 @@
+//# allFunctionsCalledOnLoad
 // Cargador de programas de Ara compilados a WebAssembly (`ara wasm`). Funciona en el navegador, en Node y en
 // Electron, sin dependencias.
 //
@@ -13,18 +14,38 @@
 //   if (ara.error()) { ...; ara.limpiarError(); }
 //
 // Desde la terminal: `node ara.mjs programa.wasm [ara_runtime.wasm]`.
+//
+// Un programa «fusionado» (el runtime y el programa en un solo .wasm, con solo las partes del runtime que usa; ver
+// herramientas/construir-ara.mjs de mixden.net) no necesita `runtime`: se carga con una sola instancia.
 
 /** Disposición de memoria que da por supuesta el compilador (`ara_wasm::DISPOSICION`). */
 const DISPOSICION = 4 | 8 << 8 | 12 << 16 | 8 << 24;
+
+// Lo que acepta `str::parse::<f64>` de Rust (sin espacios: el runtime ya los quita).
+const DECIMAL = /^[+-]?(?:inf|infinity|nan|(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)$/i;
+/** Un decimal como lo escribe Ara (como `repr` de Python): `2.0`, `0.1`, `1e+16`, `1.5e-05`, `nan`, `inf`. */
+function decimalATexto(x) {
+  if (Number.isNaN(x)) return 'nan';
+  if (!Number.isFinite(x)) return x > 0 ? 'inf' : '-inf';
+  const a = Math.abs(x);
+  if (a !== 0 && (a < 1e-4 || a >= 1e16)) {
+    const [mantisa, exp] = x.toExponential().split('e');
+    const e = Number(exp);
+    return `${mantisa}e${e < 0 ? '-' : '+'}${String(Math.abs(e)).padStart(2, '0')}`;
+  }
+  if (Number.isInteger(x)) return (Object.is(x, -0) ? '-0' : String(x)) + '.0';
+  return String(x);
+}
 
 /** ¿Hay JSPI (integración de promesas de WebAssembly)? Sin él, `esperar` no puede pausar. */
 export const HAY_JSPI = typeof WebAssembly.Suspending === 'function' && typeof WebAssembly.promising === 'function';
 
 /**
  * Monta el runtime y el programa sin ejecutar nada todavía.
- * @param {BufferSource} programa  El módulo que genera `ara wasm`.
+ * @param {BufferSource|WebAssembly.Module|Promise} programa  El módulo que genera `ara wasm` (sus bytes, o ya compilado
+ *   con WebAssembly.compileStreaming para no esperar a que termine de descargarse).
  * @param {object} opciones
- *   - `runtime`: bytes de `ara_runtime.wasm`.
+ *   - `runtime`: `ara_runtime.wasm` (bytes, módulo compilado o una promesa de cualquiera de los dos).
  *   - `escribir(texto)`: salida de `imprimir`.
  *   - `ahora()`: segundos desde 1970.
  *   - `esperar(segundos)`: promesa que se resuelve cuando hay que seguir. Por defecto, tiempo real.
@@ -39,31 +60,61 @@ export async function cargar(programa, opciones = {}) {
     esperar = (s) => new Promise((r) => setTimeout(r, s * 1000)),
     anfitrion = {},
   } = opciones;
-  if (!runtime) throw new Error('falta el runtime de Ara (ara_runtime.wasm)');
   const decodificador = new TextDecoder();
   const codificador = new TextEncoder();
   const ara = {};
-  let memoria = null;
-  const { instance: rt } = await WebAssembly.instantiate(runtime, {
-    anfitrion: {
-      escribir: (p, n) => escribir(decodificador.decode(new Uint8Array(memoria.buffer, p, n), { stream: true })),
-      ahora,
+  let memoria = null, E = null, ctx = 0;
+  const delRuntime = {
+    escribir: (p, n) => escribir(decodificador.decode(new Uint8Array(memoria.buffer, p, n), { stream: true })),
+    ahora,
+    // El runtime «ligero» (ver ara_runtime/src/wasm.rs) deja a JavaScript lo que en Rust lleva tablas grandes:
+    // mayúsculas y minúsculas de Unicode (op 0 y 1) y el decimal `x` como texto (op 2). Devuelve `puntero << 32 | largo`.
+    __ara_convertir: (op, p, n, x) => {
+      const s = op === 2 ? decimalATexto(x) : textoDeMemoria(p, n);
+      const datos = codificador.encode(op === 0 ? s.toUpperCase() : op === 1 ? s.toLowerCase() : s);
+      if (datos.length === 0) return 0n;
+      const destino = E.ara_wasm_reservar(datos.length) >>> 0;
+      new Uint8Array(memoria.buffer, destino, datos.length).set(datos);
+      return (BigInt(destino) << 32n) | BigInt(datos.length);
     },
-  });
-  // `instance.exports` es un getter: se guarda una vez (los textos y errores se leen en cada llamada a una externa).
-  const E = rt.exports;
-  memoria = E.memory;
-  const disposicion = E.ara_wasm_disposicion() >>> 0;
-  if (disposicion !== DISPOSICION) {
-    throw new Error(`el runtime no corresponde a este compilador (disposición ${disposicion.toString(16)}, se esperaba ${DISPOSICION.toString(16)})`);
+    // Un decimal como lo lee Rust (`str::parse::<f64>`): 1 y el valor en `salida`, o 0 si el texto no es un decimal.
+    __ara_a_decimal: (p, n, salida) => {
+      const s = textoDeMemoria(p, n);
+      if (!DECIMAL.test(s)) return 0;
+      const sin = s.replace(/^[+-]/, '').toLowerCase();
+      const x = sin === 'nan' ? NaN : sin === 'inf' || sin === 'infinity' ? Infinity : Number(sin);
+      new DataView(memoria.buffer).setFloat64(salida, s[0] === '-' ? -x : x, true);
+      return 1;
+    },
+  };
+  // Su propio TextDecoder: el de `escribir` va «en flujo» (una letra puede llegar partida entre dos escrituras).
+  const decodificadorRuntime = new TextDecoder();
+  const textoDeMemoria = (p, n) => decodificadorRuntime.decode(new Uint8Array(memoria.buffer, p, n));
+  /** Comprueba que el runtime es el de este compilador y prepara la memoria y el contexto. */
+  const montar = (exportaciones) => {
+    // `instance.exports` es un getter: se guarda una vez (los textos y errores se leen en cada llamada a una externa).
+    E = exportaciones;
+    memoria = E.memory;
+    const disposicion = E.ara_wasm_disposicion() >>> 0;
+    if (disposicion !== DISPOSICION) {
+      throw new Error(`el runtime no corresponde a este compilador (disposición ${disposicion.toString(16)}, se esperaba ${DISPOSICION.toString(16)})`);
+    }
+    ctx = E.ara_wasm_ctx();
+  };
+  const fuente = await programa;
+  const modulo = fuente instanceof WebAssembly.Module ? fuente : await WebAssembly.compile(fuente);
+  const fusionado = !WebAssembly.Module.imports(modulo).some((i) => i.module === 'ara');
+  if (!fusionado) {
+    if (!runtime) throw new Error('falta el runtime de Ara (ara_runtime.wasm)');
+    const instanciado = await WebAssembly.instantiate(await runtime, { anfitrion: delRuntime });
+    // Con un módulo ya compilado, instantiate devuelve la instancia; con bytes, { module, instance }.
+    montar((instanciado instanceof WebAssembly.Instance ? instanciado : instanciado.instance).exports);
   }
-  const modulo = await WebAssembly.compile(programa);
   const seccion = WebAssembly.Module.customSections(modulo, 'ara.juego')[0];
   ara.juego = seccion ? JSON.parse(new TextDecoder().decode(seccion)) : { clases: [], externas: [] };
-  const ctx = E.ara_wasm_ctx();
 
   // Vistas de la memoria: se rehacen solo si la memoria crece (entonces cambia `memoria.buffer`).
-  let bytes = new Uint8Array(memoria.buffer), palabras = new Uint32Array(memoria.buffer);
+  let bytes = new Uint8Array(0), palabras = new Uint32Array(0);
   // Al crecer, el buffer anterior se separa y su tamaño pasa a 0 (más barato que leer `memoria.buffer` cada vez).
   const vistas = () => { if (bytes.byteLength === 0) { bytes = new Uint8Array(memoria.buffer); palabras = new Uint32Array(memoria.buffer); } };
   const lector = new TextDecoder();
@@ -128,12 +179,17 @@ export async function cargar(programa, opciones = {}) {
     return l;
   };
 
-  const importaciones = { memory: memoria };
-  for (const [nombre, valor] of Object.entries(E)) if (nombre.startsWith('ara_')) importaciones[nombre] = valor;
+  const importaciones = {};
+  if (!fusionado) {
+    importaciones.memory = memoria;
+    for (const [nombre, valor] of Object.entries(E)) if (nombre.startsWith('ara_')) importaciones[nombre] = valor;
+  }
   const propias = typeof anfitrion === 'function' ? anfitrion(ara) : anfitrion;
   const delAnfitrion = {};
   for (const i of WebAssembly.Module.imports(modulo)) {
     if (i.module !== 'anfitrion') continue;
+    // En un programa fusionado, el runtime también pide sus funciones al anfitrión.
+    if (fusionado && i.name in delRuntime && !(i.name in (propias || {}))) { delAnfitrion[i.name] = delRuntime[i.name]; continue; }
     if (i.name === 'esperar') {
       delAnfitrion.esperar = HAY_JSPI
         ? new WebAssembly.Suspending(async (s) => { await esperar(s); })
@@ -146,7 +202,19 @@ export async function cargar(programa, opciones = {}) {
     const cero = retorno === 'entero' ? 0n : 0;
     delAnfitrion[i.name] = typeof f === 'function' ? f : () => { ara.fallar(`el anfitrión no da \`${i.name}\``); return retorno === 'nada' ? undefined : cero; };
   }
-  const { exports } = await WebAssembly.instantiate(modulo, { ara: importaciones, anfitrion: delAnfitrion });
+  const importacionesModulo = fusionado ? { anfitrion: delAnfitrion } : { ara: importaciones, anfitrion: delAnfitrion };
+  // El módulo ya está compilado: se instancia en el acto (es casi instantáneo). Con `await WebAssembly.instantiate` el
+  // navegador se pondría a hacer otras cosas antes de seguir y la página tardaría más en responder. Si el navegador no
+  // deja instanciar así un módulo tan grande (RangeError), se hace como siempre.
+  let instancia;
+  try {
+    instancia = new WebAssembly.Instance(modulo, importacionesModulo);
+  } catch (e) {
+    if (!(e instanceof RangeError)) throw e;
+    instancia = await WebAssembly.instantiate(modulo, importacionesModulo);
+  }
+  const { exports } = instancia;
+  if (fusionado) montar(exports);
   ara.exports = exports;
   exports.iniciar(ctx);
 
@@ -204,7 +272,8 @@ if (esNode && import.meta.url === (await import('node:url')).pathToFileURL(proce
     console.error('uso: node ara.mjs programa.wasm [ara_runtime.wasm]');
     process.exit(2);
   }
-  const runtime = await readFile(rutaRuntime ?? join(dirname(archivo), 'ara_runtime.wasm'));
+  // Un programa fusionado no necesita el runtime aparte; si está, se usa.
+  const runtime = await readFile(rutaRuntime ?? join(dirname(archivo), 'ara_runtime.wasm')).catch(() => undefined);
   const r = await ejecutar(await readFile(archivo), { runtime, escribir: (t) => process.stdout.write(t) });
   if (r.error) {
     console.error(`error en ejecución: ${r.error.mensaje}` + (r.error.inicio != null ? ` (bytes ${r.error.inicio}..${r.error.fin} del código)` : ''));

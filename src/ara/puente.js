@@ -28,6 +28,25 @@ async function leerPropio(nombre, comoTexto) {
 let compilador = null;
 let motor = null;
 
+// Lo ya compilado a código máquina en esta sesión: el runtime (siempre los mismos bytes) y los últimos programas
+// (pulsar «Jugar» otra vez sin cambiar ningún script no vuelve a compilar nada).
+const modulosCompilados = new WeakMap(); // bytes → Promise<WebAssembly.Module>
+const compilado = (bytes) => {
+  let m = modulosCompilados.get(bytes);
+  if (!m) {
+    m = WebAssembly.compile(bytes);
+    m.catch(() => modulosCompilados.delete(bytes));
+    modulosCompilados.set(bytes, m);
+  }
+  return m;
+};
+// El runtime de Ara es la versión ligera para la web (herramientas/runtime-web.sh del repositorio de Ara: 96 KB en vez
+// de 226 KB); el mismo en el editor y en los juegos exportados. Se lee una vez.
+let runtimePropio = null;
+const runtimeAra = () => (runtimePropio ||= leerPropio('./ara_runtime.wasm', false).catch((e) => { runtimePropio = null; throw e; }));
+const PROGRAMAS_GUARDADOS = 4;
+const programas = new Map(); // textos de los scripts → { modulo: Promise<WebAssembly.Module>, archivos }
+
 /** El compilador de Ara (se carga una vez) y el texto de motor.ara. */
 export async function compiladorAra() {
   if (!compilador) {
@@ -95,13 +114,23 @@ export class ProgramaAra {
   static async crear(mundo, textos) {
     const { compilador, motor } = await compiladorAra();
     const p = new ProgramaAra(mundo, Object.fromEntries([['motor.ara', motor], ...textos]));
-    const r = compilador.compilar(Object.entries(p.textos));
-    if (!r.ok) {
-      const e = errorDeCompilacion(r.errores[0]);
-      e.errores = r.errores;
-      throw e;
+    const clave = Object.entries(p.textos).map(([rel, texto]) => `${rel}\0${texto}`).join('\0\0');
+    let guardado = programas.get(clave);
+    if (!guardado) {
+      const r = compilador.compilar(Object.entries(p.textos));
+      if (!r.ok) {
+        const e = errorDeCompilacion(r.errores[0]);
+        e.errores = r.errores;
+        throw e;
+      }
+      guardado = { modulo: WebAssembly.compile(r.modulo), archivos: r.archivos };
+      guardado.modulo.catch(() => programas.delete(clave)); // un fallo no se guarda: se vuelve a intentar
+      if (programas.size >= PROGRAMAS_GUARDADOS) programas.delete(programas.keys().next().value);
+    } else {
+      programas.delete(clave); // pasa a ser el más reciente
     }
-    await p.montar(r.modulo, r.archivos, compilador.runtime);
+    programas.set(clave, guardado);
+    await p.montar(await guardado.modulo, guardado.archivos, compilado(await runtimeAra()));
     return p;
   }
 
@@ -111,9 +140,9 @@ export class ProgramaAra {
    */
   static async desdeCompilado(mundo, textos, modulo, descripcion) {
     if (descripcion.disposicion !== DISPOSICION_EXPORTADA) throw new Error('los scripts de Ara se exportaron con otra versión de Falcon Engine; vuelve a exportar el juego');
-    const [motor, runtime] = await Promise.all([leerPropio('./motor.ara', true), leerPropio('./ara_runtime.wasm', false)]);
+    const [motor, runtime] = await Promise.all([leerPropio('./motor.ara', true), runtimeAra()]);
     const p = new ProgramaAra(mundo, Object.fromEntries([['motor.ara', motor], ...textos]));
-    await p.montar(modulo, descripcion.archivos, runtime);
+    await p.montar(modulo, descripcion.archivos, compilado(runtime));
     return p;
   }
 
@@ -188,6 +217,18 @@ export class ProgramaAra {
     return (v) => v;
   }
 
+  /** La función que convierte valores de JavaScript al tipo de Ara `tipo` (se calcula una vez por externa). */
+  convertidorAra(tipo) {
+    switch (tipo) {
+      case 'nada': return () => undefined;
+      case 'decimal': return (v) => Number(v) || 0;
+      case 'entero': return (v) => BigInt(Math.trunc(Number(v) || 0));
+      case 'booleano': return (v) => (v ? 1 : 0);
+    }
+    if (esTipoNodo(tipo)) return (v) => this.manejador(v && typeof v === 'object' && !v.eliminado ? v : null);
+    return (v) => this.aAra(tipo, v);
+  }
+
   /** Convierte un valor de JavaScript (lo que devuelve la API de Águila) al tipo de Ara que pide la externa. */
   aAra(tipo, v) {
     switch (tipo) {
@@ -260,10 +301,20 @@ export class ProgramaAra {
       // Los convertidores se preparan aquí: estas funciones se llaman muchas veces por fotograma.
       const cs = x.params.map((t) => this.convertidorJs(t));
       const conv = (args) => { for (let i = 0; i < args.length; i++) args[i] = cs[i](args[i]); return args; };
+      // `g` con los datos ya convertidos; sin `...args` en lo más común (hasta 3 datos).
+      const convertidos = (g) => {
+        const [c0, c1, c2] = cs;
+        switch (cs.length) {
+          case 0: return () => g();
+          case 1: return (a) => g(c0(a));
+          case 2: return (a, b) => g(c0(a), c1(b));
+          case 3: return (a, b, c) => g(c0(a), c1(b), c2(c));
+          default: return (...args) => g(...conv(args));
+        }
+      };
       let f;
       if (propias[base]) {
-        const g = propias[base];
-        f = (...args) => g(...conv(args));
+        f = convertidos(propias[base]);
       } else if (base.endsWith('=')) {
         const prop = base.slice(base.indexOf('.') + 1, -1);
         f = (id, v) => {
@@ -291,24 +342,26 @@ export class ProgramaAra {
         };
       } else {
         let g = null; // las funciones globales del motor no cambian: se buscan una vez
-        f = (...args) => {
+        f = convertidos((...args) => {
           g ||= m.interp.globales.vars.get(base);
           if (typeof g !== 'function') { g = null; throw new Error(`Falcon no tiene la función «${base}»`); }
-          return g(...conv(args));
-        };
+          return g(...args);
+        });
       }
-      const retorno = x.retorno, simple = retorno === 'nada' || retorno === 'decimal' || retorno === 'booleano';
-      imports[x.nombre] = (...args) => {
-        try {
-          const r = f(...args);
-          // Lo más frecuente (nada, decimal, booleano) sin pasar por aAra.
-          if (simple) return retorno === 'nada' ? undefined : retorno === 'decimal' ? Number(r) || 0 : r ? 1 : 0;
-          return this.aAra(retorno, r);
-        } catch (e) {
-          ara.fallar(e && (e.mensajeCorto || e.message) || String(e));
-          return this.aAra(retorno, null);
-        }
+      // Se llaman muchas veces por fotograma: con un número fijo de datos (sin `...args`) y la conversión del
+      // resultado ya preparada.
+      const aR = this.convertidorAra(x.retorno);
+      const fallo = (e) => {
+        ara.fallar(e && (e.mensajeCorto || e.message) || String(e));
+        return aR(null);
       };
+      switch (x.params.length) {
+        case 0: imports[x.nombre] = () => { try { return aR(f()); } catch (e) { return fallo(e); } }; break;
+        case 1: imports[x.nombre] = (a) => { try { return aR(f(a)); } catch (e) { return fallo(e); } }; break;
+        case 2: imports[x.nombre] = (a, b) => { try { return aR(f(a, b)); } catch (e) { return fallo(e); } }; break;
+        case 3: imports[x.nombre] = (a, b, c) => { try { return aR(f(a, b, c)); } catch (e) { return fallo(e); } }; break;
+        default: imports[x.nombre] = (...args) => { try { return aR(f(...args)); } catch (e) { return fallo(e); } };
+      }
     }
     return imports;
   }
@@ -334,6 +387,14 @@ export class InstanciaAra {
     this.funciones = new Map((this.desc.funciones || []).map((f) => [f.nombre, f]));
     this.objeto = 0;
     this.desactivados = new Set();
+    // Tablas por nombre (se consultan muchas veces por fotograma: `jugador.leer_booleano("activo")`, los eventos).
+    this.campos = new Map(this.desc.campos.map((c) => [c.nombre, c]));
+    this.eventos = new Map();
+    for (const ev of this.desc.eventos) {
+      if (!this.eventos.has(ev.evento)) this.eventos.set(ev.evento, []);
+      this.eventos.get(ev.evento).push(ev);
+    }
+    this.lectores = new Map(); // nombre del campo → (objeto) => valor en JavaScript
   }
 
   get ara() { return this.programa.ara; }
@@ -349,16 +410,20 @@ export class InstanciaAra {
     }
   }
 
-  tieneEvento(evento) { return this.desc.eventos.some((e) => e.evento === evento); }
+  tieneEvento(evento) { return this.eventos.has(evento); }
 
   /** Lanza un evento. Devuelve el error ocurrido (o null). Si un caso espera, su error llegará más tarde. */
   emitir(evento, args = []) {
     let error = null;
-    for (const ev of this.desc.eventos) {
-      if (ev.evento !== evento || this.desactivados.has(ev.exportacion) || !this.objeto) continue;
+    const lista = this.eventos.get(evento);
+    if (!lista) return null;
+    for (const ev of lista) {
+      if (!this.objeto || (this.desactivados.size && this.desactivados.has(ev.exportacion))) continue;
       if (ev.filtro !== null && aTexto(args[0]) !== ev.filtro) continue;
-      const valores = ev.datos.map((t, i) => this.programa.aAra(t, args[i]));
-      const r = this.ara.llamar(ev.exportacion, this.objeto, ...valores);
+      let r;
+      // Lo más frecuente (`se_actualiza(delta)`): un decimal, sin crear listas.
+      if (ev.datos.length === 1 && ev.datos[0] === 'decimal') r = this.ara.llamar(ev.exportacion, this.objeto, Number(args[0]) || 0);
+      else r = this.ara.llamar(ev.exportacion, this.objeto, ...ev.datos.map((t, i) => this.programa.aAra(t, args[i])));
       if (r && typeof r.then === 'function') {
         r.then(() => { const e = this.programa.errorPendiente(); if (e) this.programa.mundo.reportarError(e, this.host); });
       }
@@ -402,12 +467,20 @@ export class InstanciaAra {
   llamar(nombre, args = []) { return this.llamarFuncion(nombre, args); }
 
   /** ¿Tiene ese campo o esa función? (como `InstanciaScript.tiene`). */
-  tiene(nombre) { return this.desc.campos.some((c) => c.nombre === nombre) || this.funciones.has(nombre); }
+  tiene(nombre) { return this.campos.has(nombre) || this.funciones.has(nombre); }
 
   obtener(nombre) {
-    const c = this.desc.campos.find((x) => x.nombre === nombre);
-    if (!c || !this.objeto) return undefined;
-    return this.programa.aJs(c.tipo, this.ara.exports[`${this.nombreClase}.leer.${nombre}`](this.objeto));
+    if (!this.objeto) return undefined;
+    let leer = this.lectores.get(nombre);
+    if (leer === undefined) {
+      const c = this.campos.get(nombre);
+      if (!c) return undefined;
+      const exportada = this.ara.exports[`${this.nombreClase}.leer.${nombre}`];
+      const aJs = this.programa.convertidorJs(c.tipo);
+      leer = (o) => aJs(exportada(o));
+      this.lectores.set(nombre, leer);
+    }
+    return leer(this.objeto);
   }
 
   /**
@@ -415,7 +488,7 @@ export class InstanciaAra {
    * Solo los de tipo número, texto o booleano (los demás no tienen `poner`). Devuelve si se pudo.
    */
   asignar(nombre, valor) {
-    const c = this.desc.campos.find((x) => x.nombre === nombre);
+    const c = this.campos.get(nombre);
     const poner = c && this.ara.exports[`${this.nombreClase}.poner.${nombre}`];
     if (!poner || !this.objeto) return false;
     poner(this.objeto, this.programa.aAra(c.tipo, valor));

@@ -10,7 +10,19 @@ import { Audio } from './audio.js';
 import { EQUIPO_CQB } from './tactico3d.js';
 import { ProgramaAra, InstanciaAra, claseDe, errorDeCompilacion } from '../ara/puente.js';
 
-const norm = (s) => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+// Los nombres se comparan sin tildes ni mayúsculas. Se normalizan muchas veces por fotograma (`nodo("Jugador")`,
+// `hijo("Destino")`) y casi siempre los mismos: se guardan (con un tope, por si un juego crea nombres sin fin).
+const NORMALIZADOS = new Map();
+const norm = (s) => {
+  const t = String(s);
+  let r = NORMALIZADOS.get(t);
+  if (r === undefined) {
+    r = t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    if (NORMALIZADOS.size >= 4096) NORMALIZADOS.clear();
+    NORMALIZADOS.set(t, r);
+  }
+  return r;
+};
 const sinNumero = (s) => String(s).replace(/\s*\d+$/, '');
 let contadorNodos = 0;
 
@@ -167,9 +179,16 @@ export class NodoVivo {
 
   /** El método `nombre` si este nodo lo tiene (los de su tipo y los comunes a todos), o null. Lo usan Águila y Ara. */
   metodo(nombre) {
-    const met = this.metodos();
-    if (!Object.prototype.hasOwnProperty.call(met, nombre)) return null;
-    return miembrosDelTipo(this.tipo).has(nombre) || METODOS_COMUNES.has(nombre) ? met[nombre] : null;
+    // Se consulta en cada llamada a un método (y al leer un campo por su nombre): la respuesta se guarda por nodo.
+    // El tipo de un nodo no cambia, así que no hay que invalidarla.
+    const cache = this._metodo || (this._metodo = new Map());
+    let r = cache.get(nombre);
+    if (r === undefined) {
+      const met = this.metodos();
+      r = Object.prototype.hasOwnProperty.call(met, nombre) && (miembrosDelTipo(this.tipo).has(nombre) || METODOS_COMUNES.has(nombre)) ? met[nombre] : null;
+      cache.set(nombre, r);
+    }
+    return r;
   }
 
   aguilaObtener(nombre) {

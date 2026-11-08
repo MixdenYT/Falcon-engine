@@ -21,7 +21,7 @@ Motor de videojuegos **2D y 3D para Windows y Linux**, con **Blueprints visuales
 | Editor 2D | Niveles con sprites, mosaicos, colisiones y cámaras |
 | Editor 3D | Escenas con mallas, materiales, luces y personajes |
 | Blueprints | Lógica visual con eventos, condiciones y acciones; se compila a Ara con sus tipos |
-| Ara | Scripts en español con tipos, compilados a WebAssembly: decenas de veces más rápidos que Águila, con errores en vivo |
+| Ara | Scripts en español con tipos, compilados a WebAssembly: hasta cientos de veces más rápidos que Águila, con errores en vivo |
 | Águila | El lenguaje anterior: sus scripts siguen funcionando junto a los de Ara |
 | Lumbre | Iluminación global mediante sondas, sombras y reflejos |
 | Materiales | Grafos, vista previa, parámetros e instancias reutilizables |
@@ -90,8 +90,10 @@ Velocidad de los scripts por fotograma, medida con `node herramientas/medir-ara.
 
 | Juego | Águila | Ara |
 |---|---|---|
-| Shooter con 300 drones (sobre todo llamadas al motor) | 0,56 ms | 0,48 ms |
-| Bandada de 150 pájaros (lógica propia: listas y bucles) | 39 ms | 0,73 ms (54× más rápido) |
+| Shooter con 300 drones (sobre todo llamadas al motor) | 0,51 ms | 0,25 ms (2× más rápido) |
+| Bandada de 150 pájaros (lógica propia: listas y bucles) | 24 ms | 0,12 ms (195× más rápido) |
+
+Al volver a pulsar Jugar sin cambiar ningún script, Falcon reutiliza lo ya compilado: el juego empieza en unos milisegundos.
 
 Al abrir un proyecto con scripts de Águila, Falcon ofrece pasarlo a Ara: guarda una copia en `.falcon/copia-aguila-…`, convierte cada `.agl` en un `.ara` y deja en Águila (funcionando) lo que no sepa convertir, explicado en `CONVERSION_ARA.md`. También está en el menú **Juego › Convertir los scripts de Águila a Ara…**.
 

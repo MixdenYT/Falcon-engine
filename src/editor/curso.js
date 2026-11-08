@@ -18,28 +18,28 @@ const imagen = (rel, defecto = '') => existe(rel) ? rel : defecto;
 
 export const CATALOGO = [
   { id: 'moneda', nombre: 'Moneda', desc: 'Para recoger', icono: 'moneda', color: 'var(--aviso)', crear: async () => {
-    const script = await asegurarScript('scripts/moneda.agl', SCRIPTS.moneda);
+    const script = await asegurarScript('scripts/moneda.ara', SCRIPTS.moneda);
     return crearNodo('Area2D', 'Moneda', {}, [crearNodo('Sprite', 'Sprite', { imagen: imagen('sprites/personajes/moneda.png'), ancho: 30, alto: 30, forma: 'circulo', color: '#F2C46D', animando: true, fps: 12 }), crearNodo('Colision', 'Colisión', { ancho: 26, alto: 26 })]);
-  }, extra: (n) => { n.script = 'scripts/moneda.agl'; n.grupos = ['monedas']; } },
+  }, extra: (n) => { n.script = 'scripts/moneda.ara'; n.grupos = ['monedas']; } },
   { id: 'plataforma', nombre: 'Plataforma', desc: 'Para subirse encima', icono: 'plataforma', color: 'var(--turquesa)', crear: async () => crearNodo('Plataforma', 'Plataforma', { ancho: 200, alto: 28, color: '#22412E', color_borde: '#2F5E40' }) },
   { id: 'pinchos', nombre: 'Pinchos', desc: 'Peligro: hacen volver a empezar', icono: 'pinchos', color: 'var(--error)', crear: async () => {
-    await asegurarScript('scripts/peligro.agl', SCRIPTS.peligro);
+    await asegurarScript('scripts/peligro.ara', SCRIPTS.peligro);
     return crearNodo('Area2D', 'Pinchos', {}, [crearNodo('Sprite', 'Sprite', { forma: 'triangulo', color: '#C2414F', ancho: 52, alto: 28 }), crearNodo('Colision', 'Colisión', { ancho: 40, alto: 20, posicion: [0, 4] })]);
-  }, extra: (n) => { n.script = 'scripts/peligro.agl'; n.grupos = ['peligros']; } },
+  }, extra: (n) => { n.script = 'scripts/peligro.ara'; n.grupos = ['peligros']; } },
   { id: 'enemigo', nombre: 'Enemigo', desc: 'Va de un lado a otro', icono: 'enemigo', color: 'var(--rosa)', crear: async () => {
-    await asegurarScript('scripts/enemigo.agl', SCRIPTS.enemigo);
+    await asegurarScript('scripts/enemigo.ara', SCRIPTS.enemigo);
     return crearNodo('Personaje2D', 'Enemigo', { velocidad: 90 }, [crearNodo('Sprite', 'Sprite', { imagen: imagen('sprites/personajes/enemigo.png'), forma: 'enemigo', color: '#B04A6A', ancho: 54, alto: 54, animando: true }), crearNodo('Colision', 'Colisión', { ancho: 44, alto: 40, posicion: [0, 6] })]);
-  }, extra: (n) => { n.script = 'scripts/enemigo.agl'; n.grupos = ['enemigos']; } },
+  }, extra: (n) => { n.script = 'scripts/enemigo.ara'; n.grupos = ['enemigos']; } },
   { id: 'meta', nombre: 'Meta', desc: 'Al tocarla, ganas', icono: 'bandera', color: 'var(--verde)', crear: async () => {
-    await asegurarScript('scripts/meta.agl', SCRIPTS.meta);
+    await asegurarScript('scripts/meta.ara', SCRIPTS.meta);
     return crearNodo('Area2D', 'Meta', {}, [crearNodo('Sprite', 'Sprite', { forma: 'bandera', color: '#3DDC84', ancho: 52, alto: 80 }), crearNodo('Colision', 'Colisión', { ancho: 36, alto: 80 })]);
-  }, extra: (n) => { n.script = 'scripts/meta.agl'; } },
+  }, extra: (n) => { n.script = 'scripts/meta.ara'; } },
   { id: 'jugador', nombre: 'Jugador', desc: 'Tu personaje', icono: 'persona', color: 'var(--turquesa)', crear: async () => crearNodo('Personaje2D', 'Jugador', { controles: 'plataformas' }, [crearNodo('Sprite', 'Sprite', { imagen: imagen('sprites/personajes/jugador.png'), forma: 'personaje', ancho: 52, alto: 65 }), crearNodo('Colision', 'Colisión', { ancho: 40, alto: 62 })]) },
   { id: 'texto', nombre: 'Texto', desc: 'Un letrero en pantalla', icono: 'texto', color: 'var(--lila)', crear: async () => crearNodo('Etiqueta', 'Texto', { texto: '¡Hola!', posicion: [24, 24] }) },
   { id: 'marcador', nombre: 'Marcador de monedas', desc: 'Cuenta los puntos', icono: 'moneda', color: 'var(--lila)', crear: async () => {
-    await asegurarScript('scripts/contador.agl', SCRIPTS.contador);
+    await asegurarScript('scripts/contador.ara', SCRIPTS.contador);
     return crearNodo('Etiqueta', 'Contador', { texto: '0', icono: 'moneda', fondo: true, tam: 26, posicion: [24, 22] });
-  }, extra: (n) => { n.script = 'scripts/contador.agl'; } },
+  }, extra: (n) => { n.script = 'scripts/contador.ara'; } },
   { id: 'camara', nombre: 'Cámara que sigue', desc: 'Lo que ve el jugador', icono: 'camara', color: 'var(--turquesa)', crear: async () => crearNodo('Camara2D', 'Cámara', { seguir: 'Jugador', suavizado: 0.15 }) },
   { id: 'particulas', nombre: 'Chispas', desc: 'Efecto de partículas', icono: 'rayos', color: 'var(--aviso)', crear: async () => crearNodo('Particulas2D', 'Chispas', {}) },
 ];
@@ -137,7 +137,8 @@ export const ed = {
     const d = escena(); const n = nodo(nombreNodo);
     if (!n) return;
     if (n.script) { await abrirDocumento(n.script); return; }
-    const rel = await nuevoScript(n, { sinPreguntar: true, nombre: nombreNodo.toLowerCase() + '_reglas', texto: `# Reglas de ${nombreNodo} escritas en Águila\n\ncuando empieza():\n    pasar\n` });
+    // Un script de Ara con la clase del nodo y un «cuando empieza()» vacío para la lección.
+    const rel = await nuevoScript(n, { sinPreguntar: true, nombre: nombreNodo.toLowerCase() + '_reglas' });
     if (!rel) return;
     cambiarNodo(d, n.id, x => { x.script = rel; });
     await abrirDocumento(rel);

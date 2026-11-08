@@ -1,0 +1,232 @@
+# API de Falcon Engine para los scripts de Ara (ver docs/JUEGOS.md en el repositorio de Ara).
+# Lo implementa src/ara/puente.js con la misma lógica que usa Águila (src/motor/mundo.js).
+#
+# Todos los nodos son `Nodo` y tienen todos los miembros: si un nodo no admite uno (por ejemplo, `saltar` en una
+# Etiqueta), falla al ejecutarse con un error que lo explica, igual que en Águila. Los tipos concretos sirven para
+# `clase X extiende Personaje2D:`. Un `Nodo` que no existe (lo que devuelve `nodo("nadie")`) no es nada: compruébalo
+# con `.existe()`.
+
+# ---------- Tipos de nodo ----------
+externa tipo Nodo
+externa tipo Nodo2D extiende Nodo
+externa tipo Personaje2D extiende Nodo2D
+externa tipo Sprite extiende Nodo2D
+externa tipo Colision extiende Nodo2D
+externa tipo Camara2D extiende Nodo2D
+externa tipo Mosaicos extiende Nodo2D
+externa tipo Plataforma extiende Nodo2D
+externa tipo Area2D extiende Nodo2D
+externa tipo Fondo extiende Nodo2D
+externa tipo Particulas2D extiende Nodo2D
+externa tipo Interfaz extiende Nodo
+externa tipo Etiqueta extiende Interfaz
+externa tipo Boton extiende Interfaz
+externa tipo PanelUI extiende Interfaz
+externa tipo Nodo3D extiende Nodo
+externa tipo Malla3D extiende Nodo3D
+externa tipo Luz3D extiende Nodo3D
+externa tipo Entorno extiende Nodo3D
+externa tipo VolumenLumbre extiende Nodo3D
+externa tipo Camara3D extiende Nodo3D
+externa tipo Personaje3D extiende Nodo3D
+externa tipo Sonido extiende Nodo
+externa tipo Temporizador extiende Nodo
+
+# ---------- Eventos ----------
+externa evento empieza()
+externa evento se_actualiza(delta: decimal)
+externa evento toca(otro: Nodo)
+externa evento deja_de_tocar(otro: Nodo)
+externa evento se_pulsa(accion: texto)
+externa evento se_suelta(accion: texto)
+externa evento recibe(senal: texto, datos: texto)
+externa evento hace_clic()
+externa evento termina()
+externa evento se_elimina()
+
+# ---------- Propiedades de los nodos ----------
+externa propiedad Nodo.nombre: texto
+externa propiedad Nodo.tipo: texto
+externa propiedad Nodo.visible: booleano
+externa propiedad Nodo.padre: Nodo
+externa propiedad Nodo.hijos: lista[Nodo]
+externa propiedad Nodo.grupos: lista[texto]
+externa propiedad Nodo.x: decimal
+externa propiedad Nodo.y: decimal
+externa propiedad Nodo.z: decimal
+externa propiedad Nodo.posicion: lista[decimal]
+externa propiedad Nodo.rotacion: decimal
+externa propiedad Nodo.rotacion_x: decimal
+externa propiedad Nodo.rotacion_y: decimal
+externa propiedad Nodo.rotacion_z: decimal
+externa propiedad Nodo.escala_x: decimal
+externa propiedad Nodo.escala_y: decimal
+externa propiedad Nodo.escala_z: decimal
+externa propiedad Nodo.velocidad: decimal
+externa propiedad Nodo.salto: decimal
+externa propiedad Nodo.velocidad_x: decimal
+externa propiedad Nodo.velocidad_y: decimal
+externa propiedad Nodo.velocidad_z: decimal
+externa propiedad Nodo.usa_gravedad: booleano
+externa propiedad Nodo.gravedad: decimal
+externa propiedad Nodo.cuadro: entero
+externa propiedad Nodo.voltear_h: booleano
+externa propiedad Nodo.color: texto
+externa propiedad Nodo.opacidad: decimal
+externa propiedad Nodo.imagen: texto
+externa propiedad Nodo.zoom: decimal
+externa propiedad Nodo.emitiendo: booleano
+externa propiedad Nodo.texto: texto
+externa propiedad Nodo.tam: decimal
+externa propiedad Nodo.intensidad: decimal
+externa propiedad Nodo.fov: decimal
+externa propiedad Nodo.volumen: decimal
+externa propiedad Nodo.restante: decimal
+externa propiedad Nodo.tiempo: decimal
+
+# ---------- Métodos de los nodos ----------
+externa func Nodo.existe(este) -> booleano
+externa func Nodo.es(este, que: texto) -> booleano
+externa func Nodo.eliminar(este)
+# Llama a una función del script del nodo (de Ara, de Águila o de un Blueprint) por su nombre.
+externa func Nodo.llamar(este, funcion: texto)
+externa func Nodo.llamar(este, funcion: texto, a: decimal)
+externa func Nodo.llamar(este, funcion: texto, a: decimal, b: decimal)
+externa func Nodo.llamar(este, funcion: texto, a: decimal, b: decimal, c: decimal)
+# Lo mismo para una función que devuelve un número.
+externa func Nodo.consultar(este, funcion: texto) -> decimal
+externa func Nodo.consultar(este, funcion: texto, a: decimal) -> decimal
+externa func Nodo.consultar(este, funcion: texto, a: decimal, b: decimal) -> decimal
+externa func Nodo.consultar(este, funcion: texto, a: decimal, b: decimal, c: decimal) -> decimal
+# Los campos del script de otro nodo (de Ara, de Águila o de un Blueprint) por su nombre, o una propiedad del nodo.
+externa func Nodo.leer_numero(este, campo: texto) -> decimal
+externa func Nodo.leer_texto(este, campo: texto) -> texto
+externa func Nodo.leer_booleano(este, campo: texto) -> booleano
+externa func Nodo.leer_nodo(este, campo: texto) -> Nodo
+externa func Nodo.cambiar_numero(este, campo: texto, valor: decimal)
+externa func Nodo.cambiar_texto(este, campo: texto, valor: texto)
+externa func Nodo.cambiar_booleano(este, campo: texto, valor: booleano)
+externa func Nodo.cambiar_nodo(este, campo: texto, valor: Nodo)
+externa func Nodo.hijo(este, nombre: texto) -> Nodo
+externa func Nodo.en_grupo(este, grupo: texto) -> booleano
+externa func Nodo.añadir_a_grupo(este, grupo: texto)
+externa func Nodo.quitar_de_grupo(este, grupo: texto)
+externa func Nodo.mover_a(este, x: decimal, y: decimal)
+externa func Nodo.mover_a(este, x: decimal, y: decimal, z: decimal)
+externa func Nodo.desplazar(este, dx: decimal, dy: decimal)
+externa func Nodo.desplazar(este, dx: decimal, dy: decimal, dz: decimal)
+externa func Nodo.distancia_a(este, otro: Nodo) -> decimal
+externa func Nodo.mirar_a(este, otro: Nodo)
+externa func Nodo.ve_a(este, otro: Nodo) -> booleano
+externa func Nodo.ve_a(este, otro: Nodo, alcance: decimal) -> booleano
+externa func Nodo.perseguir(este, otro: Nodo)
+externa func Nodo.perseguir(este, otro: Nodo, velocidad: decimal)
+# Personajes
+externa func Nodo.mover(este, velocidad_x: decimal)
+externa func Nodo.mover(este, velocidad_x: decimal, velocidad_y: decimal)
+externa func Nodo.saltar(este)
+externa func Nodo.saltar(este, fuerza: decimal)
+externa func Nodo.en_el_suelo(este) -> booleano
+externa func Nodo.en_pared(este) -> booleano
+externa func Nodo.en_techo(este) -> booleano
+externa func Nodo.empujar(este, x: decimal)
+externa func Nodo.empujar(este, x: decimal, y: decimal)
+externa func Nodo.empujar(este, x: decimal, y: decimal, z: decimal)
+externa func Nodo.girar(este, grados: decimal)
+# Sprites, mosaicos, áreas, cámaras y partículas
+externa func Nodo.animar(este, nombre: texto)
+externa func Nodo.parar_animacion(este)
+externa func Nodo.poner(este, columna: decimal, fila: decimal)
+externa func Nodo.poner(este, columna: decimal, fila: decimal, mosaico: entero)
+externa func Nodo.quitar(este, columna: decimal, fila: decimal)
+externa func Nodo.hay_mosaico(este, columna: decimal, fila: decimal) -> booleano
+externa func Nodo.tocando(este) -> lista[Nodo]
+externa func Nodo.temblar(este)
+externa func Nodo.temblar(este, fuerza: decimal, segundos: decimal)
+externa func Nodo.estallar(este)
+externa func Nodo.estallar(este, cantidad: entero)
+# Sonido y temporizadores
+externa func Nodo.reproducir(este)
+externa func Nodo.parar(este)
+externa func Nodo.iniciar(este)
+# Combate táctico 3D (plantillas CQB)
+externa func Nodo.animar_3d(este, clip: texto)
+externa func Nodo.animar_3d(este, clip: texto, segundos: decimal)
+externa func Nodo.equipar_arma(este, indice: entero)
+externa func Nodo.arma_dato(este, campo: texto, indice: entero) -> decimal
+externa func Nodo.arma_libre(este) -> booleano
+externa func Nodo.disparar_arma(este, dano: decimal, alcance: decimal) -> booleano
+externa func Nodo.interactuar(este)
+externa func Nodo.objetivo_interaccion(este) -> Nodo
+externa func Nodo.mover_puerta(este, abierta: booleano, delta: decimal) -> booleano
+externa func Nodo.detectar(este, otro: Nodo, alcance: decimal, angulo: decimal) -> booleano
+externa func Nodo.oir_disparo(este, otro: Nodo, alcance: decimal) -> booleano
+externa func Nodo.recordar_objetivo(este, otro: Nodo)
+externa func Nodo.patrullar(este, velocidad: decimal)
+externa func Nodo.investigar(este, velocidad: decimal)
+externa func Nodo.buscar_cobertura(este, otro: Nodo, velocidad: decimal)
+externa func Nodo.apuntar_a(este, otro: Nodo)
+
+# ---------- Entrada ----------
+externa func se_pulsa(accion: texto) -> booleano
+externa func se_mantiene(accion: texto) -> booleano
+externa func se_suelta(accion: texto) -> booleano
+externa func eje(negativa: texto, positiva: texto) -> decimal
+externa func raton_x() -> decimal
+externa func raton_y() -> decimal
+externa func raton_pulsado() -> booleano
+
+# ---------- Escena ----------
+externa func nodo(nombre: texto) -> Nodo
+externa func grupo(nombre: texto) -> lista[Nodo]
+externa func crear(plantilla: texto) -> Nodo
+externa func crear(plantilla: texto, x: decimal, y: decimal) -> Nodo
+externa func crear(plantilla: texto, x: decimal, y: decimal, z: decimal) -> Nodo
+externa func emitir(senal: texto)
+externa func emitir(senal: texto, datos: texto)
+externa func disparar_rayo() -> Nodo
+externa func disparar_rayo(alcance: decimal) -> Nodo
+externa func distancia(a: Nodo, b: Nodo) -> decimal
+externa func distancia(x1: decimal, y1: decimal, x2: decimal, y2: decimal) -> decimal
+
+# ---------- Juego ----------
+externa func ganar_partida()
+externa func perder_partida()
+externa func ganar_puntos()
+externa func ganar_puntos(cantidad: entero)
+externa func reiniciar_nivel()
+# `puntos` y `gravedad` son variables en Águila; en Ara se leen y se cambian con funciones.
+externa func puntos() -> entero
+externa func poner_puntos(cantidad: entero)
+externa func gravedad_global() -> decimal
+externa func poner_gravedad_global(fuerza: decimal)
+externa func cambiar_escena(nombre: texto)
+externa func tiempo() -> decimal
+externa func guardar(clave: texto, valor: texto)
+externa func cargar(clave: texto, por_defecto: texto) -> texto
+externa func guardar_numero(clave: texto, valor: decimal)
+externa func cargar_numero(clave: texto, por_defecto: decimal) -> decimal
+externa func temblar_camara()
+externa func temblar_camara(fuerza: decimal, segundos: decimal)
+externa func calidad_grafica() -> texto
+externa func calidad_grafica(nivel: texto) -> texto
+externa func pausar_juego()
+externa func pausar_juego(pausado: booleano)
+
+# ---------- Sonido ----------
+externa func sonar(sonido: texto)
+externa func sonar(sonido: texto, volumen: decimal)
+externa func musica(nombre: texto)
+externa func musica(nombre: texto, volumen: decimal)
+externa func parar_musica()
+
+# ---------- Matemáticas para juegos (las de Ara: abs, raiz, potencia, minimo, maximo, piso, techo, redondear...) ----------
+externa func limitar(valor: decimal, minimo: decimal, maximo: decimal) -> decimal
+# Un número como texto, sin «.0» si no tiene decimales (como escribía Águila): texto_numero(100.0) es "100".
+externa func texto_numero(numero: decimal) -> texto
+externa func interpolar(a: decimal, b: decimal, t: decimal) -> decimal
+externa func mezclar_color(color_a: texto, color_b: texto, t: decimal) -> texto
+externa func signo(numero: decimal) -> decimal
+externa func seno(grados: decimal) -> decimal
+externa func coseno(grados: decimal) -> decimal
+externa func angulo_hacia(x1: decimal, y1: decimal, x2: decimal, y2: decimal) -> decimal

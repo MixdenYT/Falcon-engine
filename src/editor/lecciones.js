@@ -23,7 +23,7 @@ export const LECCIONES = [
       { texto: 'Selecciona al Jugador en «Lo que hay en tu nivel»', pista: 'Está arriba a la izquierda, con un icono de persona.', foco: '[data-sencillo-nodo="Jugador"]', comprobar: (ed) => ed.seleccionado()?.nombre === 'Jugador', solucion: (ed) => ed.seleccionarPorNombre('Jugador') },
       { texto: 'Pulsa «Probar juego» y cierra la ventana cuando quieras', pista: 'Es el botón verde de arriba a la derecha. También puedes pulsar F5.', foco: '[data-accion="probar"]', comprobar: (ed) => ed.ocurrio('probado') },
     ],
-    aguila: '# Todavía no hay código: ¡solo estamos mirando!',
+    codigo: '# Todavía no hay código: ¡solo estamos mirando!',
   },
   {
     id: 'mover', titulo: 'Mueve a tu personaje',
@@ -33,7 +33,7 @@ export const LECCIONES = [
       { texto: 'Mueve el control «Velocidad al andar»', pista: 'Está en el panel del Jugador, debajo de la lista. Más a la derecha = más rápido.', foco: '[data-sencillo-prop="velocidad"]', comprobar: (ed) => ed.ocurrio('prop:velocidad') },
       { texto: 'Pulsa «Probar juego» y anda con ← y →', pista: 'Usa las flechas del teclado o A y D.', foco: '[data-accion="probar"]', comprobar: (ed) => ed.ocurrio('juego:andar') },
     ],
-    aguila: 'clase Jugador extiende Personaje2D:\n    exportar variable velocidad = 220',
+    codigo: 'clase Jugador extiende Personaje2D:\n    exportar velocidad = 220.0',
   },
   {
     id: 'saltar', titulo: 'Haz que tu personaje salte',
@@ -44,7 +44,7 @@ export const LECCIONES = [
       { texto: 'Une el bloque «Cuando se pulsa saltar» con el bloque «Saltar»', pista: 'Arrastra desde el triángulo blanco de la derecha de «Cuando se pulsa» hasta el triángulo de la izquierda de «Saltar».', comprobar: (ed) => { const bp = ed.blueprintDe('Jugador'); return conexion(bp, 'ev_pulsar', 'mv_saltar') || conexion(bp, 'ev_pulsar', 'lg_si'); }, solucion: (ed) => ed.conectarBloques('Jugador', 'ev_pulsar', 'salida', 'mv_saltar', 'entrada') },
       { texto: 'Pulsa «Probar juego» y salta con Espacio', pista: 'Si no salta, revisa que el cable esté bien unido.', foco: '[data-accion="probar"]', comprobar: (ed) => ed.ocurrio('juego:salto') },
     ],
-    aguila: 'cuando se_pulsa("saltar"):\n    saltar(altura_salto)',
+    codigo: 'cuando se_pulsa("saltar"):\n    saltar(altura_salto)',
   },
   {
     id: 'suelo', titulo: 'Salta solo desde el suelo',
@@ -55,7 +55,7 @@ export const LECCIONES = [
       { texto: 'Conecta: «Cuando se pulsa» → «Si» → «Saltar», y «En el suelo» a la condición', pista: 'La salida «verdadero» del Si va a «Saltar». El punto rojo de «En el suelo» va a «condición».', comprobar: (ed) => { const bp = ed.blueprintDe('Jugador'); return conexion(bp, 'ev_pulsar', 'lg_si') && conexion(bp, 'lg_si', 'mv_saltar') && conexion(bp, 'mv_suelo', 'lg_si'); }, solucion: (ed) => ed.solucionSueloBlueprint('Jugador') },
       { texto: 'Prueba el juego: ya no podrás saltar en el aire', foco: '[data-accion="probar"]', comprobar: (ed) => ed.ocurrio('juego:salto', 1) },
     ],
-    aguila: 'cuando se_pulsa("saltar"):\n    si en_el_suelo():\n        saltar(altura_salto)',
+    codigo: 'cuando se_pulsa("saltar"):\n    si en_el_suelo():\n        saltar(altura_salto)',
   },
   {
     id: 'monedas', titulo: 'Recoge monedas',
@@ -65,27 +65,27 @@ export const LECCIONES = [
       { texto: 'Arrastra la moneda a un sitio al que se pueda llegar saltando', pista: 'Haz clic en la moneda y arrástrala.', foco: '.visor-2d', comprobar: (ed) => ed.ocurrio('nodo_movido') },
       { texto: 'Prueba el juego y recoge una moneda', foco: '[data-accion="probar"]', comprobar: (ed) => ed.ocurrio('juego:puntos') },
     ],
-    aguila: 'cuando toca(otro):\n    si otro.es("Jugador"):\n        ganar_puntos(1)\n        yo.eliminar()',
+    codigo: 'cuando toca(otro):\n    si otro.es("Jugador"):\n        ganar_puntos(1)\n        eliminar()',
   },
   {
-    id: 'hola', titulo: 'Tu primera línea de Águila',
-    descripcion: 'Los bloques y Águila hacen lo mismo. Prueba a escribir una orden.',
+    id: 'hola', titulo: 'Tu primera línea de Ara',
+    descripcion: 'Los bloques y Ara hacen lo mismo. Prueba a escribir una orden.',
     pasos: [
-      { texto: 'Selecciona al Jugador y pulsa «Escribir en Águila»', pista: 'El botón está bajo «Añadir Blueprint».', foco: '[data-accion="escribir-aguila"]', comprobar: (ed) => !!ed.scriptDe('Jugador'), solucion: (ed) => ed.crearScriptSencillo('Jugador') },
-      { texto: 'Dentro de «cuando empieza():» escribe mostrar("¡Hola!")', pista: 'Escríbelo en la línea de debajo, con 4 espacios delante.', comprobar: (ed) => /cuando\s+empieza\(\)\s*:[\s\S]*mostrar\(/.test(ed.scriptDe('Jugador') || '') },
+      { texto: 'Selecciona al Jugador y pulsa «Escribir en Ara»', pista: 'El botón está bajo «Añadir Blueprint».', foco: '[data-accion="escribir-aguila"]', comprobar: (ed) => !!ed.scriptDe('Jugador'), solucion: (ed) => ed.crearScriptSencillo('Jugador') },
+      { texto: 'Dentro de «cuando empieza():» cambia «pasar» por imprimir("¡Hola!")', pista: 'Escríbelo con la misma sangría que «pasar»: 8 espacios.', comprobar: (ed) => /cuando\s+empieza\(\)\s*:[\s\S]*imprimir\(/.test(ed.scriptDe('Jugador') || '') },
       { texto: 'Pulsa «Guardar y probar» y mira la Salida del editor', foco: '[data-accion="guardar-probar"]', comprobar: (ed) => ed.ocurrio('juego:mostrar') },
     ],
-    aguila: 'cuando empieza():\n    mostrar("¡Hola!")',
+    codigo: 'cuando empieza():\n    imprimir("¡Hola!")',
   },
   {
     id: 'contar', titulo: 'Cuenta tus monedas',
     descripcion: 'Guarda cuántas monedas lleva el jugador en una variable.',
     pasos: [
-      { texto: 'En el script del Jugador, añade arriba: variable monedas = 0', pista: 'Escríbelo en la primera línea, sin sangría.', comprobar: (ed) => /variable\s+monedas\s*=\s*0/.test(ed.scriptDe('Jugador') || '') },
-      { texto: 'Añade un evento «cuando toca(otro):» que sume 1 a monedas', pista: 'Debajo escribe, con sangría: si otro.es("Moneda"): y después monedas = monedas + 1', comprobar: (ed) => /cuando\s+toca\(\s*\w+\s*\)\s*:[\s\S]*monedas\s*=\s*monedas\s*\+\s*1/.test(ed.scriptDe('Jugador') || '') },
+      { texto: 'En el script del Jugador, añade un campo: monedas = 0', pista: 'Escríbelo justo debajo de la línea «clase …», con 4 espacios delante.', comprobar: (ed) => /^ {4}monedas\s*=\s*0\s*$/m.test(ed.scriptDe('Jugador') || '') },
+      { texto: 'Añade un evento «cuando toca(otro):» que sume 1 a monedas', pista: 'Debajo escribe, con sangría: si otro.es("Moneda"): y después monedas += 1', comprobar: (ed) => /cuando\s+toca\(\s*\w+\s*\)\s*:[\s\S]*monedas\s*(\+=\s*1|=\s*monedas\s*\+\s*1)/.test(ed.scriptDe('Jugador') || '') },
       { texto: 'Prueba y fíjate en «Valores en vivo»: monedas sube', foco: '[data-accion="probar"]', comprobar: (ed) => (ed.valorVivo('Jugador', 'monedas') || 0) > 0 },
     ],
-    aguila: 'variable monedas = 0\n\ncuando toca(otro):\n    si otro.es("Moneda"):\n        monedas = monedas + 1',
+    codigo: 'monedas = 0\n\ncuando toca(otro):\n    si otro.es("Moneda"):\n        monedas += 1',
   },
   {
     id: 'pinchos', titulo: 'Cuidado con los pinchos',
@@ -95,7 +95,7 @@ export const LECCIONES = [
       { texto: 'Ponlos sobre el suelo, en el camino del jugador', foco: '.visor-2d', comprobar: (ed) => ed.ocurrio('nodo_movido') },
       { texto: 'Prueba el juego y tócalos a propósito', foco: '[data-accion="probar"]', comprobar: (ed) => ed.ocurrio('juego:reinicio') },
     ],
-    aguila: 'cuando toca(otro):\n    si otro.es("Jugador"):\n        reiniciar_nivel()',
+    codigo: 'cuando toca(otro):\n    si otro.es("Jugador"):\n        reiniciar_nivel()',
   },
   {
     id: 'meta', titulo: 'Llega a la meta',
@@ -105,7 +105,7 @@ export const LECCIONES = [
       { texto: 'Llévala lejos del jugador, al final del camino', foco: '.visor-2d', comprobar: (ed) => { const m = ed.nodo('Meta'), j = ed.nodo('Jugador'); return !!m && !!j && Math.abs(m.props.posicion[0] - j.props.posicion[0]) > 300; } },
       { texto: 'Prueba el juego y llega hasta la bandera', foco: '[data-accion="probar"]', comprobar: (ed) => ed.ocurrio('juego:ganar') },
     ],
-    aguila: 'cuando toca(otro):\n    si otro.es("Jugador"):\n        ganar_partida()',
+    codigo: 'cuando toca(otro):\n    si otro.es("Jugador"):\n        ganar_partida()',
   },
   {
     id: 'exportar', titulo: 'Comparte tu juego',
@@ -114,6 +114,6 @@ export const LECCIONES = [
       { texto: 'Pasa al modo Avanzado y abre Proyecto › Exportar juego…', pista: 'El interruptor Sencillo / Avanzado está arriba a la izquierda.', comprobar: (ed) => ed.ocurrio('exportar_abierto'), solucion: (ed) => ed.abrirExportar() },
       { texto: 'Elige tu sistema y pulsa «Exportar»', comprobar: (ed) => ed.ocurrio('exportado') },
     ],
-    aguila: '# ¡Enhorabuena! Has terminado el curso.',
+    codigo: '# ¡Enhorabuena! Has terminado el curso.',
   },
 ];

@@ -16,7 +16,7 @@ export function menuNuevo(boton) {
     { texto: 'Nueva escena 2D', icono: 'imagen', accion: () => nuevaEscena('2D') },
     { texto: 'Nueva escena 3D', icono: 'cubo', accion: () => nuevaEscena('3D') },
     { texto: 'Nuevo Blueprint', icono: 'blueprint', accion: async () => { const x = await nuevoBlueprint(null); if (x) abrirArchivo(x); } },
-    { texto: 'Nuevo script de Águila', icono: 'codigo', accion: async () => { const x = await nuevoScript(null); if (x) abrirArchivo(x); } },
+    { texto: 'Nuevo script de Ara', icono: 'codigo', accion: async () => { const x = await nuevoScript(null); if (x) abrirArchivo(x); } },
     { texto: 'Nuevo material', icono: 'material', accion: () => nuevoMaterial() },
   ]);
 }

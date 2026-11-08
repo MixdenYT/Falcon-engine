@@ -1,0 +1,17 @@
+# zona.agl · dice en qué zona de pruebas está el jugador
+cuando se_actualiza(delta):
+    variable j = nodo("Jugador")
+    yo.texto = zona_de(j.x, j.z)
+
+función zona_de(x, z):
+    si z < -11:
+        devolver "Espejos · suelo pulido, espejo de pared, cromo y oro"
+    si x < -9 y z < 4:
+        devolver "Caja de Cornell · la luz rebota y tiñe de rojo y verde"
+    si x < -9:
+        devolver "Rugosidad y metal · de pulido (izquierda) a mate (derecha)"
+    si x > 9 y z < 0:
+        devolver "Sala oscura · solo entra el sol por la ventana"
+    si x > 9:
+        devolver "Neón · los materiales que brillan iluminan la sala"
+    devolver "Plaza · luz que gira, antorchas y sombras de personajes"

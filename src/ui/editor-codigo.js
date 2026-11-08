@@ -1,8 +1,10 @@
-// Editor de código Águila: textarea transparente sobre un <pre> resaltado.
+// Editor de código (Ara y Águila): textarea transparente sobre un <pre> resaltado.
 import { el, esc, $, $$ } from './componentes.js';
 import { icono } from './iconos.js';
 
-const CLAVES = new Set(['clase', 'extiende', 'exportar', 'variable', 'constante', 'cuando', 'si', 'sino', 'mientras', 'para', 'cada', 'en', 'función', 'funcion', 'devolver', 'romper', 'continuar', 'y', 'o', 'no', 'verdadero', 'falso', 'nulo', 'yo', 'repetir', 'veces', 'pasar']);
+const CLAVES = new Set(['clase', 'extiende', 'exportar', 'variable', 'constante', 'cuando', 'si', 'sino', 'mientras', 'para', 'cada', 'en', 'función', 'funcion', 'devolver', 'romper', 'continuar', 'y', 'o', 'no', 'verdadero', 'falso', 'nulo', 'yo', 'repetir', 'veces', 'pasar',
+  // Ara
+  'func', 'externa', 'segun', 'caso', 'const', 'global', 'estructura', 'enumeracion', 'importar', 'este']);
 const TOKEN = /(#.*$)|("(?:\\.|[^"\\])*"?|'(?:\\.|[^'\\])*'?|«[^»]*»?)|(\b\d+(?:\.\d+)?\b)|([\p{L}_][\p{L}\p{N}_]*)|(\s+)|(.)/gu;
 
 export function resaltarLinea(linea) {

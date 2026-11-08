@@ -1,0 +1,5 @@
+# antorcha.agl · la llama parpadea
+variable base = 6
+
+cuando se_actualiza(delta):
+    intensidad = base + seno(tiempo() * 900) * 0.6 + aleatorio(-0.4, 0.4)

@@ -1,0 +1,5 @@
+# meta.agl · llegar a la bandera gana el nivel
+cuando toca(otro):
+    si otro.es("Jugador"):
+        sonar("ganar.wav")
+        ganar_partida()

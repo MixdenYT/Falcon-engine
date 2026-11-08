@@ -169,7 +169,7 @@ export function crearArbol(contenedor) {
       { texto: 'Pegar', atajo: 'Ctrl V', accion: () => pegarNodos(doc), desactivado: !est.portapapeles },
       '-',
       n.blueprint ? { texto: 'Abrir Blueprint', icono: 'blueprint', accion: () => abrirDocumento(n.blueprint) } : { texto: 'Añadir Blueprint', icono: 'blueprint', accion: async () => { const r = await nuevoBlueprint(n); if (r) { cambiarNodo(doc, n.id, x => { x.blueprint = r; }); abrirDocumento(r); } } },
-      n.script ? { texto: 'Abrir script', icono: 'codigo', accion: () => abrirDocumento(n.script) } : { texto: 'Escribir en Águila', icono: 'codigo', accion: async () => { const r = await nuevoScript(n); if (r) { cambiarNodo(doc, n.id, x => { x.script = r; }); abrirDocumento(r); } } },
+      n.script ? { texto: 'Abrir script', icono: 'codigo', accion: () => abrirDocumento(n.script) } : { texto: 'Escribir en Ara', icono: 'codigo', accion: async () => { const r = await nuevoScript(n); if (r) { cambiarNodo(doc, n.id, x => { x.script = r; }); abrirDocumento(r); } } },
       { texto: 'Guardar rama como escena…', icono: 'escena', desactivado: esRaiz, accion: () => guardarRama(doc, n) },
       '-',
       { texto: 'Eliminar', icono: 'papelera', atajo: 'Supr', peligro: true, desactivado: esRaiz, accion: () => eliminarNodos(doc) },

@@ -1,0 +1,22 @@
+# enemigo.agl · patrulla de un lado a otro
+clase Enemigo extiende Personaje2D:
+    exportar variable velocidad = 90
+    variable direccion = -1
+
+    cuando se_actualiza(delta):
+        mover(direccion * velocidad)
+        si en_pared():
+            direccion = -direccion
+        hijo("Sprite").voltear_h = direccion > 0
+
+    cuando toca(otro):
+        si otro.es("Jugador"):
+            si otro.y < y - 20:
+                # Le ha caído encima: el enemigo desaparece
+                otro.empujar(0, -450)
+                sonar("golpe.wav")
+                ganar_puntos(5)
+                eliminar()
+            sino:
+                temblar_camara(8, 0.25)
+                reiniciar_nivel()

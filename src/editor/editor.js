@@ -3,7 +3,8 @@ import { est, bus, abrirDocumento, activarDocumento, documento, refrescarArchivo
 import * as A from './acciones.js';
 import { cerrar as cerrarDoc } from './paneles/documentos.js';
 import { duplicarNodos, copiarNodos, pegarNodos, eliminarNodos } from './operaciones.js';
-import { Proyecto, sinExtension } from '../motor/proyecto.js';
+import { Proyecto } from '../motor/proyecto.js';
+import { necesitaConversion } from '../ara/convertir.js';
 import { icono, logo } from '../ui/iconos.js';
 import { el, esc, $, $$, menuBajo, controlesVentana, barraArrastrable, activarGlobos, confirmar, avisar, dialogo } from '../ui/componentes.js';
 
@@ -12,7 +13,7 @@ const MODOS = [
   { id: '2D', texto: '2D', icono: 'imagen' },
   { id: '3D', texto: '3D', icono: 'cubo' },
   { id: 'blueprints', texto: 'Blueprints', icono: 'blueprint' },
-  { id: 'aguila', texto: 'Águila', icono: 'codigo' },
+  { id: 'aguila', texto: 'Ara', icono: 'codigo' },
   { id: 'recursos', texto: 'Recursos', icono: 'carpeta' },
 ];
 
@@ -38,6 +39,7 @@ async function iniciar() {
   A.escucharJuego();
   log(`Proyecto «${est.proyecto.datos.nombre}» cargado`);
   if (est.proyecto.esTalon) log('Proyecto de Talon Engine abierto sin conversión', 'ok');
+  await ofrecerConversion(false);
 
   // Documentos de la última sesión.
   let sesion = null;
@@ -162,7 +164,7 @@ export async function irAModo(modo) {
     const sel = est.activo && est.activo.nodoSel;
     let rel = null;
     if (modo === 'blueprints') rel = sel && sel.blueprint || est.archivos.find(a => a.rel.endsWith('.bp'))?.rel;
-    else if (modo === 'aguila') rel = sel && sel.script || est.archivos.find(a => a.rel.endsWith('.agl') && !a.rel.startsWith('generado/'))?.rel;
+    else if (modo === 'aguila') rel = sel && sel.script || est.archivos.find(a => /\.(ara|agl)$/.test(a.rel) && !a.rel.startsWith('generado/'))?.rel;
     else {
       const principal = est.proyecto.datos.escena_principal;
       const candidatas = est.archivos.filter(a => a.rel.endsWith('.fscn')).map(a => a.rel);
@@ -217,7 +219,7 @@ async function relayout() {
   return cambiandoDisposicion;
 }
 
-// Tarjeta del curso cuando, en modo Sencillo, se está en Blueprints, Águila o Recursos.
+// Tarjeta del curso cuando, en modo Sencillo, se está en Blueprints, Ara o Recursos.
 async function pintarCursoFlotante() {
   document.querySelector('.curso-flotante')?.remove();
   if (est.modoEditor !== 'sencillo' || nombreDisposicion === 'sencillo') return;
@@ -289,6 +291,7 @@ function abrirMenu(b) {
       { texto: 'Ver colisiones en el juego', marcado: !!est._colisiones, accion: () => { est._colisiones = !est._colisiones; A.enviarAlJuego({ tipo: 'colisiones', valor: est._colisiones }); } },
       { texto: 'Comprobar todos los scripts', icono: 'check', accion: comprobarScripts },
       { texto: 'Compilar todos los Blueprints', icono: 'blueprint', accion: compilarTodos },
+      { texto: 'Convertir los scripts de Águila a Ara…', icono: 'codigo', desactivado: !necesitaConversion(est.archivos.map(a => a.rel)), accion: () => ofrecerConversion(true) },
     ],
     Editor: [
       { texto: 'Deshacer', icono: 'deshacer', atajo: 'Ctrl Z', desactivado: !d || !d.historial.length, accion: () => d.deshacer() },
@@ -304,7 +307,7 @@ function abrirMenu(b) {
     ],
     Ayuda: [
       { texto: 'Primeros pasos', icono: 'libro', accion: () => A.abrirGuia('primeros-pasos') },
-      { texto: 'El lenguaje Águila', icono: 'codigo', accion: () => A.abrirGuia('aguila') },
+      { texto: 'El lenguaje Ara', icono: 'codigo', accion: () => A.abrirGuia('ara') },
       { texto: 'Blueprints paso a paso', icono: 'blueprint', accion: () => A.abrirGuia('blueprints') },
       { texto: 'Atajos de teclado', icono: 'boton', accion: () => A.abrirGuia('atajos') },
       { texto: 'Exportar tu juego', icono: 'exportar', accion: () => A.abrirGuia('exportar') },
@@ -328,6 +331,55 @@ async function abrirEscenaDialogo() {
   if (r) abrirDocumento(r);
 }
 
+/**
+ * Si el proyecto tiene scripts de Águila, explica la conversión a Ara y la hace si se acepta. Al abrir el proyecto
+ * solo se pregunta una vez (si se rechaza, queda anotado en el proyecto y se puede hacer desde el menú Juego).
+ */
+async function ofrecerConversion(pedida) {
+  if (!necesitaConversion(est.archivos.map(a => a.rel))) return;
+  if (!pedida && est.proyecto.datos.conversion_ara === 'rechazada') return;
+  const agls = est.archivos.filter(a => /\.agl$/i.test(a.rel) && !a.rel.startsWith('generado/'));
+  const r = await dialogo({
+    titulo: 'Pasar el proyecto a Ara',
+    ancho: 560,
+    contenido: `<p>Falcon Engine usa ahora <b>Ara</b>: los scripts se compilan a WebAssembly y van decenas de veces más rápido que con Águila, también en los juegos exportados.</p>
+      <p>Este proyecto tiene ${agls.length} script(s) de Águila. Al convertirlo:</p>
+      <ul>
+        <li>Cada <code>.agl</code> pasa a ser un <code>.ara</code> con el mismo nombre, y las escenas lo usan.</li>
+        <li>Los originales se guardan antes en <code>.falcon/copia-aguila-…</code> y van a la papelera.</li>
+        <li>Lo que no se pueda convertir se queda en Águila y sigue funcionando; <code>CONVERSION_ARA.md</code> explica por qué.</li>
+        <li>Los Blueprints ya se compilan a Ara: no hay que hacer nada con ellos.</li>
+      </ul>`,
+    botones: [{ texto: 'Ahora no', tipo: 'secundario', valor: false }, { texto: 'Convertir a Ara', tipo: 'principal', valor: true }],
+  });
+  if (!r) {
+    if (!pedida) { est.proyecto.datos.conversion_ara = 'rechazada'; await est.proyecto.guardar(); log('Conversión a Ara aplazada: está en el menú Juego.', 'aviso'); }
+    return;
+  }
+  const { convertirProyecto } = await import('../ara/convertir.js');
+  const { comprobarAra } = await import('../ara/puente.js');
+  const { claseBlueprint } = await import('../motor/blueprints.js');
+  // Las escenas abiertas se guardan antes, para convertir lo último.
+  for (const d of est.docs) if (d.sucio) await d.guardar();
+  const res = await convertirProyecto({
+    archivos: est.archivos.filter(a => !a.carpeta).map(a => a.rel),
+    leer: (rel) => est.proyecto.leer(rel),
+    escribir: (rel, datos) => est.proyecto.escribir(rel, datos),
+    borrar: (rel) => falcon.fs.borrar(est.proyecto.abs(rel)),
+    comprobar: (textos) => comprobarAra(textos),
+    clasesBlueprint: est.archivos.filter(a => a.rel.endsWith('.bp')).map(a => claseBlueprint(a.rel)),
+  });
+  delete est.proyecto.datos.conversion_ara;
+  await est.proyecto.guardar();
+  // Las escenas abiertas cambiaron en disco: se vuelven a abrir.
+  for (const d of [...est.docs]) if (d.tipo === 'escena' || /\.agl$/i.test(d.rel)) { const rel = d.rel; await cerrarDocumento(d, { forzar: true }); if (d.tipo === 'escena') await abrirDocumento(rel, { activar: false }); }
+  await refrescarArchivos();
+  log(`Conversión a Ara: ${res.convertidos.length} script(s) convertidos, ${res.quedan.length} siguen en Águila. Detalles en CONVERSION_ARA.md.`, res.quedan.length ? 'aviso' : 'ok');
+  for (const q of res.quedan) log(`${q.agl}: ${q.problemas[0].mensaje}`, 'aviso', { archivo: q.agl, linea: q.problemas[0].linea });
+  avisar(res.quedan.length ? `Convertidos ${res.convertidos.length}; ${res.quedan.length} siguen en Águila (mira CONVERSION_ARA.md).` : 'Proyecto convertido a Ara.', res.quedan.length ? 'aviso' : 'ok');
+  if (est.activo) await relayout();
+}
+
 async function comprobarScripts() {
   const { analizarCodigo } = await import('../aguila/index.js');
   let total = 0;
@@ -337,17 +389,25 @@ async function comprobarScripts() {
     const r = analizarCodigo(texto, { archivo: a.rel });
     for (const e of [...r.errores, ...r.avisos.filter(x => x.tipo === 'error')]) { total++; log(`${a.rel} · línea ${e.linea}: ${e.mensajeCorto}`, 'error', { archivo: a.rel, linea: e.linea }); }
   }
+  // Los de Ara se compilan todos juntos.
+  const aras = est.archivos.filter(x => x.rel.endsWith('.ara') && !x.rel.startsWith('generado/'));
+  if (aras.length) {
+    const { comprobarAra } = await import('../ara/puente.js');
+    const textos = new Map();
+    for (const a of aras) { const d = documento(a.rel); textos.set(a.rel, d ? d.datos : await est.proyecto.leer(a.rel)); }
+    for (const e of await comprobarAra(textos)) { total++; log(`${e.archivo} · línea ${e.linea}: ${e.mensaje}`, 'error', { archivo: e.archivo, linea: e.linea }); }
+  }
   log(total ? `${total} problema(s) en los scripts` : 'Todos los scripts están bien escritos', total ? 'aviso' : 'ok');
 }
 
 async function compilarTodos() {
-  const { compilarBlueprint } = await import('../motor/blueprints.js');
+  const { compilarBlueprint, generadoDe } = await import('../motor/blueprints.js');
   for (const a of est.archivos.filter(x => x.rel.endsWith('.bp'))) {
     const d = documento(a.rel);
     const bp = d ? d.datos : await est.proyecto.leerJSON(a.rel);
-    const r = compilarBlueprint(bp, a.nombre);
-    await est.proyecto.escribir('generado/' + sinExtension(a.rel) + '.agl', r.codigo);
-    log(r.errores.length ? `${a.nombre}: ${r.errores[0].mensaje}` : `${a.nombre} compilado a Águila sin errores`, r.errores.length ? 'error' : 'ok');
+    const r = compilarBlueprint(bp, a.rel);
+    await est.proyecto.escribir(generadoDe(a.rel), r.codigo);
+    log(r.errores.length ? `${a.nombre}: ${r.errores[0].mensaje}` : `${a.nombre} compilado a Ara sin errores`, r.errores.length ? 'error' : 'ok');
   }
   await refrescarArchivos();
 }

@@ -10,7 +10,7 @@ export const TIPOS_RECURSO = {
   fuente: { ext: ['ttf', 'otf', 'woff', 'woff2'], etiqueta: 'FUENTE', nombre: 'Fuentes', color: 'var(--lila)', icono: 'fuente' },
   escena: { ext: ['fscn'], etiqueta: 'ESCENA', nombre: 'Escenas', color: 'var(--verde)', icono: 'escena' },
   blueprint: { ext: ['bp'], etiqueta: 'BP', nombre: 'Blueprints', color: 'var(--verde)', icono: 'blueprint' },
-  script: { ext: ['agl'], etiqueta: 'ÁGUILA', nombre: 'Scripts', color: 'var(--aviso)', icono: 'codigo' },
+  script: { ext: ['ara', 'agl'], etiqueta: 'SCRIPT', nombre: 'Scripts', color: 'var(--aviso)', icono: 'codigo' },
   material: { ext: ['mat'], etiqueta: 'MAT', nombre: 'Materiales', color: 'var(--ambar)', icono: 'material' },
   malla: { ext: ['malla'], etiqueta: 'MALLA', nombre: 'Mallas', color: 'var(--ambar)', icono: 'malla' },
 };

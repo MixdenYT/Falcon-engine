@@ -1,19 +1,27 @@
-// El mundo del juego en ejecución: nodos vivos, scripts, física, eventos y API de Águila.
+// El mundo del juego en ejecución: nodos vivos, scripts (Ara y Águila), física, eventos y la API que usan los dos.
 
 import { crearInterprete, InstanciaScript, aTexto, tipoDe, ErrorAguila, FuncionAguila, analizar } from '../aguila/index.js';
-import { compilarBlueprint } from './blueprints.js';
+import { compilarBlueprint, claseBlueprint, generadoDe } from './blueprints.js';
 import { tipo as tipoNodo, nombresMiembros } from './tipos.js';
-import { normalizarEscena, tipoRecurso, sinExtension, nombreBase } from './proyecto.js';
+import { normalizarEscena, tipoRecurso, sinExtension } from './proyecto.js';
 import { matrizLocal, tamanoNodo, Render2D, CacheImagenes, recorrerConMatriz } from './render2d.js';
 import { Entrada } from './entrada.js';
 import { Audio } from './audio.js';
 import { EQUIPO_CQB } from './tactico3d.js';
+import { ProgramaAra, InstanciaAra, claseDe, errorDeCompilacion } from '../ara/puente.js';
 
 const norm = (s) => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 const sinNumero = (s) => String(s).replace(/\s*\d+$/, '');
 let contadorNodos = 0;
 
 // ---------------- Nodo vivo ----------------
+
+// Métodos que tiene cualquier nodo, aunque su tipo no los liste.
+const METODOS_COMUNES = new Set(['es', 'eliminar', 'hijo', 'llamar', 'mover_a', 'desplazar', 'distancia_a', 'en_grupo', 'añadir_a_grupo', 'quitar_de_grupo', 'girar', 'mirar_a', 've_a', 'perseguir', 'mover_puerta']);
+
+// Los nombres de los miembros de cada tipo de nodo (se consultan en cada llamada a un método).
+const MIEMBROS_TIPO = new Map();
+const miembrosDelTipo = (tipo) => MIEMBROS_TIPO.get(tipo) || MIEMBROS_TIPO.set(tipo, new Set(nombresMiembros(tipo))).get(tipo);
 
 export class NodoVivo {
   constructor(mundo, datos, padre) {
@@ -157,6 +165,13 @@ export class NodoVivo {
     return M;
   }
 
+  /** El método `nombre` si este nodo lo tiene (los de su tipo y los comunes a todos), o null. Lo usan Águila y Ara. */
+  metodo(nombre) {
+    const met = this.metodos();
+    if (!Object.prototype.hasOwnProperty.call(met, nombre)) return null;
+    return miembrosDelTipo(this.tipo).has(nombre) || METODOS_COMUNES.has(nombre) ? met[nombre] : null;
+  }
+
   aguilaObtener(nombre) {
     const m = this.mundo;
     switch (nombre) {
@@ -182,8 +197,8 @@ export class NodoVivo {
       case 'restante': return this.restante ?? 0;
       case 'emitiendo': return !!this.props.emitiendo;
     }
-    const met = this.metodos();
-    if (Object.prototype.hasOwnProperty.call(met, nombre) && (nombresMiembros(this.tipo).includes(nombre) || ['es', 'eliminar', 'hijo', 'llamar', 'mover_a', 'desplazar', 'distancia_a', 'en_grupo', 'añadir_a_grupo', 'quitar_de_grupo', 'girar', 've_a', 'perseguir', 'mover_puerta'].includes(nombre))) return met[nombre];
+    const met = this.metodo(nombre);
+    if (met) return met;
     if (Object.prototype.hasOwnProperty.call(this.props, nombre)) {
       const v = this.props[nombre];
       return Array.isArray(v) ? v.slice() : (v !== null && typeof v === 'object') ? undefined : v;
@@ -268,6 +283,7 @@ export class Mundo {
     this.camaraLibre = null;
     this.textos = new Map();      // rel → código fuente de scripts y blueprints
     this.programas = new Map();   // rel → programa compilado
+    this.programaAra = null;      // todos los scripts .ara del proyecto, compilados juntos (src/ara/puente.js)
     this.errores = [];
     this.puntosIniciales = 0;
     this.telemetriaEnviada = new Map();
@@ -375,27 +391,82 @@ export class Mundo {
     this.archivos = archivos.filter(a => !a.carpeta).map(a => a.rel.replace(/\\/g, '/'));
     this.audio = new Audio(this.proyecto, this.archivos.filter(a => tipoRecurso(a) === 'sonido'));
     // Textos de scripts y blueprints.
-    await Promise.all(this.archivos.filter(a => /\.(agl|bp|fscn)$/i.test(a)).map(async (a) => {
+    await Promise.all(this.archivos.filter(a => /\.(agl|ara|bp|fscn)$/i.test(a)).map(async (a) => {
       try { this.textos.set(a, await this.proyecto.leer(a)); } catch {}
     }));
+    await this.compilarAra();
     this.audio.precargar();
     const imgs = this.archivos.filter(a => tipoRecurso(a) === 'imagen');
     await this.imagenes.precargar(imgs);
     this.entrada.conectar(window, this.lienzo);
   }
 
+  /**
+   * Compila juntos todos los scripts .ara del proyecto y los Blueprints (cada uno es una clase de Ara, ver
+   * `compilarBlueprint`), con la API de src/ara/motor.ara. Lo que haya en generado/ no cuenta: los Blueprints
+   * se compilan aquí desde su .bp, así nunca se ejecuta una versión vieja.
+   */
+  async compilarAra() {
+    const aras = [...this.textos].filter(([a]) => /\.ara$/i.test(a) && !a.startsWith('generado/'));
+    this.programaAra = null;
+    this.erroresBlueprint = new Map();
+    for (const [rel, texto] of this.textos) {
+      if (!/\.bp$/i.test(rel)) continue;
+      let r;
+      try { r = compilarBlueprint(JSON.parse(texto), rel); }
+      catch (e) { r = { errores: [{ mensaje: `el Blueprint no se puede leer: ${e.message}` }] }; }
+      if (r.errores.length) {
+        const e = new ErrorAguila(r.errores[0].mensaje, { archivo: rel, explicacion: 'Revisa ese bloque en el editor de Blueprints.', fase: 'sintaxis' });
+        this.erroresBlueprint.set(rel, e);
+        this.reportarError(e, null);
+      } else aras.push([generadoDe(rel), r.codigo]);
+    }
+    if (!aras.length) return;
+    try {
+      // Un juego exportado trae los scripts ya compilados (src/principal/exportar.js) y no lleva el compilador.
+      const compilado = this.op.modo === 'exportado' && await this.araCompilado();
+      this.programaAra = compilado
+        ? await ProgramaAra.desdeCompilado(this, new Map(aras), compilado.modulo, compilado.descripcion)
+        : await ProgramaAra.crear(this, new Map(aras));
+    }
+    catch (e) {
+      for (const x of e.errores ? e.errores.map(errorDeCompilacion) : [e]) this.reportarError(x, null);
+    }
+  }
+
+  /** Los scripts de Ara compilados al exportar (`.falcon/ara.wasm` y `.falcon/ara.json`), o null. */
+  async araCompilado() {
+    try {
+      const [modulo, json] = await Promise.all([this.proyecto.leerBinario('.falcon/ara.wasm'), this.proyecto.leer('.falcon/ara.json')]);
+      return { modulo, descripcion: JSON.parse(json) };
+    } catch { return null; }
+  }
+
+  /** El script de un nodo: una `InstanciaAra` (.ara o Blueprint) o una `InstanciaScript` de Águila (.agl). */
+  instanciaDe(rel, n) {
+    const bp = /\.bp$/i.test(rel);
+    if (bp || /\.ara$/i.test(rel)) {
+      if (!this.textos.has(rel)) throw new ErrorAguila(`no se encuentra el archivo «${rel}».`, { archivo: rel, explicacion: 'Puede que se haya movido o borrado. Revisa la lógica del nodo en el Inspector.' });
+      if (bp && this.erroresBlueprint?.has(rel)) throw this.erroresBlueprint.get(rel);
+      if (!this.programaAra) throw new ErrorAguila(`los scripts de Ara no se han podido compilar; corrige primero sus errores.`, { archivo: rel, fase: 'ejecucion' });
+      const inst = bp
+        ? new InstanciaAra(this.programaAra, n, claseBlueprint(rel), generadoDe(rel))
+        : new InstanciaAra(this.programaAra, n, claseDe(this.textos.get(rel)), rel);
+      inst.rel = rel;
+      return inst;
+    }
+    const prog = this.programaDe(rel);
+    const archivo = rel;
+    const inst = new InstanciaScript(this.interp, prog, n, archivo);
+    inst.rel = rel;
+    return inst;
+  }
+
   programaDe(rel) {
     if (this.programas.has(rel)) return this.programas.get(rel);
-    let fuente = this.textos.get(rel);
-    let archivo = rel;
+    const fuente = this.textos.get(rel);
+    const archivo = rel;
     if (fuente === undefined) throw new ErrorAguila(`no se encuentra el archivo «${rel}».`, { archivo: rel, explicacion: 'Puede que se haya movido o borrado. Revisa la lógica del nodo en el Inspector.' });
-    if (rel.endsWith('.bp')) {
-      const bp = JSON.parse(fuente);
-      const r = compilarBlueprint(bp, nombreBase(rel));
-      if (r.errores.length) throw new ErrorAguila(r.errores[0].mensaje, { archivo: rel, explicacion: 'Revisa las conexiones del Blueprint.' });
-      fuente = r.codigo;
-      archivo = 'generado/' + sinExtension(rel) + '.agl';
-    }
     const { programa, errores } = analizar(fuente, archivo);
     if (errores.length) { errores[0].archivo = archivo; throw errores[0]; }
     this.programas.set(rel, programa);
@@ -437,6 +508,10 @@ export class Mundo {
 
   limpiarEscena() {
     if (this.d3) { this.d3.destruir(); this.d3 = null; }
+    if (this.raiz) {
+      const soltar = (n) => { for (const s of n.scripts) if (s.soltar) s.soltar(); n.hijos.forEach(soltar); };
+      soltar(this.raiz);
+    }
     if (this.audio) {
       const visitar = (n) => { this.audio.pararNodo(n); n.hijos.forEach(visitar); };
       if (this.raiz) visitar(this.raiz);
@@ -449,10 +524,7 @@ export class Mundo {
       for (const rel of [n.datos.blueprint, n.datos.script]) {
         if (!rel) continue;
         try {
-          const prog = this.programaDe(rel);
-          const archivo = rel.endsWith('.bp') ? 'generado/' + sinExtension(rel) + '.agl' : rel;
-          const inst = new InstanciaScript(this.interp, prog, n, archivo);
-          inst.rel = rel;
+          const inst = this.instanciaDe(rel, n);
           inst.iniciar(n.datos.exportados || {});
           n.scripts.push(inst);
         } catch (e) { this.reportarError(e, n); }
@@ -513,6 +585,7 @@ export class Mundo {
 
   llamarFuncion(nodo, nombre, args) {
     for (const s of nodo.scripts) {
+      if (s.tieneFuncion && s.tieneFuncion(nombre)) return s.llamarFuncion(nombre, args);
       if (s.tiene(nombre)) {
         const f = s.obtener(nombre);
         if (f instanceof FuncionAguila) return this.interp.llamarValor(f, args, null);
@@ -597,6 +670,7 @@ export class Mundo {
     // Lógica
     for (const n of nodos) this.emitirNodo(n, 'se_actualiza', [dt]);
     for (const n of nodos) for (const s of n.scripts) { const e = s.actualizarCorrutinas(dt); if (e) this.reportarError(e, n); }
+    if (this.programaAra) this.programaAra.actualizar(dt);
     this.actualizarTemporizadores(dt, nodos);
 
     // Física y contactos
@@ -957,6 +1031,9 @@ export class Mundo {
     for (const n of lista) {
       const avisar = (x) => { for (const s of x.scripts) if (s.tieneEvento('se_elimina')) { const e = s.emitir('se_elimina', []); if (e) this.reportarError(e, x); } this.audio.pararNodo(x); x.hijos.forEach(avisar); };
       avisar(n);
+      // Los objetos de los scripts de Ara viven en su módulo: se sueltan.
+      const soltar = (x) => { for (const s of x.scripts) if (s.soltar) s.soltar(); x.hijos.forEach(soltar); };
+      soltar(n);
       if (n.padre) n.padre.hijos = n.padre.hijos.filter(h => h !== n);
       if (this.d3) this.d3.quitar(n);
     }
@@ -1139,6 +1216,11 @@ export class Mundo {
   }
 
   recargarScript(rel, texto) {
+    if (/\.(ara|bp)$/i.test(rel)) {
+      this.textos.set(rel, texto);
+      this.recargarAra();
+      return true;
+    }
     this.textos.set(rel, texto);
     this.programas.delete(rel);
     let prog;
@@ -1158,6 +1240,29 @@ export class Mundo {
     }
     this.errores = this.errores.filter(e => e.archivo !== rel);
     return true;
+  }
+
+  /** Un .ara cambió con el juego en marcha: se recompila todo Ara y se vuelven a crear sus objetos (los valores
+   *  del Inspector se conservan; el resto de campos vuelven a su valor inicial). */
+  async recargarAra() {
+    const viejo = this.programaAra;
+    await this.compilarAra();
+    if (!this.programaAra) { this.programaAra = viejo; return; }
+    // Compila: los errores anteriores de Ara y de los Blueprints ya no valen (los nuevos se informan abajo).
+    this.errores = this.errores.filter(e => !/\.(ara|bp)$/i.test(e.archivo || '') || this.erroresBlueprint.has(e.archivo));
+    for (const n of this.todos()) {
+      n.scripts = n.scripts.map((s) => {
+        if (!(s instanceof InstanciaAra)) return s;
+        try {
+          const nueva = this.instanciaDe(s.rel, n);
+          nueva.iniciar(n.datos.exportados || {});
+          // Como en Águila, los campos no exportados conservan su valor si siguen existiendo con el mismo tipo.
+          const tipos = new Map(nueva.variables().map(v => [v.nombre, v.tipo]));
+          for (const v of s.variables()) if (!v.exportada && tipos.get(v.nombre) === v.tipo) nueva.asignar(v.nombre, v.valor);
+          return nueva;
+        } catch (e) { this.reportarError(e, n); return s; }
+      });
+    }
   }
 
   valoresVivos(nombre) {

@@ -1,0 +1,65 @@
+# jugador.agl · se mueve de casilla en casilla y empuja cajas
+exportar variable casilla = 64
+
+cuando empieza():
+    mostrar("Lleva las cajas a las marcas. Pulsa E para reiniciar.")
+    pintar_cajas()
+
+función hay_muro(cx, cy):
+    devolver nodo("Muros").hay_mosaico(cx, cy)
+
+función caja_en(cx, cy):
+    para cada c en grupo("cajas"):
+        si redondear_abajo(c.x / casilla) == cx y redondear_abajo(c.y / casilla) == cy:
+            devolver c
+    devolver nulo
+
+función intentar_mover(dx, dy):
+    variable cx = redondear_abajo(x / casilla) + dx
+    variable cy = redondear_abajo(y / casilla) + dy
+    si hay_muro(cx, cy):
+        devolver
+    variable caja = caja_en(cx, cy)
+    si caja != nulo:
+        si hay_muro(cx + dx, cy + dy) o caja_en(cx + dx, cy + dy) != nulo:
+            devolver
+        caja.desplazar(dx * casilla, dy * casilla)
+        sonar("golpe.wav", 0.4)
+    desplazar(dx * casilla, dy * casilla)
+    pintar_cajas()
+    comprobar_victoria()
+
+función en_objetivo(c):
+    para cada o en grupo("objetivos"):
+        si redondear_abajo(o.x / casilla) == redondear_abajo(c.x / casilla) y redondear_abajo(o.y / casilla) == redondear_abajo(c.y / casilla):
+            devolver verdadero
+    devolver falso
+
+función pintar_cajas():
+    para cada c en grupo("cajas"):
+        si en_objetivo(c):
+            c.color = "#3DDC84"
+        sino:
+            c.color = "#B07A43"
+
+función comprobar_victoria():
+    para cada c en grupo("cajas"):
+        si no en_objetivo(c):
+            devolver
+    sonar("ganar.wav")
+    ganar_partida()
+
+cuando se_pulsa("izquierda"):
+    intentar_mover(-1, 0)
+
+cuando se_pulsa("derecha"):
+    intentar_mover(1, 0)
+
+cuando se_pulsa("arriba"):
+    intentar_mover(0, -1)
+
+cuando se_pulsa("abajo"):
+    intentar_mover(0, 1)
+
+cuando se_pulsa("accion"):
+    reiniciar_nivel()

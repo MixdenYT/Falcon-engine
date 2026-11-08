@@ -1,0 +1,9 @@
+# gema.agl · cuando no quedan gemas, se gana
+cuando toca(otro):
+    si otro.es("Jugador"):
+        ganar_puntos(1)
+        sonar("moneda.wav", 0.7)
+        eliminar()
+        si largo(grupo("gemas")) == 0:
+            sonar("ganar.wav")
+            ganar_partida()

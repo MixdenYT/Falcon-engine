@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import { blueprintsCQB } from '../src/motor/cqb-blueprints.js';
 import { compilarBlueprint } from '../src/motor/blueprints.js';
-import { analizar } from '../src/aguila/index.js';
+import { comprobarAra } from '../src/ara/puente.js';
 import { Mundo, NodoVivo } from '../src/motor/mundo.js';
 import { Mundo3D } from '../src/motor/mundo3d.js';
 import { crearNodo } from '../src/motor/tipos.js';
@@ -11,7 +11,7 @@ import { datosProyecto } from '../src/motor/proyecto.js';
 
 const archivos = blueprintsCQB();
 const N = (tipo, nombre, props = {}, hijos = [], extra = {}) => Object.assign(crearNodo(tipo, nombre, props, hijos), extra);
-function mundo() {
+async function mundo() {
   const m = new Mundo({ proyecto: { datos: { ...datosProyecto('CQB', '3D'), gravedad: 18 } }, lienzo: {} });
   m.raiz = new NodoVivo(m, N('Nodo3D', 'CQB', {}, [
     N('Personaje3D', 'Jugador', { posicion: [0, 0, 5], tactico: true, controles: 'primera_persona' }, [], { blueprint: 'blueprints/operador.bp' }),
@@ -31,18 +31,21 @@ function mundo() {
   }
   d.controles.jugador = j; d.controles.activo = true;
   d.camaraUsada = d.controles.camara; d.camaraUsada.position.set(0, 1.44, 5); d.camaraUsada.lookAt(0, 1.44, -5); d.camaraUsada.updateMatrixWorld();
-  m.iniciarScripts(m.raiz); return m;
+  await m.compilarAra(); m.iniciarScripts(m.raiz); return m;
 }
 const actualizar = (m, n, delta) => { m.tiempo += delta; m.emitirNodo(n, 'se_actualiza', [delta]); };
 
-test('CQB: todos los grafos compilan sin avisos y el Águila generado se analiza de verdad', () => {
+test('CQB: todos los grafos compilan sin avisos y el Ara generado compila de verdad', async () => {
+  const aras = {};
   for (const [p, a] of Object.entries(archivos)) {
     if (p.endsWith('.bp')) { const r = compilarBlueprint(a, p); assert.deepEqual(r.errores, []); assert.deepEqual(r.avisos, []); }
-    if (p.endsWith('.agl')) assert.deepEqual(analizar(a, p).errores, [], p);
+    if (p.endsWith('.ara')) aras[p] = a;
   }
+  assert.equal(Object.keys(aras).length, 5);
+  assert.deepEqual(await comprobarAra(aras), []);
 });
-test('CQB: munición, daño por rayo real, disparo manual, recarga cancelada y dos inventarios', () => {
-  const m = mundo(), j = m.buscarPorNombre('Jugador'), e = m.buscarPorNombre('Enemigo0');
+test('CQB: munición, daño por rayo real, disparo manual, recarga cancelada y dos inventarios', async () => {
+  const m = await mundo(), j = m.buscarPorNombre('Jugador'), e = m.buscarPorNombre('Enemigo0');
   assert.deepEqual(m.errores, []);
   m.emitirNodo(j, 'se_pulsa', ['disparar']); assert.equal(j.aguilaObtener('municion'), 23); assert.equal(e.aguilaObtener('vida'), 60);
   m.entrada.estado.set('disparar', true);
@@ -55,8 +58,8 @@ test('CQB: munición, daño por rayo real, disparo manual, recarga cancelada y d
   m.emitirNodo(j, 'se_pulsa', ['recargar']); actualizar(m, j, 2.3);
   assert.equal(j.aguilaObtener('municion'), 24); assert.equal(j.aguilaObtener('reserva'), 95); assert.deepEqual(m.errores, []);
 });
-test('CQB: reacción enemiga, cobertura tras impacto, bajas y objetivo final de Blueprint', () => {
-  const m = mundo(), j = m.buscarPorNombre('Jugador'), e = m.buscarPorNombre('Enemigo0');
+test('CQB: reacción enemiga, cobertura tras impacto, bajas y objetivo final de Blueprint', async () => {
+  const m = await mundo(), j = m.buscarPorNombre('Jugador'), e = m.buscarPorNombre('Enemigo0');
   e._mirarYaw = Math.PI; m.d3.obj(e).userData.visual.rotation.y = Math.PI;
   actualizar(m, e, 0.05); assert.equal(e.aguilaObtener('alerta'), true); assert.equal(j.aguilaObtener('vida'), 100);
   actualizar(m, e, 0.5); assert.equal(j.aguilaObtener('vida'), 100);
@@ -68,8 +71,8 @@ test('CQB: reacción enemiga, cobertura tras impacto, bajas y objetivo final de 
   assert.equal(j.aguilaObtener('bajas'), 3); assert.equal(m.grupo('enemigos').filter(e => e._muerto).length, 3);
   m.llamarFuncion(m.buscarPorNombre('Terminal'), 'usar', []); assert.equal(m.estado, 'ganado'); assert.deepEqual(m.errores, []);
 });
-test('CQB: puerta Blueprint se abre y el barrido se detiene ante un personaje', () => {
-  const m = mundo(), puerta = m.buscarPorNombre('Puerta'), j = m.buscarPorNombre('Jugador');
+test('CQB: puerta Blueprint se abre y el barrido se detiene ante un personaje', async () => {
+  const m = await mundo(), puerta = m.buscarPorNombre('Puerta'), j = m.buscarPorNombre('Jugador');
   m.llamarFuncion(puerta, 'usar', []);
   for (let i = 0; i < 30; i++) actualizar(m, puerta, 0.05);
   assert.equal(puerta.props.rotacion[1], 92);
@@ -81,21 +84,21 @@ test('CQB: puerta Blueprint se abre y el barrido se detiene ante un personaje', 
   assert.ok(puerta.props.rotacion[1] < 92, 'no atraviesa al jugador'); assert.equal(m.d3.tactico.estado(puerta).bloqueada, true);
   assert.deepEqual(m.errores, []);
 });
-test('CQB: A* rodea obstáculos respetando el radio de colisión', () => {
-  const m = mundo(), e = m.buscarPorNombre('Enemigo0'); m.d3.fijarPosicionGlobal(e, -3, 0, 0);
+test('CQB: A* rodea obstáculos respetando el radio de colisión', async () => {
+  const m = await mundo(), e = m.buscarPorNombre('Enemigo0'); m.d3.fijarPosicionGlobal(e, -3, 0, 0);
   const b = new THREE.Box3(new THREE.Vector3(-0.5, 0, -2), new THREE.Vector3(0.5, 3, 2)); m.d3.solidos = [{ n: {}, b }];
   const ruta = m.d3.tactico.calcularRuta(e, [3, 0, 0]); assert.ok(ruta.length > 12); assert.ok(ruta.some(p => Math.abs(p[2]) >= 2.5));
   assert.ok(ruta.every(p => !b.clone().expandByScalar(0.39).containsPoint(new THREE.Vector3(p[0], 1, p[2]))));
 });
-test('CQB: un muro entre cámara y boca impide que el arma alcance un enemigo por el lateral', () => {
-  const m = mundo(), e = m.buscarPorNombre('Enemigo0');
+test('CQB: un muro entre cámara y boca impide que el arma alcance un enemigo por el lateral', async () => {
+  const m = await mundo(), e = m.buscarPorNombre('Enemigo0');
   const pared = { nombre: 'Cobertura' };
   m.d3.solidos = [{ n: pared, b: new THREE.Box3(new THREE.Vector3(0.10, 0, 4.2), new THREE.Vector3(0.18, 3, 5.2)) }];
   m.d3.tactico.boca = () => new THREE.Vector3(0.28, 1.3, 4.6);
   assert.equal(m.d3.dispararRayo(65), pared); assert.equal(e.aguilaObtener('vida'), 100);
 });
-test('CQB: el enemigo consume seis disparos y recarga sin disparar durante 2,6 segundos', () => {
-  const m = mundo(), j = m.buscarPorNombre('Jugador'), e = m.buscarPorNombre('Enemigo0');
+test('CQB: el enemigo consume seis disparos y recarga sin disparar durante 2,6 segundos', async () => {
+  const m = await mundo(), j = m.buscarPorNombre('Jugador'), e = m.buscarPorNombre('Enemigo0');
   m.d3.obj(e).userData.visual.rotation.y = Math.PI;
   actualizar(m, e, 0.05);
   for (let i = 0; i < 6; i++) actualizar(m, e, 1.16);
@@ -104,8 +107,8 @@ test('CQB: el enemigo consume seis disparos y recarga sin disparar durante 2,6 s
   actualizar(m, e, 0.11); assert.equal(e.aguilaObtener('municion'), 6); assert.equal(e.aguilaObtener('recargando'), false);
   assert.deepEqual(m.errores, []);
 });
-test('CQB: a quemarropa los personajes reciben el rayo aunque la boca entre en su collider', () => {
-  const m = mundo(), j = m.buscarPorNombre('Jugador'), e = m.buscarPorNombre('Enemigo0'), d = m.d3;
+test('CQB: a quemarropa los personajes reciben el rayo aunque la boca entre en su collider', async () => {
+  const m = await mundo(), j = m.buscarPorNombre('Jugador'), e = m.buscarPorNombre('Enemigo0'), d = m.d3;
   d.fijarPosicionGlobal(e, 0, 0, 4.1);
   d.obj(e).userData.visual.rotation.y = Math.PI;
   d.tactico.boca = n => n === j ? new THREE.Vector3(0, 1.3, 4.2) : new THREE.Vector3(0, 1.37, 4.95);

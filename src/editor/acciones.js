@@ -1,8 +1,9 @@
 // Acciones del editor compartidas por todas las disposiciones.
 import { est, bus, log, abrirDocumento, documento, activarDocumento, cerrarDocumento, refrescarArchivos, anotarEvento, tipoDocumento } from './estado.js';
+import { claseParaArchivo } from './ara.js';
 import { crearNodo, buscarNodo, recorrer } from '../motor/tipos.js';
 import { escenaVacia, sinExtension, nombreBase, carpetaDe, nombreTecla, ACCIONES_POR_DEFECTO } from '../motor/proyecto.js';
-import { blueprintVacio, compilarBlueprint } from '../motor/blueprints.js';
+import { blueprintVacio, compilarBlueprint, generadoDe } from '../motor/blueprints.js';
 import { materialBasico } from '../motor/plantillas.js';
 import { dialogo, pedirTexto, confirmar, avisar, el, esc, $, $$, interruptor } from '../ui/componentes.js';
 import { icono } from '../ui/iconos.js';
@@ -19,7 +20,7 @@ export async function guardar(doc = est.activo) {
     else if (doc.tipo === 'blueprint') {
       const r = doc.ultimaCompilacion;
       if (r.errores.length) log(`${doc.nombre}: ${r.errores[0].mensaje}`, 'error');
-      else log(`${doc.nombre} compilado a Águila sin errores`, 'ok');
+      else log(`${doc.nombre} compilado a Ara sin errores`, 'ok');
       for (const a of r.avisos.slice(0, 3)) log(`Aviso: ${a.mensaje}`, 'aviso');
     } else log(`Guardado: ${doc.rel}`);
     if (est.juego.activo && (doc.tipo === 'script' || doc.tipo === 'blueprint')) {
@@ -119,16 +120,31 @@ export async function nuevaEscena(dim = '2D') {
 }
 
 export async function nuevoScript(nodo, op = {}) {
+  // Los scripts nuevos son de Ara; `op.lenguaje: 'agl'` (o un `op.texto` de Águila sin lenguaje) crea uno de Águila.
+  const lenguaje = op.lenguaje ?? (op.texto !== undefined ? 'agl' : 'ara');
   const base = (nodo ? nodo.nombre : 'script').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9_]+/g, '_') || 'script';
   let nombre = op.nombre || base;
   if (!op.sinPreguntar) {
-    nombre = await pedirTexto({ titulo: 'Nuevo script de Águila', etiqueta: 'Nombre del archivo', valor: base, aceptar: 'Crear script', validar: validarNombre });
+    nombre = await pedirTexto({ titulo: lenguaje === 'ara' ? 'Nuevo script de Ara' : 'Nuevo script de Águila', etiqueta: 'Nombre del archivo', valor: base, aceptar: 'Crear script', validar: validarNombre });
     if (!nombre) return null;
   }
-  const rel = nombreLibre('scripts', nombre.replace(/\.agl$/i, ''), 'agl');
+  const rel = nombreLibre('scripts', nombre.replace(/\.(agl|ara)$/i, ''), lenguaje);
   const tipoNodo = nodo ? nodo.tipo : 'Nodo2D';
-  const clase = (nodo ? nodo.nombre : 'MiNodo').replace(/[^\p{L}\p{N}_]/gu, '') || 'MiNodo';
-  const texto = op.texto ?? `# ${nombreBase(rel)} · lógica de ${nodo ? nodo.nombre : 'un nodo'}
+  let texto = op.texto;
+  if (texto === undefined && lenguaje === 'ara') {
+    // Todos los scripts de Ara se compilan juntos: la clase toma el nombre del archivo, que no se repite.
+    texto = `# ${nombreBase(rel)} · lógica de ${nodo ? nodo.nombre : 'un nodo'}
+clase ${claseParaArchivo(nombreBase(rel))} extiende ${tipoNodo}:
+
+    cuando empieza():
+        pasar
+
+    cuando se_actualiza(delta):
+        pasar
+`;
+  } else if (texto === undefined) {
+    const clase = (nodo ? nodo.nombre : 'MiNodo').replace(/[^\p{L}\p{N}_]/gu, '') || 'MiNodo';
+    texto = `# ${nombreBase(rel)} · lógica de ${nodo ? nodo.nombre : 'un nodo'}
 clase ${clase} extiende ${tipoNodo}:
 
     cuando empieza():
@@ -137,6 +153,7 @@ clase ${clase} extiende ${tipoNodo}:
     cuando se_actualiza(delta):
         pasar
 `;
+  }
   await est.proyecto.escribir(rel, texto);
   await refrescarArchivos();
   log(`Script creado: ${rel}`);
@@ -154,7 +171,7 @@ export async function nuevoBlueprint(nodo, op = {}) {
   const bp = op.bp || blueprintVacio(sinExtension(rel), nodo ? nodo.tipo : 'Nodo2D');
   if (!op.bp) bp.grafos.eventos.nodos.push({ id: 'b' + Date.now().toString(36), def: 'ev_actualizar', x: 60, y: 60 });
   await est.proyecto.escribirJSON(rel, bp);
-  await est.proyecto.escribir('generado/' + sinExtension(rel) + '.agl', compilarBlueprint(bp, nombreBase(rel)).codigo);
+  await est.proyecto.escribir(generadoDe(rel), compilarBlueprint(bp, rel).codigo);
   await refrescarArchivos();
   log(`Blueprint creado: ${rel}`);
   return rel;
@@ -441,7 +458,7 @@ export async function acercaDe() {
   const i = est.info;
   await dialogo({
     titulo: 'Falcon Engine',
-    contenido: `<p style="color:var(--texto-2);margin:0 0 12px">Motor de videojuegos 2D y 3D con el lenguaje Águila.</p>
+    contenido: `<p style="color:var(--texto-2);margin:0 0 12px">Motor de videojuegos 2D y 3D con el lenguaje Ara.</p>
       <div class="lector"><table><tr><td>Versión</td><td>${esc(i.version)}</td></tr><tr><td>Sistema</td><td>${esc(i.plataforma)} ${esc(i.arquitectura)}</td></tr><tr><td>Electron</td><td>${esc(i.electron)}</td></tr><tr><td>Proyecto</td><td class="mono">${esc(est.proyecto.ruta)}</td></tr></table></div>`,
     botones: [{ texto: 'Cerrar', tipo: 'principal', valor: true }],
   });

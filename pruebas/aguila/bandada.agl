@@ -1,0 +1,32 @@
+# bandada.agl · cada pájaro se acerca a sus vecinos (lógica de juego pura: listas y bucles)
+exportar variable cantidad = 150
+variable xs = []
+variable ys = []
+variable vx = []
+variable vy = []
+
+cuando empieza():
+    repetir cantidad veces:
+        xs.añadir(aleatorio(0, 800))
+        ys.añadir(aleatorio(0, 600))
+        vx.añadir(aleatorio(-1, 1))
+        vy.añadir(aleatorio(-1, 1))
+
+cuando se_actualiza(delta):
+    variable n = largo(xs)
+    para cada i en rango(n):
+        variable cx = 0
+        variable cy = 0
+        variable vecinos = 0
+        para cada j en rango(n):
+            variable dx = xs[j] - xs[i]
+            variable dy = ys[j] - ys[i]
+            si dx * dx + dy * dy < 2500:
+                cx = cx + dx
+                cy = cy + dy
+                vecinos = vecinos + 1
+        si vecinos > 0:
+            vx[i] = vx[i] + cx / vecinos * 0.01
+            vy[i] = vy[i] + cy / vecinos * 0.01
+        xs[i] = xs[i] + vx[i] * delta * 60
+        ys[i] = ys[i] + vy[i] * delta * 60

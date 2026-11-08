@@ -1,0 +1,58 @@
+# enemigo.agl — patrulla → detecta → persigue → ataca; cobertura corta la visión.
+# perseguir usa la física del personaje, no navegación automática de rutas.
+exportar variable punto_ax = 0
+exportar variable punto_az = 0
+exportar variable punto_bx = 3
+exportar variable punto_bz = 0
+exportar variable alcance = 22
+exportar variable velocidad_ia = 1.7
+variable vida = 100
+variable ataque = 1.5
+variable destino_b = verdadero
+variable muerto = falso
+variable alerta = falso
+
+función recibir_dano(cantidad):
+    si no muerto:
+        vida = vida - cantidad
+        alerta = verdadero
+        color = "#FFCE66"
+        si vida <= 0:
+            muerto = verdadero
+            emitir("enemigo_eliminado")
+            sonar("baja.wav", 0.35)
+            eliminar()
+
+cuando se_actualiza(delta):
+    variable jugador = nodo("Jugador")
+    si muerto o no jugador.activo o jugador.acabado:
+        devolver
+    ataque = max(0, ataque - delta)
+    variable distancia_jugador = distancia(yo, jugador)
+    si ve_a(jugador, alcance):
+        alerta = verdadero
+        color = "#F36B64"
+        si distancia_jugador > 6:
+            perseguir(jugador, velocidad_ia)
+        si ataque <= 0:
+            ataque = 1.25
+            jugador.llamar("recibir_dano", 8)
+            sonar("tiro.wav", 0.12)
+    sino:
+        color = "#D9984C"
+        variable tx = punto_bx
+        variable tz = punto_bz
+        si no destino_b:
+            tx = punto_ax
+            tz = punto_az
+        variable dx = tx - x
+        variable dz = tz - z
+        variable longitud = raiz(dx * dx + dz * dz)
+        si longitud < 0.6:
+            destino_b = no destino_b
+        sino:
+            # Velocidades en ejes del mundo; la física evita atravesar muros.
+            # El método perseguir apunta a un nodo: aquí usamos una baliza de patrulla.
+            variable baliza = hijo("Destino")
+            baliza.mover_a(tx, 0, tz)
+            perseguir(baliza, velocidad_ia)

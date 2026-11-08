@@ -1,0 +1,76 @@
+# jugador.agl — el mismo combate sirve para primera y tercera persona.
+# Los controles integrados resuelven cámara, WASD, salto, carrera y colisión.
+exportar variable total_enemigos = 6
+variable vida = 100
+variable municion = 12
+variable reserva = 72
+variable bajas = 0
+variable enfriamiento = 0
+variable recargando = falso
+variable activo = falso
+variable acabado = falso
+variable ayuda = verdadero
+
+función recibir_dano(cantidad):
+    si activo y no acabado:
+        vida = limitar(vida - cantidad, 0, 100)
+        nodo("Aviso").texto = "¡Bajo fuego! Busca cobertura / Incoming fire!"
+        temblar_camara(2, 0.12)
+        si vida <= 0:
+            acabado = verdadero
+            activo = falso
+            perder_partida()
+
+función recargar():
+    si activo y no recargando y municion < 12 y reserva > 0:
+        recargando = verdadero
+        nodo("Aviso").texto = "Recargando / Reloading…"
+        esperar(1.4)
+        si no acabado:
+            variable cantidad = min(12 - municion, reserva)
+            municion = municion + cantidad
+            reserva = reserva - cantidad
+            nodo("Aviso").texto = "Listo / Ready"
+        recargando = falso
+
+cuando se_pulsa("accion"):
+    si no activo y no acabado:
+        activo = verdadero
+        nodo("Aviso").texto = "Elimina los drones / Eliminate the drones"
+        nodo("Instrucciones").texto = "WASD · Shift correr · Espacio saltar · clic/J disparar · R recargar · V vista · H ayuda"
+
+cuando se_pulsa("recargar"):
+    recargar()
+
+cuando se_pulsa("ayuda"):
+    ayuda = no ayuda
+    nodo("Instrucciones").visible = ayuda
+
+cuando recibe("enemigo_eliminado", datos):
+    si no acabado:
+        bajas = bajas + 1
+        ganar_puntos(100)
+        nodo("Aviso").texto = "Impacto confirmado / Target down"
+        si bajas >= total_enemigos:
+            acabado = verdadero
+            activo = falso
+            ganar_partida()
+
+cuando se_actualiza(delta):
+    enfriamiento = max(0, enfriamiento - delta)
+    si activo y no acabado y no recargando y se_mantiene("disparar") y enfriamiento <= 0:
+        enfriamiento = 0.22
+        si municion > 0:
+            municion = municion - 1
+            sonar("tiro.wav", 0.35)
+            temblar_camara(0.6, 0.06)
+            variable impacto = disparar_rayo(100)
+            si impacto != nulo y impacto.es("enemigos"):
+                impacto.llamar("recibir_dano", 34)
+                nodo("Aviso").texto = "× IMPACTO / HIT"
+            sino:
+                nodo("Aviso").texto = "Disparo / Shot"
+        sino:
+            nodo("Aviso").texto = "Sin munición — R para recargar / Reload"
+    nodo("Estado").texto = "VIDA / HP " + texto(vida) + "   |   MUNICIÓN / AMMO " + texto(municion) + " / " + texto(reserva)
+    nodo("Objetivo").texto = "DRONES " + texto(bajas) + " / " + texto(total_enemigos) + "   |   PUNTOS " + texto(puntos)

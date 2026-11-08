@@ -1,0 +1,8 @@
+# peligro.agl · los pinchos hacen volver a empezar
+cuando toca(otro):
+    si otro.es("Jugador"):
+        sonar("golpe.wav")
+        temblar_camara(10, 0.3)
+        otro.empujar(0, -500)
+        esperar(0.4)
+        reiniciar_nivel()

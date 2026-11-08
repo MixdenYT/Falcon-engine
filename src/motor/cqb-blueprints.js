@@ -1,6 +1,6 @@
 // Autoría de grafos, no código de gameplay inyectado: todo lo producido aquí es
-// editable en el editor y pasa por el compilador Blueprint → Águila habitual.
-import { blueprintVacio, compilarBlueprint, NODOS } from './blueprints.js';
+// editable en el editor y pasa por el compilador Blueprint → Ara habitual.
+import { blueprintVacio, compilarBlueprint, generadoDe, NODOS } from './blueprints.js';
 
 function autor(nombre, base, variables) {
   const bp = blueprintVacio(nombre, base);
@@ -71,7 +71,7 @@ function autor(nombre, base, variables) {
         let dato = 0;
         for (const nodo of grafo.nodos.filter(n => !vistos.has(n.id))) { nodo.x = 40 + dato % 5 * 300; nodo.y = 80 + fila * 200 + Math.floor(dato / 5) * 240; dato++; }
       }
-      const r = compilarBlueprint(bp, nombre + '.bp');
+      const r = compilarBlueprint(bp, 'blueprints/' + nombre + '.bp');
       if (r.errores.length || r.avisos.length) throw Error(nombre + ': ' + JSON.stringify([...r.errores, ...r.avisos]));
       return bp;
     },
@@ -81,7 +81,7 @@ function autor(nombre, base, variables) {
 
 export function blueprintsCQB() {
   const archivos = {};
-  const guardar = a => { const bp = a.terminar(); archivos['blueprints/' + bp.nombre + '.bp'] = bp; archivos['generado/' + bp.nombre + '.agl'] = compilarBlueprint(bp, bp.nombre + '.bp').codigo; };
+  const guardar = a => { const bp = a.terminar(), rel = 'blueprints/' + bp.nombre + '.bp'; archivos[rel] = bp; archivos[generadoDe(rel)] = compilarBlueprint(bp, rel).codigo; };
   const p = autor('operador', 'Personaje3D', { vida: 100, municion: 24, reserva: 96, cargador_0: 24, cargador_1: 12, reserva_0: 96, reserva_1: 48, arma: 0, capacidad: 24, recargando: false, recarga: 0, enfriamiento: 0, transferencia: 0, bajas: 0, ayuda: false, ingles: false });
   const datoArma = campo => p.consulta('arma_dato', [campo, p.v('arma')]);
   p.evento('ev_empieza', {}, () => [p.llamar('equipar_arma', [0])], 'El inventario y la vida pertenecen al Blueprint, no al HUD. Disparo semiautomático: una pulsación por bala.');

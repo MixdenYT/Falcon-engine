@@ -132,7 +132,7 @@ export async function irAError(archivo, linea) {
   if (!archivo) return;
   let rel = archivo;
   if (archivo.startsWith('generado/')) {
-    const bp = 'blueprints/' + archivo.slice('generado/'.length).replace(/\.agl$/, '.bp');
+    const bp = archivo.slice('generado/'.length).replace(/\.(ara|agl)$/, '.bp');
     if (est.archivos.some(a => a.rel === bp)) rel = bp;
   }
   await abrirArchivo(rel);

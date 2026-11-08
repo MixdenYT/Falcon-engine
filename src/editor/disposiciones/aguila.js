@@ -1,4 +1,4 @@
-// Modo Águila: editor de scripts con ayuda, diccionario y problemas.
+// Modo Scripts: editor de scripts (Ara .ara y Águila .agl) con ayuda, diccionario y problemas.
 import { est, bus, abrirDocumento, archivosDeTipo, documento, log } from '../estado.js';
 import { guardar, probar, nuevoScript, abrirArchivo } from '../acciones.js';
 import { crearPestanas } from '../paneles/documentos.js';
@@ -7,10 +7,12 @@ import { menuNuevo } from './escena.js';
 import { crearEditorCodigo } from '../../ui/editor-codigo.js';
 import { analizarCodigo, rutaEnLinea, formatear, PALABRAS, EVENTOS, FUNCIONES, METODOS_LISTA, METODOS_TEXTO, PALABRAS_CLAVE } from '../../aguila/index.js';
 import { nombresMiembros, miembrosDe, TIPOS, recorrer, tipo as tipoNodo } from '../../motor/tipos.js';
-import { sinExtension, nombreBase } from '../../motor/proyecto.js';
 import { icono } from '../../ui/iconos.js';
 import { el, esc, $, $$, debounce, avisar } from '../../ui/componentes.js';
+import { esAra, analizarAra, olvidarTextosAra, PALABRAS_ARA } from '../ara.js';
+import { formatearAra } from '../../ara/puente.js';
 
+const CLAVES_ARA = ['clase', 'extiende', 'exportar', 'cuando', 'func', 'devolver', 'si', 'sino', 'mientras', 'para', 'en', 'romper', 'continuar', 'pasar', 'verdadero', 'falso', 'no', 'segun', 'caso', 'const', 'global', 'estructura', 'enumeracion', 'importar'];
 const COLOR_TIPO = { decimal: 'var(--lima)', entero: 'var(--azul)', texto: 'var(--aviso)', 'sí/no': 'var(--error)', lista: 'var(--turquesa)', diccionario: 'var(--turquesa)', valor: 'var(--texto-2)', nulo: 'var(--texto-3)' };
 
 // Nombres de nodos de las escenas abiertas (para no marcarlos como desconocidos).
@@ -26,28 +28,30 @@ export async function crearDisposicionAguila(contenedor) {
   const [izq, centro, der] = cuerpo.children;
   const partes = [];
   const doc = est.activo && est.activo.tipo === 'script' ? est.activo : null;
+  const ara = !doc || esAra(doc.rel); // sin script abierto, el diccionario es el de Ara (el lenguaje de los scripts nuevos)
+  const palabras = ara ? PALABRAS_ARA : PALABRAS;
 
   // ---------- Scripts y diccionario ----------
   const panelScripts = el(`<section class="panel" style="flex:none;max-height:42%"><div class="cab-panel"><h3>Scripts</h3><button class="btn-mas" data-ayuda="Nuevo script">${icono('mas', '', 16)}</button></div><div class="desplazable lista-archivos"></div></section>`);
-  const panelDic = el(`<section class="panel diccionario" style="flex:1"><div class="cab-panel">${icono('libro', '', 16)}<h3>Diccionario Águila</h3></div><div class="desplazable"></div></section>`);
+  const panelDic = el(`<section class="panel diccionario" style="flex:1"><div class="cab-panel">${icono('libro', '', 16)}<h3>Diccionario ${ara ? 'Ara' : 'Águila'}</h3></div><div class="desplazable"></div></section>`);
   izq.append(panelScripts, panelDic);
   const pintarScripts = () => {
     const c = $('.lista-archivos', panelScripts);
     const lista = archivosDeTipo('script');
     c.innerHTML = lista.map(a => {
       const gen = a.rel.startsWith('generado/');
-      return `<div class="fila-archivo ${doc && doc.rel === a.rel ? 'sel' : ''}" data-rel="${esc(a.rel)}" title="${esc(a.rel)}"><span style="color:${gen ? 'var(--verde)' : 'var(--texto-2)'}">${icono(gen ? 'blueprint' : 'codigo', '', 15)}</span><span>${esc(gen ? sinExtension(a.rel) + '_bp.agl' : a.nombre)}</span><span style="margin-left:auto;font-size:12px;color:var(--texto-3)">${gen ? 'desde Blueprint' : 'escrito'}</span></div>`;
+      return `<div class="fila-archivo ${doc && doc.rel === a.rel ? 'sel' : ''}" data-rel="${esc(a.rel)}" title="${esc(a.rel)}"><span style="color:${gen ? 'var(--verde)' : 'var(--texto-2)'}">${icono(gen ? 'blueprint' : 'codigo', '', 15)}</span><span>${esc(a.nombre)}</span><span style="margin-left:auto;font-size:12px;color:var(--texto-3)">${gen ? 'desde Blueprint' : 'escrito'}</span></div>`;
     }).join('') || '<div class="vacio-texto">No hay scripts todavía.</div>';
     $$('[data-rel]', c).forEach(f => f.onclick = () => abrirDocumento(f.dataset.rel));
   };
   $('.btn-mas', panelScripts).onclick = async () => { const r = await nuevoScript(null); if (r) abrirArchivo(r); };
   pintarScripts();
-  $('.desplazable', panelDic).innerHTML = PALABRAS.map(p => `<div class="entrada-dic" data-p="${esc(p.nombre)}"><b>${esc(p.titulo)}</b><span>${esc(p.descripcion)}</span></div>`).join('');
+  $('.desplazable', panelDic).innerHTML = palabras.map(p => `<div class="entrada-dic" data-p="${esc(p.nombre)}"><b>${esc(p.titulo)}</b><span>${esc(p.descripcion)}</span></div>`).join('');
 
   partes.push(crearPestanas(centro, { alNuevo: menuNuevo }));
 
   if (!doc) {
-    const v = el(`<section class="panel visor"><div class="vacio-visor"><div><b>Águila: programación en español</b>Abre un script de la lista o crea uno nuevo.<br><button class="btn principal">${icono('mas', '', 16)}Nuevo script</button></div></div></section>`);
+    const v = el(`<section class="panel visor"><div class="vacio-visor"><div><b>Ara: programación en español</b>Abre un script de la lista o crea uno nuevo.<br><button class="btn principal">${icono('mas', '', 16)}Nuevo script</button></div></div></section>`);
     v.querySelector('button').onclick = async () => { const r = await nuevoScript(est.activo?.nodoSel || null); if (r) abrirArchivo(r); };
     centro.append(v);
     der.append(el('<section class="panel" style="flex:1"><div class="vacio-insp">La ayuda de la función bajo el cursor aparecerá aquí.</div></section>'));
@@ -75,9 +79,19 @@ export async function crearDisposicionAguila(contenedor) {
   partes.push(editor);
   if (doc.vista.linea) setTimeout(() => editor.irA(doc.vista.linea, 0, false));
 
-  function analizar() {
-    const miembrosBase = base && TIPOS[base] ? nombresMiembros(base) : nombresMiembros('?');
-    analisis = analizarCodigo(editor.valor(), { miembros: miembrosBase, nombresEscena: nombresEscena(), archivo: doc.rel });
+  // Ara se comprueba con el compilador de verdad (asíncrono): solo cuenta el último análisis pedido.
+  let pedidos = 0;
+  let destruido = false;
+  async function analizar() {
+    if (ara) {
+      const n = ++pedidos;
+      const r = await analizarAra(editor.valor(), doc.rel, { archivos: est.archivos, docs: est.docs, leer: (rel) => est.proyecto.leer(rel) });
+      if (n !== pedidos || destruido) return;
+      analisis = r;
+    } else {
+      const miembrosBase = base && TIPOS[base] ? nombresMiembros(base) : nombresMiembros('?');
+      analisis = analizarCodigo(editor.valor(), { miembros: miembrosBase, nombresEscena: nombresEscena(), archivo: doc.rel });
+    }
     base = analisis.simbolos.base;
     const diag = [...analisis.errores, ...analisis.avisos].map(e => e.aObjeto());
     editor.diagnosticos(diag);
@@ -123,7 +137,7 @@ export async function crearDisposicionAguila(contenedor) {
     for (const f of FUNCIONES) anadir({ nombre: f.nombre, etiqueta: f.tipo === 'variable' ? f.nombre : f.firma, insertar: f.tipo === 'variable' ? f.nombre : f.nombre + '()', cursorAtras: f.tipo !== 'variable' && !/\(\)$/.test(f.firma) ? 1 : 0, desc: f.tipo === 'variable' ? `Variable · ${f.tipoValor}` : f.descripcion.split('.')[0], tipo: f.tipo === 'variable' ? 'variable' : 'funcion' });
     if (base && TIPOS[base]) for (const m of miembrosDe(base)) anadir({ nombre: m.nombre, etiqueta: m.firma || m.nombre, insertar: m.firma ? m.nombre + '()' : m.nombre, cursorAtras: m.firma && !/\(\)$/.test(m.firma) ? 1 : 0, desc: m.descripcion, tipo: m.firma ? 'funcion' : 'variable' });
     for (const n of nombresEscena()) { const id = n.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); if (/^[a-z_][a-z0-9_]*$/.test(id)) anadir({ nombre: id, desc: `Nodo «${n}» de la escena`, tipo: 'variable' }); }
-    for (const k of PALABRAS_CLAVE) if (k.length > 2) anadir({ nombre: k, desc: 'Palabra de Águila', tipo: 'palabra' });
+    for (const k of ara ? CLAVES_ARA : PALABRAS_CLAVE) if (k.length > 2) anadir({ nombre: k, desc: ara ? 'Palabra de Ara' : 'Palabra de Águila', tipo: 'palabra' });
     // Sin duplicados, lo más corto primero.
     const vistos = new Set();
     return r.filter(x => { if (vistos.has(x.nombre)) return false; vistos.add(x.nombre); return true; })
@@ -132,7 +146,14 @@ export async function crearDisposicionAguila(contenedor) {
 
   // ---------- Barra ----------
   $('[data-a=buscar]', panelEd).onclick = () => editor.buscar();
-  $('[data-a=ordenar]', panelEd).onclick = () => {
+  $('[data-a=ordenar]', panelEd).onclick = async () => {
+    if (ara) {
+      const r = await formatearAra(editor.valor());
+      if (!r.ok) { avisar('Arregla primero los errores para poder ordenar el código.', 'aviso'); return; }
+      if (r.texto === editor.valor()) { avisar('El código ya está ordenado.', 'aviso'); return; }
+      editor.reemplazarTodo(r.texto);
+      return;
+    }
     const f = formatear(editor.valor());
     if (f === editor.valor()) { avisar(analisis && analisis.errores.length ? 'Arregla primero los errores para poder ordenar el código.' : 'El código ya está ordenado.', 'aviso'); return; }
     editor.reemplazarTodo(f);
@@ -147,7 +168,7 @@ export async function crearDisposicionAguila(contenedor) {
   const gp = $('[data-a=guardar-probar]', panelEd);
   if (gp) gp.onclick = async () => { await guardar(doc); editor.limpiarCambios(); if (analisis && analisis.errores.length) { avisar('Hay errores en el script: revísalos en Problemas.', 'error'); return; } await probar(); };
   const bBp = $('[data-a=bp]', panelEd);
-  if (bBp) bBp.onclick = () => abrirDocumento('blueprints/' + nombreBase(doc.rel).replace(/\.agl$/, '.bp'));
+  if (bBp) bBp.onclick = () => abrirDocumento(doc.rel.replace(/^generado\//, '').replace(/\.(ara|agl)$/, '.bp'));
 
   // ---------- Problemas ----------
   inferior = crearInferior(centro, {
@@ -212,7 +233,7 @@ export async function crearDisposicionAguila(contenedor) {
     const w = palabraEnCursor();
     if (!w) return;
     const f = FUNCIONES.find(x => x.nombre === w) || EVENTOS.find(x => x.nombre === w) && { ...EVENTOS.find(x => x.nombre === w), firma: EVENTOS.find(x => x.nombre === w).firma, ejemplo: EVENTOS.find(x => x.nombre === w).firma + '\n    pasar' }
-      || PALABRAS.find(x => x.nombre === w) && { ...PALABRAS.find(x => x.nombre === w), firma: PALABRAS.find(x => x.nombre === w).titulo };
+      || palabras.find(x => x.nombre === w) && { ...palabras.find(x => x.nombre === w), firma: palabras.find(x => x.nombre === w).titulo };
     let m = null;
     if (!f) for (const t2 of Object.values(TIPOS)) { const x = (t2.miembros || []).find(y => y.nombre === w && y.firma); if (x) { m = { nombre: x.nombre, firma: x.firma, descripcion: x.descripcion + ` (${t2.nombreVisible})`, ejemplo: x.firma }; break; } }
     const nueva = f || m;
@@ -254,7 +275,7 @@ export async function crearDisposicionAguila(contenedor) {
       ${a.ejemplo && !doc.soloLectura ? `<button class="btn secundario ancho" data-a="insertar">Insertar ejemplo</button>` : ''}` : ''}
       <div class="separador"></div>
       <div class="titulo-seccion" style="margin-bottom:10px">Variables ${clase ? 'de ' + esc(clase) : 'del script'}</div>${listaVariables()}</div>
-      <div class="tarjeta-bloques"><b>¿Prefieres bloques?</b><p>Puedes hacer lo mismo con un Blueprint. Ambos se ejecutan en Águila.</p><button class="btn principal ancho" data-a="bp">Abrir Blueprints</button></div>`;
+      <div class="tarjeta-bloques"><b>¿Prefieres bloques?</b><p>Puedes hacer lo mismo con un Blueprint.</p><button class="btn principal ancho" data-a="bp">Abrir Blueprints</button></div>`;
     const ins = $('[data-a=insertar]', c);
     if (ins) ins.onclick = () => {
       const linea = editor.valor().split('\n')[editor.lineaActual() - 1] || '';
@@ -266,7 +287,7 @@ export async function crearDisposicionAguila(contenedor) {
   }
 
   $$('.entrada-dic', panelDic).forEach(e => e.onclick = () => {
-    const p = PALABRAS.find(x => x.nombre === e.dataset.p);
+    const p = palabras.find(x => x.nombre === e.dataset.p);
     ayudaActual = { ...p, firma: p.titulo };
     pestanaDer = 'ayuda';
     $$('.pestanas button', panelDer).forEach(x => x.classList.toggle('activo', x.dataset.p === 'ayuda'));
@@ -278,11 +299,11 @@ export async function crearDisposicionAguila(contenedor) {
   setTimeout(() => editor.foco(), 50);
 
   const quitar = [
-    bus.on('archivos', pintarScripts),
+    bus.on('archivos', () => { olvidarTextosAra(); pintarScripts(); }),
     bus.on('codigo:ir', ({ rel, linea }) => { if (rel === doc.rel) editor.irA(linea, 0); }),
     bus.on('juego:vivos', () => { if (pestanaDer === 'variables') pintarDer(); }),
     bus.on('doc:cambio', ({ doc: d, op }) => { if (d === doc && (op?.deshacer || op?.rehacer)) { editor.fijar(doc.datos); analizar(); } }),
     bus.on('doc:guardado', (d) => { if (d === doc) { editor.limpiarCambios(); pintarScripts(); } }),
   ];
-  return { destruir: () => { quitar.forEach(f => f()); partes.forEach(p => p.destruir && p.destruir()); }, editor };
+  return { destruir: () => { destruido = true; quitar.forEach(f => f()); partes.forEach(p => p.destruir && p.destruir()); }, editor };
 }

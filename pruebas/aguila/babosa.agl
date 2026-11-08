@@ -1,0 +1,16 @@
+# babosa.agl · persigue al jugador si está cerca
+clase Babosa extiende Personaje2D:
+    exportar variable velocidad = 70
+    exportar variable vista = 280
+
+    cuando se_actualiza(delta):
+        variable j = nodo("Jugador")
+        si j != nulo y distancia_a(j) < vista:
+            variable d = max(1, distancia_a(j))
+            mover((j.x - x) / d * velocidad, (j.y - y) / d * velocidad)
+
+    cuando toca(otro):
+        si otro.es("Jugador"):
+            sonar("golpe.wav")
+            temblar_camara(8, 0.3)
+            reiniciar_nivel()

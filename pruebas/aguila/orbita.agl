@@ -1,0 +1,14 @@
+# orbita.agl · la luz da vueltas para ver sombras y rebotes en movimiento
+exportar variable radio = 2.4
+exportar variable velocidad = 40
+variable centro_x = 0
+variable centro_z = 0
+
+cuando empieza():
+    centro_x = yo.x
+    centro_z = yo.z
+
+cuando se_actualiza(delta):
+    variable a = tiempo() * velocidad
+    yo.x = centro_x + coseno(a) * radio
+    yo.z = centro_z + seno(a) * radio

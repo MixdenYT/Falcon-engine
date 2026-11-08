@@ -1,0 +1,9 @@
+# nivel.agl · reglas generales del nivel
+cuando empieza():
+    musica("tema.wav")
+    mostrar("¡Hola, aventurero!")
+
+cuando se_actualiza(delta):
+    # Si el jugador se cae por un agujero, se reinicia el nivel
+    si nodo("Jugador").y > 900:
+        reiniciar_nivel()

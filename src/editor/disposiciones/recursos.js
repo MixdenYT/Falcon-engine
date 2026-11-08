@@ -161,7 +161,7 @@ export async function crearDisposicionRecursos(contenedor) {
     else if (t === 'fuente') s = 'Fuente';
     else if (t === 'escena') { s = 'Escena'; cargarInfoEscena(a.rel); }
     else if (t === 'blueprint') { s = 'Blueprint'; cargarInfoBp(a.rel); }
-    else if (t === 'script') s = a.rel.startsWith('generado/') ? 'Águila · generado' : 'Script de Águila';
+    else if (t === 'script') s = a.rel.startsWith('generado/') ? 'Generado de un Blueprint' : /\.ara$/i.test(a.rel) ? 'Script de Ara' : 'Script de Águila';
     else if (t === 'material') s = 'Material';
     else s = formatoTamano(a.tamano);
     return s;

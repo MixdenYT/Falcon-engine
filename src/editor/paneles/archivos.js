@@ -112,7 +112,7 @@ export function crearArchivos(contenedor, op = {}) {
       ] : []),
       { texto: 'Nueva escena 2D', icono: 'imagen', accion: () => nuevaEscena('2D') },
       { texto: 'Nueva escena 3D', icono: 'cubo', accion: () => nuevaEscena('3D') },
-      { texto: 'Nuevo script de Águila', icono: 'codigo', accion: async () => { const r = await nuevoScript(null); if (r) abrirArchivo(r); } },
+      { texto: 'Nuevo script de Ara', icono: 'codigo', accion: async () => { const r = await nuevoScript(null); if (r) abrirArchivo(r); } },
       { texto: 'Nuevo Blueprint', icono: 'blueprint', accion: async () => { const r = await nuevoBlueprint(null); if (r) abrirArchivo(r); } },
       { texto: 'Nuevo material', icono: 'material', accion: () => nuevoMaterial() },
       { texto: 'Nueva carpeta', icono: 'carpeta', accion: () => nuevaCarpeta(carpeta || '') },

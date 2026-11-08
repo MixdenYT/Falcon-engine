@@ -71,7 +71,7 @@ export async function crearDisposicionSencilla(contenedor) {
     if (!html) html = '<div class="vacio-texto" style="text-align:left;padding:4px 0 10px">Esto no tiene ajustes sencillos. Pasa al modo Avanzado para verlo todo.</div>';
     html += `<div class="titulo-seccion" style="margin:6px 0 10px;text-transform:none;letter-spacing:0;font-size:13px;color:var(--texto-2);font-weight:600">Comportamiento</div>
       <button class="btn principal ancho" data-accion="anadir-blueprint">${icono('blueprint', '', 17)}${n.blueprint ? 'Abrir Blueprint' : 'Añadir Blueprint'}</button>
-      <button class="btn secundario ancho" data-accion="escribir-aguila">${icono('codigo', '', 16)}${n.script ? 'Abrir en Águila' : 'Escribir en Águila'}</button>`;
+      <button class="btn secundario ancho" data-accion="escribir-aguila">${icono('codigo', '', 16)}${n.script ? 'Abrir el script' : 'Escribir en Ara'}</button>`;
     c.innerHTML = html;
     $$('[data-k]', c).forEach(i => { pintarDeslizador(i); i.oninput = () => cambiarProp(d, n.id, i.dataset.k, Number(i.value)); });
     $$('[data-color]', c).forEach(i => i.oninput = () => cambiarProp(d, i.dataset.color, 'color', i.value.toUpperCase()));
@@ -120,7 +120,7 @@ export async function crearDisposicionSencilla(contenedor) {
       <div class="progreso"><div style="width:${(estadoCurso.leccion + (todos ? 1 : estadoCurso.hechos.size / l.pasos.length)) / total * 100}%"></div></div>
       <h2>${esc(l.titulo)}</h2><p>${esc(l.descripcion)}</p>
       <div class="pasos-leccion">${l.pasos.map((p, i) => `<div class="paso-l ${estadoCurso.hechos.has(i) ? 'hecho' : i === actual ? 'actual' : ''}"><span class="marca-paso">${estadoCurso.hechos.has(i) ? icono('check', '', 14) : i + 1}</span><span>${esc(p.texto)}</span></div>`).join('')}</div>
-      <div class="codigo-leccion"><div class="t">${icono('codigo', '', 15)}Lo mismo escrito en Águila</div><pre>${l.aguila.split('\n').map(resaltarLinea).join('\n')}</pre></div>
+      <div class="codigo-leccion"><div class="t">${icono('codigo', '', 15)}Lo mismo escrito en Ara</div><pre>${l.codigo.split('\n').map(resaltarLinea).join('\n')}</pre></div>
       ${todos ? `<div class="problema" style="margin:14px 0 0;background:var(--verde-tenue)"><span class="marca-problema" style="background:var(--verde);color:#04140B">✓</span><div><b>¡Lección completada!</b><span>${estadoCurso.leccion + 1 < total ? 'Pulsa «Siguiente» para seguir aprendiendo.' : 'Has terminado el curso. ¡Ya sabes hacer juegos!'}</span></div></div>` : ''}
       <div class="pie-leccion"><button class="btn secundario" data-a="pista" ${todos ? 'disabled' : ''}>Dame una pista</button><button class="btn fantasma" data-a="solucion" ${todos ? 'disabled' : ''}>Ver solución</button><button class="btn ${todos ? 'principal' : 'secundario'}" data-a="siguiente" ${todos && estadoCurso.leccion + 1 < total ? '' : 'disabled'}>Siguiente</button></div>`;
     $('[data-a=pista]', panelLeccion).onclick = () => mostrarBurbuja(true);

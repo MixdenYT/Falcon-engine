@@ -1,0 +1,6 @@
+# menu.agl · pantalla de inicio
+cuando empieza():
+    musica("tema.wav")
+
+cuando se_pulsa("saltar"):
+    cambiar_escena("nivel1")

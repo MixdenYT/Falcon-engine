@@ -1,7 +1,7 @@
 // Plantillas de proyecto. Cada una genera todos los archivos de un proyecto nuevo.
 import { crearNodo } from './tipos.js';
 import { datosProyecto, escenaVacia } from './proyecto.js';
-import { blueprintVacio, compilarBlueprint, idNodoBp } from './blueprints.js';
+import { blueprintVacio, compilarBlueprint, generadoDe, idNodoBp } from './blueprints.js';
 import * as gen from './generadores.js';
 import { plantillaAcademia } from './academia.js';
 import { plantillaShooter } from './shooters.js';
@@ -12,10 +12,10 @@ export const PLANTILLAS = [
   { id: 'vacio3d', nombre: 'Juego 3D', tipo: '3D', descripcion: 'Mallas, luces y cámara en primera o tercera persona', icono: 'cubo', basica: true },
   { id: 'academia_blueprints', nombre: 'Academia de Blueprints', tipo: '2D', descripcion: '67 laboratorios: todos los bloques, funciones, señales y ejercicios con guía completa.', icono: 'libro', etiqueta: 'Curso completo' },
   { id: 'shooter_tercera', nombre: 'Shooter · Base abierta', tipo: '3D', descripcion: 'Tercera persona, flancos, cobertura y seis enemigos. Incluye también el mapa CQB.', icono: 'cubo', etiqueta: 'Combate 3D' },
-  { id: 'shooter_primera', nombre: 'Shooter · CQB', tipo: '3D', descripcion: 'Operación Umbral: puertas, miras, inclinación, dos armas y tres contactos. Blueprints + Águila.', icono: 'cubo', etiqueta: 'Táctico' },
-  { id: 'plataformas', nombre: 'Plataformas', tipo: '2D', descripcion: 'Salta, recoge monedas, esquiva enemigos y llega a la bandera.', icono: 'persona', etiqueta: 'Blueprints + Águila' },
-  { id: 'topdown', nombre: 'Aventura top-down', tipo: '2D', descripcion: 'Vista desde arriba: recoge gemas y huye de las babosas.', icono: 'estrella', etiqueta: 'Águila' },
-  { id: 'puzzle', nombre: 'Puzle de cajas', tipo: '2D', descripcion: 'Empuja las cajas hasta las marcas, casilla a casilla.', icono: 'plantillas', etiqueta: 'Águila' },
+  { id: 'shooter_primera', nombre: 'Shooter · CQB', tipo: '3D', descripcion: 'Operación Umbral: puertas, miras, inclinación, dos armas y tres contactos. Blueprints + Ara.', icono: 'cubo', etiqueta: 'Táctico' },
+  { id: 'plataformas', nombre: 'Plataformas', tipo: '2D', descripcion: 'Salta, recoge monedas, esquiva enemigos y llega a la bandera.', icono: 'persona', etiqueta: 'Blueprints + Ara' },
+  { id: 'topdown', nombre: 'Aventura top-down', tipo: '2D', descripcion: 'Vista desde arriba: recoge gemas y huye de las babosas.', icono: 'estrella', etiqueta: 'Ara' },
+  { id: 'puzzle', nombre: 'Puzle de cajas', tipo: '2D', descripcion: 'Empuja las cajas hasta las marcas, casilla a casilla.', icono: 'plantillas', etiqueta: 'Ara' },
   { id: 'mazmorra', nombre: 'Mazmorra 3D', tipo: '3D', descripcion: 'Explora en tercera persona con antorchas y un cofre.', icono: 'cubo', etiqueta: 'Blueprints' },
   { id: 'pruebas_luz', nombre: 'Pruebas de iluminación', tipo: '3D', descripcion: 'Mapa para probar Lumbre: rebotes de color, ventana, espejos, neón, sombras y día/noche.', icono: 'sol', etiqueta: 'Lumbre' },
   { id: 'curso', nombre: 'Mi primer juego', tipo: '2D', descripcion: 'El proyecto del curso guiado, en modo Sencillo.', icono: 'libro', etiqueta: 'Curso' },
@@ -26,196 +26,209 @@ const N = (tipo, nombre, props = {}, hijos = [], extra = {}) => Object.assign(cr
 const CARPETAS_2D = ['escenas', 'sprites/personajes', 'sprites/mosaicos', 'blueprints', 'scripts', 'generado', 'sonidos', 'música', 'fuentes'];
 const CARPETAS_3D = ['escenas', 'modelos', 'materiales', 'texturas', 'blueprints', 'scripts', 'generado', 'sonidos', 'música'];
 
-// ---------- Scripts de ejemplo ----------
+// ---------- Scripts de ejemplo (Ara) ----------
+// Cada script es una clase con el nombre del archivo: todos los .ara de un proyecto se compilan juntos.
 const S = {
-  moneda: `# moneda.agl · se recoge al tocarla
-cuando toca(otro):
-    si otro.es("Jugador"):
-        ganar_puntos(1)
-        sonar("moneda.wav", 0.7)
-        yo.eliminar()
+  moneda: `# moneda.ara · se recoge al tocarla
+clase Moneda extiende Area2D:
+    cuando toca(otro):
+        si otro.es("Jugador"):
+            ganar_puntos(1)
+            sonar("moneda.wav", 0.7)
+            eliminar()
 `,
-  peligro: `# peligro.agl · los pinchos hacen volver a empezar
-cuando toca(otro):
-    si otro.es("Jugador"):
-        sonar("golpe.wav")
-        temblar_camara(10, 0.3)
-        otro.empujar(0, -500)
-        esperar(0.4)
-        reiniciar_nivel()
+  peligro: `# peligro.ara · los pinchos hacen volver a empezar
+clase Peligro extiende Area2D:
+    cuando toca(otro):
+        si otro.es("Jugador"):
+            sonar("golpe.wav")
+            temblar_camara(10.0, 0.3)
+            otro.empujar(0.0, -500.0)
+            esperar(0.4)
+            reiniciar_nivel()
 `,
-  enemigo: `# enemigo.agl · patrulla de un lado a otro
+  enemigo: `# enemigo.ara · patrulla de un lado a otro
 clase Enemigo extiende Personaje2D:
-    exportar variable velocidad = 90
-    variable direccion = -1
+    exportar velocidad = 90.0
+    direccion = -1.0
 
     cuando se_actualiza(delta):
         mover(direccion * velocidad)
         si en_pared():
             direccion = -direccion
-        hijo("Sprite").voltear_h = direccion > 0
+        hijo("Sprite").voltear_h = direccion > 0.0
 
     cuando toca(otro):
         si otro.es("Jugador"):
-            si otro.y < y - 20:
+            si otro.y < yo.y - 20.0:
                 # Le ha caído encima: el enemigo desaparece
-                otro.empujar(0, -450)
+                otro.empujar(0.0, -450.0)
                 sonar("golpe.wav")
                 ganar_puntos(5)
                 eliminar()
             sino:
-                temblar_camara(8, 0.25)
+                temblar_camara(8.0, 0.25)
                 reiniciar_nivel()
 `,
-  meta: `# meta.agl · llegar a la bandera gana el nivel
-cuando toca(otro):
-    si otro.es("Jugador"):
-        sonar("ganar.wav")
-        ganar_partida()
+  meta: `# meta.ara · llegar a la bandera gana el nivel
+clase Meta extiende Area2D:
+    cuando toca(otro):
+        si otro.es("Jugador"):
+            sonar("ganar.wav")
+            ganar_partida()
 `,
-  contador: `# contador.agl · muestra las monedas recogidas
-cuando se_actualiza(delta):
-    texto = texto(puntos)
+  contador: `# contador.ara · muestra los puntos
+clase Contador extiende Etiqueta:
+    cuando se_actualiza(delta):
+        yo.texto = texto(puntos())
 `,
-  nivel: `# nivel.agl · reglas generales del nivel
-cuando empieza():
-    musica("tema.wav")
-    mostrar("¡Hola, aventurero!")
-
-cuando se_actualiza(delta):
-    # Si el jugador se cae por un agujero, se reinicia el nivel
-    si nodo("Jugador").y > 900:
-        reiniciar_nivel()
-`,
-  jugadorEscrito: `# jugador.agl · lógica del jugador escrita en Águila
-# (el Jugador usa ahora jugador.bp; puedes cambiarlo en el Inspector)
-clase Jugador extiende Personaje2D:
-
-    exportar variable velocidad = 220
-    exportar variable altura_salto = 420
-    variable monedas = 0
-
+  nivel: `# nivel.ara · reglas generales del nivel
+clase Nivel extiende Nodo2D:
     cuando empieza():
-        mostrar("¡Hola, aventurero!")
+        musica("tema.wav")
+        imprimir("¡Hola, aventurero!")
 
     cuando se_actualiza(delta):
-        variable direccion = eje("izquierda", "derecha")
-        mover(direccion * velocidad)
+        # Si el jugador se cae por un agujero, se reinicia el nivel
+        si nodo("Jugador").y > 900.0:
+            reiniciar_nivel()
+`,
+  jugadorEscrito: `# jugador.ara · lógica del jugador escrita en Ara
+# (el Jugador usa ahora jugador.bp; puedes cambiarlo en el Inspector)
+clase Jugador extiende Personaje2D:
+    exportar velocidad = 220.0
+    exportar altura_salto = 420.0
+    monedas = 0
 
+    cuando empieza():
+        imprimir("¡Hola, aventurero!")
+
+    cuando se_actualiza(delta):
+        direccion = eje("izquierda", "derecha")
+        mover(direccion * velocidad)
         si se_pulsa("saltar") y en_el_suelo():
             saltar(altura_salto)
 
     cuando toca(otro):
         si otro.es("Moneda"):
-            monedas = monedas + 1
+            monedas += 1
             si monedas >= 10:
                 ganar_partida()
 `,
-  gema: `# gema.agl · cuando no quedan gemas, se gana
-cuando toca(otro):
-    si otro.es("Jugador"):
-        ganar_puntos(1)
-        sonar("moneda.wav", 0.7)
-        eliminar()
-        si largo(grupo("gemas")) == 0:
-            sonar("ganar.wav")
-            ganar_partida()
+  gema: `# gema.ara · cuando no quedan gemas, se gana
+clase Gema extiende Area2D:
+    cuando toca(otro):
+        si otro.es("Jugador"):
+            ganar_puntos(1)
+            sonar("moneda.wav", 0.7)
+            eliminar()
+            si largo(grupo("gemas")) == 0:
+                sonar("ganar.wav")
+                ganar_partida()
 `,
-  babosa: `# babosa.agl · persigue al jugador si está cerca
+  babosa: `# babosa.ara · persigue al jugador si está cerca
 clase Babosa extiende Personaje2D:
-    exportar variable velocidad = 70
-    exportar variable vista = 280
+    exportar velocidad = 70.0
+    exportar vista = 280.0
 
     cuando se_actualiza(delta):
-        variable j = nodo("Jugador")
-        si j != nulo y distancia_a(j) < vista:
-            variable d = max(1, distancia_a(j))
-            mover((j.x - x) / d * velocidad, (j.y - y) / d * velocidad)
+        j = nodo("Jugador")
+        si j.existe() y distancia_a(j) < vista:
+            d = maximo(1.0, distancia_a(j))
+            mover((j.x - yo.x) / d * velocidad, (j.y - yo.y) / d * velocidad)
 
     cuando toca(otro):
         si otro.es("Jugador"):
             sonar("golpe.wav")
-            temblar_camara(8, 0.3)
+            temblar_camara(8.0, 0.3)
             reiniciar_nivel()
 `,
-  cajas: `# jugador.agl · se mueve de casilla en casilla y empuja cajas
-exportar variable casilla = 64
+  cajas: `# jugador.ara · se mueve de casilla en casilla y empuja cajas
+clase Jugador extiende Personaje2D:
+    exportar casilla = 64.0
 
-cuando empieza():
-    mostrar("Lleva las cajas a las marcas. Pulsa E para reiniciar.")
-    pintar_cajas()
+    cuando empieza():
+        imprimir("Lleva las cajas a las marcas. Pulsa E para reiniciar.")
+        pintar_cajas()
 
-función hay_muro(cx, cy):
-    devolver nodo("Muros").hay_mosaico(cx, cy)
+    cuando se_pulsa("izquierda"):
+        intentar_mover(-1, 0)
 
-función caja_en(cx, cy):
-    para cada c en grupo("cajas"):
-        si redondear_abajo(c.x / casilla) == cx y redondear_abajo(c.y / casilla) == cy:
-            devolver c
-    devolver nulo
+    cuando se_pulsa("derecha"):
+        intentar_mover(1, 0)
 
-función intentar_mover(dx, dy):
-    variable cx = redondear_abajo(x / casilla) + dx
-    variable cy = redondear_abajo(y / casilla) + dy
-    si hay_muro(cx, cy):
-        devolver
-    variable caja = caja_en(cx, cy)
-    si caja != nulo:
-        si hay_muro(cx + dx, cy + dy) o caja_en(cx + dx, cy + dy) != nulo:
+    cuando se_pulsa("arriba"):
+        intentar_mover(0, -1)
+
+    cuando se_pulsa("abajo"):
+        intentar_mover(0, 1)
+
+    cuando se_pulsa("accion"):
+        reiniciar_nivel()
+
+    # La casilla en la que cae una coordenada.
+    func celda(v: decimal) -> entero:
+        devolver entero(piso(v / casilla))
+
+    func hay_muro(cx: entero, cy: entero) -> booleano:
+        devolver nodo("Muros").hay_mosaico(cx, cy)
+
+    # La caja de esa casilla, o ningún nodo (compruébalo con .existe()).
+    func caja_en(cx: entero, cy: entero) -> Nodo:
+        para c en grupo("cajas"):
+            si celda(c.x) == cx y celda(c.y) == cy:
+                devolver c
+        devolver nodo("")
+
+    func intentar_mover(dx: entero, dy: entero):
+        cx = celda(yo.x) + dx
+        cy = celda(yo.y) + dy
+        si hay_muro(cx, cy):
             devolver
-        caja.desplazar(dx * casilla, dy * casilla)
-        sonar("golpe.wav", 0.4)
-    desplazar(dx * casilla, dy * casilla)
-    pintar_cajas()
-    comprobar_victoria()
+        caja = caja_en(cx, cy)
+        si caja.existe():
+            si hay_muro(cx + dx, cy + dy) o caja_en(cx + dx, cy + dy).existe():
+                devolver
+            caja.desplazar(dx * casilla, dy * casilla)
+            sonar("golpe.wav", 0.4)
+        desplazar(dx * casilla, dy * casilla)
+        pintar_cajas()
+        comprobar_victoria()
 
-función en_objetivo(c):
-    para cada o en grupo("objetivos"):
-        si redondear_abajo(o.x / casilla) == redondear_abajo(c.x / casilla) y redondear_abajo(o.y / casilla) == redondear_abajo(c.y / casilla):
-            devolver verdadero
-    devolver falso
+    func en_objetivo(c: Nodo) -> booleano:
+        para marca en grupo("objetivos"):
+            si celda(marca.x) == celda(c.x) y celda(marca.y) == celda(c.y):
+                devolver verdadero
+        devolver falso
 
-función pintar_cajas():
-    para cada c en grupo("cajas"):
-        si en_objetivo(c):
-            c.color = "#3DDC84"
-        sino:
-            c.color = "#B07A43"
+    func pintar_cajas():
+        para c en grupo("cajas"):
+            si en_objetivo(c):
+                c.color = "#3DDC84"
+            sino:
+                c.color = "#B07A43"
 
-función comprobar_victoria():
-    para cada c en grupo("cajas"):
-        si no en_objetivo(c):
-            devolver
-    sonar("ganar.wav")
-    ganar_partida()
-
-cuando se_pulsa("izquierda"):
-    intentar_mover(-1, 0)
-
-cuando se_pulsa("derecha"):
-    intentar_mover(1, 0)
-
-cuando se_pulsa("arriba"):
-    intentar_mover(0, -1)
-
-cuando se_pulsa("abajo"):
-    intentar_mover(0, 1)
-
-cuando se_pulsa("accion"):
-    reiniciar_nivel()
+    func comprobar_victoria():
+        para c en grupo("cajas"):
+            si no en_objetivo(c):
+                devolver
+        sonar("ganar.wav")
+        ganar_partida()
 `,
-  antorcha: `# antorcha.agl · la llama parpadea
-variable base = 6
+  antorcha: `# antorcha.ara · la llama parpadea
+clase Antorcha extiende Luz3D:
+    base = 6.0
 
-cuando se_actualiza(delta):
-    intensidad = base + seno(tiempo() * 900) * 0.6 + aleatorio(-0.4, 0.4)
+    cuando se_actualiza(delta):
+        yo.intensidad = base + seno(tiempo() * 900.0) * 0.6 + aleatorio() * 0.8 - 0.4
 `,
-  menu: `# menu.agl · pantalla de inicio
-cuando empieza():
-    musica("tema.wav")
+  menu: `# menu.ara · pantalla de inicio
+clase Menu extiende Nodo2D:
+    cuando empieza():
+        musica("tema.wav")
 
-cuando se_pulsa("saltar"):
-    cambiar_escena("nivel1")
+    cuando se_pulsa("saltar"):
+        cambiar_escena("nivel1")
 `,
 };
 
@@ -328,7 +341,7 @@ function jugador2D(x, y, opciones = {}) {
   ], opciones.extra || {});
 }
 
-function moneda(x, y, logica = { script: 'scripts/moneda.agl' }) {
+function moneda(x, y, logica = { script: 'scripts/moneda.ara' }) {
   return N('Area2D', 'Moneda', { posicion: [x, y] }, [
     N('Sprite', 'Sprite', { imagen: 'sprites/personajes/moneda.png', ancho: 30, alto: 30, forma: 'circulo', color: '#F2C46D', animando: true, fps: 12 }),
     N('Colision', 'Colisión', { ancho: 26, alto: 26 }),
@@ -350,7 +363,7 @@ function suelo(columnas, filaSuperior = 15, filas = 3, tam = 40, huecos = []) {
 
 function interfazContador() {
   return N('Interfaz', 'Interfaz', {}, [
-    N('Etiqueta', 'Contador', { posicion: [24, 22], texto: '0', tam: 26, icono: 'moneda', fondo: true }, [], { script: 'scripts/contador.agl' }),
+    N('Etiqueta', 'Contador', { posicion: [24, 22], texto: '0', tam: 26, icono: 'moneda', fondo: true }, [], { script: 'scripts/contador.ara' }),
     N('Etiqueta', 'Ayuda', { posicion: [640, 684], texto: '← → para moverte · Espacio para saltar', tam: 15, color: '#A9B5AE', alineacion: 'centro' }),
   ]);
 }
@@ -400,17 +413,17 @@ async function plantillaPlataformas(nombre) {
     N('Area2D', 'Pinchos', { posicion: [1150, 586] }, [
       N('Sprite', 'Sprite', { forma: 'triangulo', color: '#C2414F', ancho: 52, alto: 28 }),
       N('Colision', 'Colisión', { ancho: 40, alto: 20, posicion: [0, 4] }),
-    ], { script: 'scripts/peligro.agl', grupos: ['peligros'] }),
+    ], { script: 'scripts/peligro.ara', grupos: ['peligros'] }),
     N('Personaje2D', 'Enemigo', { posicion: [1700, 578], velocidad: 90 }, [
       N('Sprite', 'Sprite', { imagen: 'sprites/personajes/enemigo.png', ancho: 54, alto: 54, forma: 'enemigo', color: '#B04A6A', animando: true, fps: 8 }),
       N('Colision', 'Colisión', { ancho: 44, alto: 40, posicion: [0, 6] }),
-    ], { script: 'scripts/enemigo.agl', grupos: ['enemigos'] }),
+    ], { script: 'scripts/enemigo.ara', grupos: ['enemigos'] }),
     N('Area2D', 'Meta', { posicion: [2680, 560] }, [
       N('Sprite', 'Sprite', { forma: 'bandera', color: '#3DDC84', ancho: 52, alto: 80 }),
       N('Colision', 'Colisión', { ancho: 36, alto: 80 }),
-    ], { script: 'scripts/meta.agl' }),
+    ], { script: 'scripts/meta.ara' }),
     interfazContador(),
-  ], { script: 'scripts/nivel.agl' });
+  ], { script: 'scripts/nivel.ara' });
 
   const menu = N('Nodo2D', 'Menu', {}, [
     N('Fondo', 'Fondo', { imagen: 'sprites/fondo.png', paralaje: 0 }),
@@ -420,7 +433,7 @@ async function plantillaPlataformas(nombre) {
       N('Boton', 'Jugar', { posicion: [540, 360], texto: 'Jugar', ancho: 200, alto: 56, escena: 'escenas/nivel1.fscn' }),
       N('Etiqueta', 'Pista', { posicion: [640, 460], texto: 'o pulsa Espacio', tam: 15, color: '#6E7A73', alineacion: 'centro' }),
     ]),
-  ], { script: 'scripts/menu.agl' });
+  ], { script: 'scripts/menu.ara' });
 
   const bp = bpJugador();
   const bpm = bpMonedas();
@@ -429,11 +442,11 @@ async function plantillaPlataformas(nombre) {
     'escenas/menu.fscn': escenaVacia('2D', menu),
     'blueprints/jugador.bp': bp,
     'blueprints/monedas.bp': bpm,
-    'generado/jugador.agl': compilarBlueprint(bp, 'jugador.bp').codigo,
-    'generado/monedas.agl': compilarBlueprint(bpm, 'monedas.bp').codigo,
-    'scripts/moneda.agl': S.moneda, 'scripts/peligro.agl': S.peligro, 'scripts/enemigo.agl': S.enemigo,
-    'scripts/meta.agl': S.meta, 'scripts/contador.agl': S.contador, 'scripts/nivel.agl': S.nivel,
-    'scripts/jugador.agl': S.jugadorEscrito, 'scripts/menu.agl': S.menu,
+    [generadoDe('blueprints/jugador.bp')]: compilarBlueprint(bp, 'blueprints/jugador.bp').codigo,
+    [generadoDe('blueprints/monedas.bp')]: compilarBlueprint(bpm, 'blueprints/monedas.bp').codigo,
+    'scripts/moneda.ara': S.moneda, 'scripts/peligro.ara': S.peligro, 'scripts/enemigo.ara': S.enemigo,
+    'scripts/meta.ara': S.meta, 'scripts/contador.ara': S.contador, 'scripts/nivel.ara': S.nivel,
+    'scripts/jugador.ara': S.jugadorEscrito, 'scripts/menu.ara': S.menu,
   });
   const datos = datosProyecto(nombre, '2D');
   datos.escena_principal = 'escenas/nivel1.fscn';
@@ -456,11 +469,11 @@ async function plantillaTopdown(nombre) {
   const gema = (x, y) => N('Area2D', 'Gema', { posicion: [x, y] }, [
     N('Sprite', 'Sprite', { forma: 'estrella', color: '#4FD1C5', ancho: 34, alto: 34 }),
     N('Colision', 'Colisión', { ancho: 30, alto: 30 }),
-  ], { script: 'scripts/gema.agl', grupos: ['gemas'] });
+  ], { script: 'scripts/gema.ara', grupos: ['gemas'] });
   const babosa = (x, y) => N('Personaje2D', 'Babosa', { posicion: [x, y], usa_gravedad: false }, [
     N('Sprite', 'Sprite', { imagen: 'sprites/personajes/enemigo.png', ancho: 54, alto: 54, animando: true, fps: 8 }),
     N('Colision', 'Colisión', { ancho: 40, alto: 34, posicion: [0, 8] }),
-  ], { script: 'scripts/babosa.agl', grupos: ['enemigos'] });
+  ], { script: 'scripts/babosa.ara', grupos: ['enemigos'] });
   const raiz = N('Nodo2D', 'Mundo', {}, [
     N('Fondo', 'Fondo', { color: '#1E3A27', color2: '#183020', montanas: false, paralaje: 1 }),
     N('Nodo2D', 'Muros', {}, muros),
@@ -468,13 +481,13 @@ async function plantillaTopdown(nombre) {
     N('Nodo2D', 'Gemas', {}, [gema(400, 160), gema(820, 260), gema(1400, 180), gema(300, 820), gema(900, 860), gema(1420, 800), gema(1200, 460)]),
     N('Nodo2D', 'Enemigos', {}, [babosa(1100, 300), babosa(700, 800)]),
     N('Interfaz', 'Interfaz', {}, [
-      N('Etiqueta', 'Contador', { posicion: [24, 22], texto: '0', tam: 26, icono: 'estrella', fondo: true }, [], { script: 'scripts/contador.agl' }),
+      N('Etiqueta', 'Contador', { posicion: [24, 22], texto: '0', tam: 26, icono: 'estrella', fondo: true }, [], { script: 'scripts/contador.ara' }),
       N('Etiqueta', 'Ayuda', { posicion: [640, 684], texto: 'Flechas o WASD para moverte · recoge todas las gemas', tam: 15, color: '#A9B5AE', alineacion: 'centro' }),
     ]),
   ]);
   Object.assign(archivos, {
     'escenas/mundo.fscn': escenaVacia('2D', raiz),
-    'scripts/gema.agl': S.gema, 'scripts/babosa.agl': S.babosa, 'scripts/contador.agl': S.contador,
+    'scripts/gema.ara': S.gema, 'scripts/babosa.ara': S.babosa, 'scripts/contador.ara': S.contador,
   });
   const datos = datosProyecto(nombre, '2D');
   datos.escena_principal = 'escenas/mundo.fscn';
@@ -513,14 +526,14 @@ async function plantillaPuzzle(nombre) {
     N('Nodo2D', 'Cajas', {}, cajas),
     N('Personaje2D', 'Jugador', { posicion: jugador, usa_gravedad: false, z: 3 }, [
       N('Sprite', 'Sprite', { imagen: 'sprites/personajes/jugador.png', ancho: 46, alto: 58 }),
-    ], { script: 'scripts/jugador.agl' }),
+    ], { script: 'scripts/jugador.ara' }),
     N('Camara2D', 'Cámara2D', { posicion: [320, 224], suavizado: 0 }),
     N('Interfaz', 'Interfaz', {}, [
       N('Etiqueta', 'Titulo', { posicion: [640, 40], texto: 'Lleva las cajas a las marcas verdes', tam: 22, alineacion: 'centro' }),
       N('Etiqueta', 'Ayuda', { posicion: [640, 684], texto: 'Flechas para moverte · E para reiniciar', tam: 15, color: '#A9B5AE', alineacion: 'centro' }),
     ]),
   ]);
-  Object.assign(archivos, { 'escenas/puzle.fscn': escenaVacia('2D', raiz), 'scripts/jugador.agl': S.cajas });
+  Object.assign(archivos, { 'escenas/puzle.fscn': escenaVacia('2D', raiz), 'scripts/jugador.ara': S.cajas });
   const datos = datosProyecto(nombre, '2D');
   datos.escena_principal = 'escenas/puzle.fscn';
   datos.gravedad = 0;
@@ -605,7 +618,7 @@ function antorcha(nombre, x, z) {
   return N('Luz3D', nombre, { posicion: [x, 1.8, z], tipo_luz: 'puntual', color: '#FFB060', intensidad: 6, alcance: 9, sombras: true }, [
     N('Malla3D', 'Llama', { posicion: [0, 0, 0], escala: [0.18, 0.28, 0.18], malla: 'esfera', material: 'materiales/llama.mat', color: '#FFB25C', colision: 'ninguna', sombras: false }),
     N('Malla3D', 'Soporte', { posicion: [0, -0.35, 0], escala: [0.1, 0.5, 0.1], malla: 'cilindro', color: '#3A2E22', colision: 'ninguna' }),
-  ], { script: 'scripts/antorcha.agl' });
+  ], { script: 'scripts/antorcha.ara' });
 }
 
 async function plantillaMazmorra(nombre) {
@@ -632,8 +645,8 @@ async function plantillaMazmorra(nombre) {
     'escenas/mazmorra.fscn': escenaVacia('3D', raiz),
     'escenas/jugador.fscn': escenaVacia('3D', jugadorEsc),
     'blueprints/cofre.bp': bp,
-    'generado/cofre.agl': compilarBlueprint(bp, 'cofre.bp').codigo,
-    'scripts/antorcha.agl': S.antorcha,
+    [generadoDe('blueprints/cofre.bp')]: compilarBlueprint(bp, 'blueprints/cofre.bp').codigo,
+    'scripts/antorcha.ara': S.antorcha,
   });
   const datos = datosProyecto(nombre, '3D');
   datos.escena_principal = 'escenas/mazmorra.fscn';
@@ -643,62 +656,65 @@ async function plantillaMazmorra(nombre) {
 
 // ---------- Pruebas de iluminación ----------
 const S_LUZ = {
-  ciclo: `# ciclo_dia.agl · pulsa E para pasar del día a la noche (y al revés)
-variable dia = 1
-variable objetivo = 1
+  ciclo: `# ciclo_dia.ara · pulsa E para pasar del día a la noche (y al revés)
+clase CicloDia extiende Luz3D:
+    dia = 1.0
+    objetivo = 1.0
 
-cuando se_pulsa("accion"):
-    objetivo = 1 - objetivo
+    cuando se_pulsa("accion"):
+        objetivo = 1.0 - objetivo
 
-cuando se_actualiza(delta):
-    dia = interpolar(dia, objetivo, limitar(delta * 2.2, 0, 1))
-    si abs(dia - objetivo) < 0.002:
-        dia = objetivo
-    yo.rotacion_x = interpolar(-7, -42, dia)
-    yo.intensidad = interpolar(0.3, 3.2, dia)
-    yo.color = mezclar_color("#7F9CFF", "#FFF1DC", dia)
-    variable ent = nodo("Entorno")
-    ent.cielo = mezclar_color("#02040A", "#3F74C2", dia)
-    ent.horizonte = mezclar_color("#0A1222", "#C9DAEA", dia)
-    ent.ambiente = interpolar(0.05, 0.45, dia)
-    variable estado = nodo("Estado")
-    si objetivo > 0.5:
-        estado.texto = "Día · pulsa E para la noche"
-    sino:
-        estado.texto = "Noche · pulsa E para el día"
+    cuando se_actualiza(delta):
+        dia = interpolar(dia, objetivo, limitar(delta * 2.2, 0.0, 1.0))
+        si abs(dia - objetivo) < 0.002:
+            dia = objetivo
+        yo.rotacion_x = interpolar(-7.0, -42.0, dia)
+        yo.intensidad = interpolar(0.3, 3.2, dia)
+        yo.color = mezclar_color("#7F9CFF", "#FFF1DC", dia)
+        # El cielo del Entorno no está en motor.ara: se cambia por su nombre.
+        entorno = nodo("Entorno")
+        entorno.cambiar_texto("cielo", mezclar_color("#02040A", "#3F74C2", dia))
+        entorno.cambiar_texto("horizonte", mezclar_color("#0A1222", "#C9DAEA", dia))
+        entorno.cambiar_numero("ambiente", interpolar(0.05, 0.45, dia))
+        si objetivo > 0.5:
+            nodo("Estado").texto = "Día · pulsa E para la noche"
+        sino:
+            nodo("Estado").texto = "Noche · pulsa E para el día"
 `,
-  orbita: `# orbita.agl · la luz da vueltas para ver sombras y rebotes en movimiento
-exportar variable radio = 2.4
-exportar variable velocidad = 40
-variable centro_x = 0
-variable centro_z = 0
+  orbita: `# orbita.ara · la luz da vueltas para ver sombras y rebotes en movimiento
+clase Orbita extiende Luz3D:
+    exportar radio = 2.4
+    exportar velocidad = 40.0
+    centro_x = 0.0
+    centro_z = 0.0
 
-cuando empieza():
-    centro_x = yo.x
-    centro_z = yo.z
+    cuando empieza():
+        centro_x = yo.x
+        centro_z = yo.z
 
-cuando se_actualiza(delta):
-    variable a = tiempo() * velocidad
-    yo.x = centro_x + coseno(a) * radio
-    yo.z = centro_z + seno(a) * radio
+    cuando se_actualiza(delta):
+        a = tiempo() * velocidad
+        yo.x = centro_x + coseno(a) * radio
+        yo.z = centro_z + seno(a) * radio
 `,
-  zona: `# zona.agl · dice en qué zona de pruebas está el jugador
-cuando se_actualiza(delta):
-    variable j = nodo("Jugador")
-    yo.texto = zona_de(j.x, j.z)
+  zona: `# zona.ara · dice en qué zona de pruebas está el jugador
+clase Zona extiende Etiqueta:
+    cuando se_actualiza(delta):
+        j = nodo("Jugador")
+        yo.texto = zona_de(j.x, j.z)
 
-función zona_de(x, z):
-    si z < -11:
-        devolver "Espejos · suelo pulido, espejo de pared, cromo y oro"
-    si x < -9 y z < 4:
-        devolver "Caja de Cornell · la luz rebota y tiñe de rojo y verde"
-    si x < -9:
-        devolver "Rugosidad y metal · de pulido (izquierda) a mate (derecha)"
-    si x > 9 y z < 0:
-        devolver "Sala oscura · solo entra el sol por la ventana"
-    si x > 9:
-        devolver "Neón · los materiales que brillan iluminan la sala"
-    devolver "Plaza · luz que gira, antorchas y sombras de personajes"
+    func zona_de(x: decimal, z: decimal) -> texto:
+        si z < -11.0:
+            devolver "Espejos · suelo pulido, espejo de pared, cromo y oro"
+        si x < -9.0 y z < 4.0:
+            devolver "Caja de Cornell · la luz rebota y tiñe de rojo y verde"
+        si x < -9.0:
+            devolver "Rugosidad y metal · de pulido (izquierda) a mate (derecha)"
+        si x > 9.0 y z < 0.0:
+            devolver "Sala oscura · solo entra el sol por la ventana"
+        si x > 9.0:
+            devolver "Neón · los materiales que brillan iluminan la sala"
+        devolver "Plaza · luz que gira, antorchas y sombras de personajes"
 `,
 };
 
@@ -801,14 +817,14 @@ async function plantillaPruebasLuz(nombre) {
     N('Malla3D', 'Cono', { posicion: [0, 0.6, -4], escala: [1, 1.2, 1], malla: 'cono', color: '#E6E2DA', rugosidad: 0.6 }),
     N('Luz3D', 'Luz que gira', { posicion: [0, 1.6, -4], tipo_luz: 'puntual', color: '#9BC8FF', intensidad: 4, alcance: 10, sombras: true }, [
       N('Malla3D', 'Bombilla', { escala: [0.18, 0.18, 0.18], malla: 'esfera', material: M.bombilla, sombras: false, colision: 'ninguna' }),
-    ], { script: 'scripts/orbita.agl' }),
+    ], { script: 'scripts/orbita.ara' }),
     N('Personaje3D', 'Maniquí', { posicion: [1.3, 0, -5.2], color: '#E7EDE9' }),
     antorchaLuz('Antorcha', -3, -0.45), antorchaLuz('Antorcha 2', 3, -0.45),
   ]);
 
   const raiz = N('Nodo3D', 'Pruebas de iluminación', {}, [
     N('Entorno', 'Entorno', { cielo: '#3F74C2', horizonte: '#C9DAEA', ambiente: 0.45, niebla: false, iluminacion_global: true, intensidad_gi: 1.1, luz_cielo: 1, intensidad_resplandor: 0.55 }),
-    N('Luz3D', 'Sol', { posicion: [20, 14, -6], rotacion: [-42, 90, 0], tipo_luz: 'sol', intensidad: 3.2, color: '#FFF1DC', sombras: true }, [], { script: 'scripts/ciclo_dia.agl' }),
+    N('Luz3D', 'Sol', { posicion: [20, 14, -6], rotacion: [-42, 90, 0], tipo_luz: 'sol', intensidad: 3.2, color: '#FFF1DC', sombras: true }, [], { script: 'scripts/ciclo_dia.ara' }),
     N('Malla3D', 'Suelo', { posicion: [0, 0, -5], escala: [48, 1, 38], malla: 'plano', material: 'materiales/piedra.mat', color: '#8F887A', colision: 'caja' }),
     cornell, sala, espejos, neon, rejilla, plaza,
     N('Personaje3D', 'Jugador', { posicion: [0, 0, 6], controles: 'tercera_persona' }, [
@@ -816,17 +832,17 @@ async function plantillaPruebasLuz(nombre) {
     ]),
     N('Interfaz', 'Interfaz', {}, [
       N('Etiqueta', 'Título', { posicion: [24, 22], texto: 'Pruebas de iluminación · Lumbre', tam: 20, color: '#E7EDE9', fondo: true }),
-      N('Etiqueta', 'Zona', { posicion: [24, 62], texto: '', tam: 15, color: '#F2C46D', fondo: true }, [], { script: 'scripts/zona.agl' }),
+      N('Etiqueta', 'Zona', { posicion: [24, 62], texto: '', tam: 15, color: '#F2C46D', fondo: true }, [], { script: 'scripts/zona.ara' }),
       N('Etiqueta', 'Estado', { posicion: [24, 90], texto: 'Día · pulsa E para la noche', tam: 14, color: '#E7EDE9', fondo: true }),
       N('Etiqueta', 'Ayuda', { posicion: [640, 684], texto: 'WASD moverte · clic y ratón para mirar · rueda acercar · Espacio saltar · Mayús correr · V vista · E día/noche · F10 calidad', tam: 14, color: '#E7EDE9', alineacion: 'centro', fondo: true }),
     ]),
   ]);
   Object.assign(archivos, {
     'escenas/pruebas_luz.fscn': escenaVacia('3D', raiz),
-    'scripts/ciclo_dia.agl': S_LUZ.ciclo,
-    'scripts/orbita.agl': S_LUZ.orbita,
-    'scripts/zona.agl': S_LUZ.zona,
-    'scripts/antorcha.agl': S.antorcha,
+    'scripts/ciclo_dia.ara': S_LUZ.ciclo,
+    'scripts/orbita.ara': S_LUZ.orbita,
+    'scripts/zona.ara': S_LUZ.zona,
+    'scripts/antorcha.ara': S.antorcha,
   });
   const datos = datosProyecto(nombre, '3D');
   datos.escena_principal = 'escenas/pruebas_luz.fscn';
@@ -874,7 +890,7 @@ async function plantillaCurso(nombre) {
     N('Camara2D', 'Cámara', { posicion: [640, 360], suavizado: 0.1, seguir: '' }),
   ]);
   archivos['escenas/nivel.fscn'] = escenaVacia('2D', raiz);
-  archivos['scripts/moneda.agl'] = S.moneda;
+  archivos['scripts/moneda.ara'] = S.moneda;
   const datos = datosProyecto(nombre, '2D');
   datos.escena_principal = 'escenas/nivel.fscn';
   datos.modo_editor = 'sencillo';

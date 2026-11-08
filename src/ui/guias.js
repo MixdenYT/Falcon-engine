@@ -4,7 +4,7 @@ export const GUIAS = [
     id: 'primeros-pasos', icono: 'libro', titulo: 'Primeros pasos',
     resumen: 'Crea un proyecto, coloca a tu personaje y pruébalo en segundos.',
     html: `
-<p>Falcon Engine se organiza en cinco modos que tienes siempre arriba: <b>2D</b>, <b>3D</b>, <b>Blueprints</b>, <b>Águila</b> y <b>Recursos</b>.</p>
+<p>Falcon Engine se organiza en cinco modos que tienes siempre arriba: <b>2D</b>, <b>3D</b>, <b>Blueprints</b>, <b>Ara</b> y <b>Recursos</b>.</p>
 <h3>1. Crea una escena y añade tu primer personaje</h3>
 <p>En el panel <b>Escena</b> pulsa <b>+</b> y elige <i>Personaje2D</i>. Dentro de él añade un <i>Sprite</i> (su dibujo) y una <i>Colisión</i> (la forma con la que choca).</p>
 <h3>2. Dale movimiento con un Blueprint, sin escribir código</h3>
@@ -20,13 +20,13 @@ export const GUIAS = [
 </table>`,
   },
   {
-    id: 'aguila', icono: 'codigo', titulo: 'El lenguaje Águila',
-    resumen: 'Programación en español, con bloques por sangría como Python.',
+    id: 'ara', icono: 'codigo', titulo: 'El lenguaje Ara',
+    resumen: 'Programación en español, con bloques por sangría como Python, tipos y compilado a WebAssembly.',
     html: `
-<p>Águila es un lenguaje pensado para aprender. Las órdenes que dependen de otra van debajo, con 4 espacios de sangría, y las líneas que abren un bloque terminan en <code>:</code>.</p>
+<p>Ara es un lenguaje en español parecido a Python. Las órdenes que dependen de otra van debajo, con 4 espacios de sangría, y las líneas que abren un bloque terminan en <code>:</code>. Cada script es una <b>clase</b> que da comportamiento a un nodo.</p>
 <pre>clase Jugador extiende Personaje2D:
-    exportar variable velocidad = 220
-    variable monedas = 0
+    exportar velocidad = 220.0
+    monedas = 0
 
     cuando se_actualiza(delta):
         mover(eje("izquierda", "derecha") * velocidad)
@@ -35,32 +35,31 @@ export const GUIAS = [
 
     cuando toca(otro):
         si otro.es("Moneda"):
-            monedas = monedas + 1
+            monedas += 1
             otro.eliminar()</pre>
+<h3>Tipos</h3>
+<p>Ara comprueba los tipos antes de jugar, así muchos fallos salen en el editor y no a mitad de partida. <code>3</code> es un entero, <code>3.0</code> un decimal, <code>"hola"</code> un texto y <code>verdadero</code> un booleano. Se convierten con <code>entero(x)</code>, <code>decimal(x)</code> y <code>texto(x)</code>, y los textos pueden llevar valores dentro: <code>"Monedas: {monedas}"</code>.</p>
 <h3>Eventos</h3>
-<p><code>cuando empieza()</code>, <code>cuando se_actualiza(delta)</code>, <code>cuando toca(otro)</code>, <code>cuando se_pulsa("saltar")</code>, <code>cuando recibe("señal")</code>, <code>cuando hace_clic()</code>, <code>cuando termina()</code>.</p>
+<p><code>cuando empieza()</code>, <code>cuando se_actualiza(delta)</code>, <code>cuando toca(otro)</code>, <code>cuando se_pulsa("saltar")</code>, <code>cuando recibe("señal", datos)</code>, <code>cuando hace_clic()</code>, <code>cuando termina()</code>.</p>
 <h3>Esperar sin parar el juego</h3>
 <pre>cuando empieza():
-    mostrar("Preparados…")
-    esperar(1)
-    mostrar("¡Ya!")</pre>
-<h3>Listas, diccionarios y clases</h3>
-<pre>variable inventario = ["espada", "llave"]
-inventario.añadir("poción")
-para cada cosa en inventario:
-    mostrar(cosa)
+    imprimir("Preparados…")
+    esperar(1.0)
+    imprimir("¡Ya!")</pre>
+<h3>Funciones y otros nodos</h3>
+<pre>func curar(cantidad: entero):
+    vida = minimo(vida + cantidad, 100)
 
-clase Punto:
-    variable x = 0
-    variable y = 0
-    función iniciar(a, b):
-        x = a
-        y = b</pre>
-<p>Si te equivocas, el editor te dice qué pasa en español y muchas veces puede arreglarlo solo con el botón <b>Arreglar</b>.</p>`,
+cuando toca(otro):
+    si otro.es("Enemigo"):
+        otro.llamar("recibir_dano", 10.0)
+        imprimir(otro.leer_numero("vida"))</pre>
+<p>Lo del propio nodo (<code>mover</code>, <code>x</code>, <code>saltar</code>…) se usa sin nada delante; la coordenada <code>y</code> se escribe <code>yo.y</code>, porque <code>y</code> también es el «y» de las condiciones. Un nodo que no existe se reconoce con <code>.existe()</code>.</p>
+<p>Si te equivocas, el editor te dice qué pasa en español, con la línea y la columna.</p>`,
   },
   {
     id: 'blueprints', icono: 'blueprint', titulo: 'Blueprints paso a paso',
-    resumen: 'Bloques que se unen con cables y se convierten en Águila.',
+    resumen: 'Bloques que se unen con cables y se convierten en Ara.',
     html: `
 <p>Un Blueprint es un grafo de bloques. Los cables blancos (<b>ejecución</b>) marcan el orden; los de color llevan <b>datos</b>:</p>
 <table>
@@ -77,7 +76,7 @@ clase Punto:
 <tr><td>Duplicar</td><td>Ctrl + D</td></tr>
 <tr><td>Comentario</td><td>C</td></tr>
 </table>
-<p>Pulsa <b>Ver código</b> para ver el Águila que genera. Es de solo lectura: si quieres retocarlo, copia el código a un script <code>.agl</code>.</p>`,
+<p>Pulsa <b>Ver código</b> para ver el Ara que genera. Es de solo lectura: si quieres retocarlo, copia el código a un script <code>.ara</code> (y cambia el nombre de la clase).</p>`,
   },
   {
     id: 'atajos', icono: 'boton', titulo: 'Atajos de teclado',

@@ -1,0 +1,23 @@
+# jugador.agl · lógica del jugador escrita en Águila
+# (el Jugador usa ahora jugador.bp; puedes cambiarlo en el Inspector)
+clase Jugador extiende Personaje2D:
+
+    exportar variable velocidad = 220
+    exportar variable altura_salto = 420
+    variable monedas = 0
+
+    cuando empieza():
+        mostrar("¡Hola, aventurero!")
+
+    cuando se_actualiza(delta):
+        variable direccion = eje("izquierda", "derecha")
+        mover(direccion * velocidad)
+
+        si se_pulsa("saltar") y en_el_suelo():
+            saltar(altura_salto)
+
+    cuando toca(otro):
+        si otro.es("Moneda"):
+            monedas = monedas + 1
+            si monedas >= 10:
+                ganar_partida()

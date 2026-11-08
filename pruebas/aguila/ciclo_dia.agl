@@ -1,0 +1,23 @@
+# ciclo_dia.agl · pulsa E para pasar del día a la noche (y al revés)
+variable dia = 1
+variable objetivo = 1
+
+cuando se_pulsa("accion"):
+    objetivo = 1 - objetivo
+
+cuando se_actualiza(delta):
+    dia = interpolar(dia, objetivo, limitar(delta * 2.2, 0, 1))
+    si abs(dia - objetivo) < 0.002:
+        dia = objetivo
+    yo.rotacion_x = interpolar(-7, -42, dia)
+    yo.intensidad = interpolar(0.3, 3.2, dia)
+    yo.color = mezclar_color("#7F9CFF", "#FFF1DC", dia)
+    variable ent = nodo("Entorno")
+    ent.cielo = mezclar_color("#02040A", "#3F74C2", dia)
+    ent.horizonte = mezclar_color("#0A1222", "#C9DAEA", dia)
+    ent.ambiente = interpolar(0.05, 0.45, dia)
+    variable estado = nodo("Estado")
+    si objetivo > 0.5:
+        estado.texto = "Día · pulsa E para la noche"
+    sino:
+        estado.texto = "Noche · pulsa E para el día"

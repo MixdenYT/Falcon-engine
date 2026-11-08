@@ -1,0 +1,3 @@
+# contador.agl · muestra las monedas recogidas
+cuando se_actualiza(delta):
+    texto = texto(puntos)

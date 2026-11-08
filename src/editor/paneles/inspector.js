@@ -6,6 +6,7 @@ import { tipo as tipoNodo, COLORES_FAMILIA, recorrer, buscarNodo } from '../../m
 import { contarNodos } from '../../motor/blueprints.js';
 import { tipoRecurso, nombreBase, carpetaDe, sinExtension } from '../../motor/proyecto.js';
 import { EVENTOS, analizarCodigo } from '../../aguila/index.js';
+import { esAra, simbolosAra } from '../ara.js';
 import { PRIMITIVAS } from '../../motor/escena3d.js';
 import { icono } from '../../ui/iconos.js';
 import { el, esc, $, $$, menu, menuBajo, dialogo, pedirTexto, interruptor, pintarDeslizador, avisar } from '../../ui/componentes.js';
@@ -218,7 +219,7 @@ export function crearInspector(contenedor) {
       s.append(t);
     }
     if (n.script) {
-      const t = el(`<div class="tarjeta-logica aguila"><div class="fila-flex">${icono('codigo', '', 16)}<b>${esc(nombreBase(n.script))}</b><span class="cuenta">Águila</span><button class="btn-icono peq" data-a="quitar" data-ayuda="Quitar el script">${icono('cerrar', '', 13)}</button></div><div class="exportadas"></div><button class="btn secundario ancho" data-a="abrir">Abrir en Águila</button></div>`);
+      const t = el(`<div class="tarjeta-logica aguila"><div class="fila-flex">${icono('codigo', '', 16)}<b>${esc(nombreBase(n.script))}</b><span class="cuenta">${esAra(n.script) ? 'Ara' : 'Águila'}</span><button class="btn-icono peq" data-a="quitar" data-ayuda="Quitar el script">${icono('cerrar', '', 13)}</button></div><div class="exportadas"></div><button class="btn secundario ancho" data-a="abrir">Abrir el script</button></div>`);
       t.querySelector('[data-a=abrir]').onclick = () => abrirDocumento(n.script);
       t.querySelector('[data-a=quitar]').onclick = () => cambiarNodo(doc, n.id, x => { x.script = null; });
       pintarExportadas(doc, n, n.script, t.querySelector('.exportadas'));
@@ -240,7 +241,7 @@ export function crearInspector(contenedor) {
       s.append(b);
     }
     if (!n.script) {
-      const b = el(`<button class="anadir-logica aguila" data-accion="escribir-aguila">${icono('codigo', '', 15)}Escribir en Águila</button>`);
+      const b = el(`<button class="anadir-logica aguila" data-accion="escribir-aguila">${icono('codigo', '', 15)}Escribir en Ara</button>`);
       b.onclick = () => {
         const existentes = archivosDeTipo('script').filter(a => !a.rel.startsWith('generado/'));
         const crear = async () => { const r = await nuevoScript(n); if (r) { cambiarNodo(doc, n.id, x => { x.script = r; }); abrirDocumento(r); } };
@@ -263,7 +264,7 @@ export function crearInspector(contenedor) {
       } else {
         const d = est.docs.find(x => x.rel === rel);
         const texto = d ? d.datos : await est.proyecto.leer(rel);
-        const a = analizarCodigo(texto);
+        const a = esAra(rel) ? simbolosAra(texto) : analizarCodigo(texto);
         vars = a.simbolos.variables.filter(v => v.exportar).map(v => ({ nombre: v.nombre, tipo: v.tipo, valor: v.valor }));
       }
     } catch { return; }

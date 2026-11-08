@@ -315,7 +315,7 @@ const ILUSTRACION_PLANTILLA = {
 
 function vistaPlantillas(c) {
   c.innerHTML = `
-    <header class="cabecera"><div><h1>Plantillas</h1><p>Proyectos completos para empezar: con escenas, Blueprints, scripts en Águila, sprites y sonidos.</p></div></header>
+    <header class="cabecera"><div><h1>Plantillas</h1><p>Proyectos completos para empezar: con escenas, Blueprints, scripts en Ara, sprites y sonidos.</p></div></header>
     <section class="plantillas">${PLANTILLAS.map(p => `
       <article class="plantilla">
         <div class="miniatura">${ILUSTRACION_PLANTILLA[p.id]?.() || ilustracion(p.tipo)}</div>
@@ -334,7 +334,7 @@ function vistaAprender(c) {
     <section class="curso">
       <div style="flex:1">
         <h3>Curso · Mi primer juego</h3>
-        <p>${LECCIONES.length} lecciones cortas en el modo Sencillo: mueves al personaje, le haces saltar con un Blueprint, recoges monedas, escribes tu primera línea de Águila y exportas el juego.</p>
+        <p>${LECCIONES.length} lecciones cortas en el modo Sencillo: mueves al personaje, le haces saltar con un Blueprint, recoges monedas, escribes tu primera línea de Ara y exportas el juego.</p>
         <div class="lecciones-mini">${LECCIONES.map((l, i) => `<span>${i + 1}. ${esc(l.titulo)}</span>`).join('')}</div>
       </div>
       <button class="btn principal grande" data-a="curso">${icono('play', '', 16)}Empezar el curso</button>

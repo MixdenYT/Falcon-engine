@@ -1,0 +1,6 @@
+# moneda.agl · se recoge al tocarla
+cuando toca(otro):
+    si otro.es("Jugador"):
+        ganar_puntos(1)
+        sonar("moneda.wav", 0.7)
+        yo.eliminar()

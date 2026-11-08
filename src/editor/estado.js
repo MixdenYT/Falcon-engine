@@ -1,6 +1,6 @@
 // Estado compartido del editor: proyecto, documentos abiertos, selección y eventos.
 import { normalizarEscena, extension, nombreBase, sinExtension, tipoRecurso } from '../motor/proyecto.js';
-import { compilarBlueprint } from '../motor/blueprints.js';
+import { compilarBlueprint, generadoDe } from '../motor/blueprints.js';
 import { buscarNodo, recorrer } from '../motor/tipos.js';
 
 // ---------- Bus de eventos ----------
@@ -38,7 +38,7 @@ export const est = {
 
 export function tipoDocumento(rel) {
   const e = extension(rel);
-  return { fscn: 'escena', bp: 'blueprint', agl: 'script', mat: 'material', malla: 'malla' }[e] || null;
+  return { fscn: 'escena', bp: 'blueprint', agl: 'script', ara: 'script', mat: 'material', malla: 'malla' }[e] || null;
 }
 
 // ---------- Documentos ----------
@@ -122,8 +122,8 @@ export class Documento {
     if (this.tipo === 'script') await p.escribir(this.rel, this.datos);
     else await p.escribirJSON(this.rel, this.datos);
     if (this.tipo === 'blueprint') {
-      const r = compilarBlueprint(this.datos, this.nombre);
-      const destino = 'generado/' + sinExtension(this.rel) + '.agl';
+      const r = compilarBlueprint(this.datos, this.rel);
+      const destino = generadoDe(this.rel);
       await p.escribir(destino, r.codigo);
       this.ultimaCompilacion = r;
       bus.emit('bp:compilado', { doc: this, resultado: r });

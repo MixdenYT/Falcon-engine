@@ -7,6 +7,7 @@ const fs = require('node:fs');
 const fsp = require('node:fs/promises');
 const zlib = require('node:zlib');
 const os = require('node:os');
+const { pathToFileURL } = require('node:url');
 
 const PLATAFORMAS = {
   'win32-x64': { platform: 'win32', arch: 'x64', nombre: 'Windows x64' },
@@ -16,7 +17,9 @@ const PLATAFORMAS = {
 
 // Archivos de la aplicación que necesita el reproductor.
 const ARCHIVOS_APP = [
-  'src/package.json', 'src/aguila', 'src/motor', 'src/juego', 'src/ui/base.css', 'src/ui/iconos.js', 'src/ui/componentes.js',
+  'src/package.json', 'src/aguila', 'src/motor', 'src/juego',
+  // Ara: los scripts van ya compilados (.falcon/ara.wasm), así que el juego no lleva el compilador (ara_web.wasm).
+  'src/ara/puente.js', 'src/ara/ara.mjs', 'src/ara/compilador.mjs', 'src/ara/motor.ara', 'src/ara/ara_runtime.wasm', 'src/ui/base.css', 'src/ui/iconos.js', 'src/ui/componentes.js',
   'src/principal/package.json', 'src/principal/jugador.js', 'src/principal/preload.js',
   'recursos/icono.png',
   'node_modules/three/build/three.module.js', 'node_modules/three/build/three.core.js', 'node_modules/three/examples/jsm',
@@ -26,6 +29,46 @@ const ARCHIVOS_APP = [
   'node_modules/three-bvh-csg/build/index.module.js', 'node_modules/three-mesh-bvh/build/index.module.js',
 ];
 const FUENTES = ['manrope', 'jetbrains-mono'];
+
+// Carpetas del proyecto que no van en el juego exportado.
+const OMITIR_PROYECTO = new Set(['capturas', 'exportado', 'exportaciones', '.git']);
+
+/**
+ * Compila juntos los scripts .ara y los Blueprints del proyecto (una vez para todas las plataformas). Devuelve
+ * `{ modulo, descripcion }` (ver `compilarParaExportar` en src/ara/puente.js) o null si no hay ninguno.
+ * Si alguno tiene errores, la exportación se para: el juego no podría ejecutarse.
+ */
+async function compilarAra(proyectoDir, raizApp, destino = null) {
+  const textos = new Map(), blueprints = new Map();
+  async function rec(dir, rel) {
+    for (const d of await fsp.readdir(dir, { withFileTypes: true })) {
+      if (d.name.startsWith('.')) continue; // el juego tampoco ve lo que empieza por punto
+      const r = rel ? rel + '/' + d.name : d.name;
+      if (!rel && (OMITIR_PROYECTO.has(d.name) || d.name === 'generado')) continue;
+      if (destino && path.resolve(dir, d.name) === path.resolve(destino)) continue; // juegos ya exportados dentro
+      if (d.isDirectory()) await rec(path.join(dir, d.name), r);
+      else if (/\.ara$/i.test(d.name)) textos.set(r, await fsp.readFile(path.join(dir, d.name), 'utf8'));
+      else if (/\.bp$/i.test(d.name)) blueprints.set(r, await fsp.readFile(path.join(dir, d.name), 'utf8'));
+    }
+  }
+  await rec(proyectoDir, '');
+  if (!textos.size && !blueprints.size) return null;
+  const { compilarParaExportar } = await import(pathToFileURL(path.join(raizApp, 'src', 'ara', 'puente.js')).href);
+  // Cada Blueprint es una clase de Ara (como en el juego, ver compilarAra en src/motor/mundo.js).
+  const { compilarBlueprint, generadoDe } = await import(pathToFileURL(path.join(raizApp, 'src', 'motor', 'blueprints.js')).href);
+  for (const [rel, texto] of blueprints) {
+    let r;
+    try { r = compilarBlueprint(JSON.parse(texto), rel); } catch (e) { throw new Error(`El Blueprint ${rel} no se puede leer: ${e.message}`); }
+    if (r.errores.length) throw new Error(`El Blueprint ${rel} tiene un error: ${r.errores[0].mensaje} Corrígelo antes de exportar.`);
+    textos.set(generadoDe(rel), r.codigo);
+  }
+  try {
+    return await compilarParaExportar(textos);
+  } catch (e) {
+    const x = e.errores && e.errores[0];
+    throw new Error(x ? `El script ${x.archivo} tiene un error en la línea ${x.linea}: ${x.mensaje}. Corrígelo antes de exportar.` : `No se pudieron compilar los scripts de Ara: ${e.message}`);
+  }
+}
 
 function nombreSeguro(s) { return (s || 'Juego').replace(/[<>:"/\\|?*\x00-\x1f]+/g, '').trim() || 'Juego'; }
 function nombreBinario(s) { return nombreSeguro(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'juego'; }
@@ -135,6 +178,8 @@ async function exportarSinAsar(op) {
   const version = op.version || datos.exportacion?.version || '1.0.0';
   const salidas = [];
   await fsp.mkdir(op.destino, { recursive: true });
+  op.progreso({ plataforma: op.plataformas[0], fase: 'ara', texto: 'Compilando los scripts de Ara…', porcentaje: 1 });
+  const ara = await compilarAra(proyectoDir, op.raizApp, op.destino);
 
   for (const clave of op.plataformas) {
     const plat = PLATAFORMAS[clave];
@@ -180,10 +225,9 @@ async function exportarSinAsar(op) {
 
     // Archivos del proyecto.
     op.progreso({ plataforma: clave, fase: 'proyecto', texto: 'Copiando el proyecto…', porcentaje: 70 });
-    const omitir = new Set(['capturas', 'exportado', 'exportaciones', '.git']);
     await copiar(proyectoDir, path.join(app, 'juego'), (s, n) => {
       const rel = path.relative(proyectoDir, s).split(path.sep).join('/');
-      if (omitir.has(rel)) return false;
+      if (OMITIR_PROYECTO.has(rel)) return false;
       if (rel.startsWith('.falcon/') && rel !== '.falcon/importacion.json') return false;
       if (n.endsWith('.tmp-falcon')) return false;
       if (path.resolve(s) === path.resolve(op.destino)) return false;
@@ -191,6 +235,11 @@ async function exportarSinAsar(op) {
     });
     const pj = path.join(app, 'juego', 'proyecto.falcon');
     if (!fs.existsSync(pj) && fs.existsSync(path.join(app, 'juego', 'proyecto.talon'))) await fsp.copyFile(path.join(app, 'juego', 'proyecto.talon'), pj);
+    if (ara) {
+      await fsp.mkdir(path.join(app, 'juego', '.falcon'), { recursive: true });
+      await fsp.writeFile(path.join(app, 'juego', '.falcon', 'ara.wasm'), ara.modulo);
+      await fsp.writeFile(path.join(app, 'juego', '.falcon', 'ara.json'), JSON.stringify(ara.descripcion));
+    }
     await fsp.writeFile(path.join(app, 'juego', '.exportado.json'), JSON.stringify({ pantalla_completa: !!op.pantallaCompleta, fecha: Date.now() }));
 
     if (plat.platform === 'win32') {
@@ -311,4 +360,4 @@ async function crearTarGz(dir, salida, raizEnTar, modoDe, alProgreso, enlaces = 
   await new Promise((ok) => { out.on('finish', ok); gz.end(); });
 }
 
-module.exports = { exportarJuego, PLATAFORMAS, crearTarGz };
+module.exports = { exportarJuego, PLATAFORMAS, crearTarGz, compilarAra };

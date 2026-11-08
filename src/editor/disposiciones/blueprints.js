@@ -1,10 +1,10 @@
-// Modo Blueprints: grafo de bloques que se compila a Águila.
+// Modo Blueprints: grafo de bloques que se compila a Ara.
 import { est, bus, abrirDocumento, archivosDeTipo, log, anotarEvento } from '../estado.js';
 import { guardar, probar, nuevoBlueprint } from '../acciones.js';
 import { crearPestanas } from '../paneles/documentos.js';
 import { crearInferior } from '../paneles/inferior.js';
 import { menuNuevo } from './escena.js';
-import { NODOS, CATEGORIAS, TIPOS_DATO, pinesDe, tituloNodo, compatibles, compilarBlueprint, idNodoBp } from '../../motor/blueprints.js';
+import { NODOS, CATEGORIAS, TIPOS_DATO, pinesDe, tituloNodo, compatibles, compilarBlueprint, idNodoBp, generadoDe } from '../../motor/blueprints.js';
 import { crearGrafo } from '../../ui/grafo.js';
 import { crearEditorCodigo } from '../../ui/editor-codigo.js';
 import { icono } from '../../ui/iconos.js';
@@ -40,7 +40,7 @@ export async function crearDisposicionBlueprints(contenedor) {
   doc.vista.vistas ||= {};
   let seleccion = [];
   let varSel = null;
-  let resultado = compilarBlueprint(bp(), doc.nombre);
+  let resultado = compilarBlueprint(bp(), doc.rel);
   anotarEvento('blueprint_abierto');
 
   // ---------- Columna izquierda ----------
@@ -252,14 +252,14 @@ export async function crearDisposicionBlueprints(contenedor) {
     });
   }
 
-  // ---------- Panel inferior con el Águila generado ----------
+  // ---------- Panel inferior con el Ara generado ----------
   const inferior = crearInferior(centro, {
     pestanas: ['salida', 'depurador', 'generado'],
     inicial: est._pestanaBp || 'generado',
     extra: {
       generado: {
-        titulo: 'Águila · generado',
-        derecha: (c) => c.append(el(`<span class="info-derecha">generado/${esc(doc.nombre.replace(/\.bp$/, ''))}.agl · solo lectura</span>`)),
+        titulo: 'Ara · generado',
+        derecha: (c) => c.append(el(`<span class="info-derecha">${esc(generadoDe(doc.rel))} · solo lectura</span>`)),
         pintar: (c) => {
           editorGen = crearEditorCodigo(c, { texto: resultado.codigo, soloLectura: true, tamFuente: 13 });
           resaltarCodigo();
@@ -306,7 +306,7 @@ export async function crearDisposicionBlueprints(contenedor) {
     const def = defNodo(n);
     if (pestanaDer === 'ayuda') {
       c.innerHTML = `<div class="cab-nodo-bp"><div class="caja-ico">${icono(ICONO_CAT[d.cat] || 'blueprint', '', 18)}</div><div><b>${esc(tituloNodo(n))}</b><span>${esc(d.cat || '')}</span></div></div><p>${esc(d.ayuda || '')}</p>
-        ${resultado.lineas[n.id] ? `<div class="titulo-seccion" style="margin-bottom:8px">En Águila</div><pre style="margin:0;padding:12px;border-radius:10px;background:var(--fondo);border:1px solid var(--borde);font:13px/1.7 var(--mono);white-space:pre-wrap">${esc(resultado.codigo.split('\n')[resultado.lineas[n.id] - 1].trim())}</pre>` : ''}`;
+        ${resultado.lineas[n.id] ? `<div class="titulo-seccion" style="margin-bottom:8px">En Ara</div><pre style="margin:0;padding:12px;border-radius:10px;background:var(--fondo);border:1px solid var(--borde);font:13px/1.7 var(--mono);white-space:pre-wrap">${esc(resultado.codigo.split('\n')[resultado.lineas[n.id] - 1].trim())}</pre>` : ''}`;
       return;
     }
     const conexiones = g.conexiones;
@@ -423,7 +423,7 @@ export async function crearDisposicionBlueprints(contenedor) {
     const e = $('.estado-compilado', panelGrafo);
     if (resultado.errores.length) { e.className = 'estado-compilado mal'; e.innerHTML = `${icono('alerta', '', 14)}${resultado.errores.length} error${resultado.errores.length > 1 ? 'es' : ''}`; }
     else if (doc.sucio) { e.className = 'estado-compilado pendiente'; e.innerHTML = `${icono('info', '', 14)}Sin compilar`; }
-    else { e.className = 'estado-compilado'; e.innerHTML = `${icono('check', '', 14)}Compilado a Águila`; }
+    else { e.className = 'estado-compilado'; e.innerHTML = `${icono('check', '', 14)}Compilado a Ara`; }
   }
   async function compilar() { await guardar(doc); pintarEstado(); }
   async function compilarYProbar() { await guardar(doc); await probar(); }
@@ -431,7 +431,7 @@ export async function crearDisposicionBlueprints(contenedor) {
   $('[data-a=codigo]', panelGrafo).onclick = () => { est._pestanaBp = 'generado'; inferior.mostrar('generado'); };
 
   const recompilar = () => {
-    resultado = compilarBlueprint(bp(), doc.nombre);
+    resultado = compilarBlueprint(bp(), doc.rel);
     if (editorGen) { editorGen.fijar(resultado.codigo); resaltarCodigo(); }
     pintarEstado();
   };

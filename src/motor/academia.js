@@ -1,5 +1,5 @@
 // Un laboratorio ejecutable por cada bloque del catálogo, incluida la entrada de función.
-import { NODOS, CATEGORIAS, blueprintVacio, compilarBlueprint, pinesDe } from './blueprints.js';
+import { NODOS, CATEGORIAS, blueprintVacio, compilarBlueprint, generadoDe, pinesDe } from './blueprints.js';
 import { crearNodo } from './tipos.js';
 import { datosProyecto, escenaVacia } from './proyecto.js';
 import { sintetizar } from './generadores.js';
@@ -124,7 +124,7 @@ export function ejemploBloque(id) {
   const bp = blueprintVacio(id, 'Personaje2D');
   bp.variables = [{ nombre: 'contador', tipo: 'entero', valor: 3, exportar: true }];
   const g = grafo(bp);
-  g.comentario(`${d.titulo}: ${d.ayuda}\nPRUEBA: ${CASOS[id][0]}\nRETO: ${CASOS[id][1]}\nBlanco = ejecución; colores = datos. Abre generado/${id}.agl para ver Águila.`);
+  g.comentario(`${d.titulo}: ${d.ayuda}\nPRUEBA: ${CASOS[id][0]}\nRETO: ${CASOS[id][1]}\nBlanco = ejecución; colores = datos. Abre generado/blueprints/${id}.ara para ver el Ara generado.`);
   const informar = (mensaje) => g.n('tx_fijar', { nodo: 'Resultado', texto: mensaje });
   const valores = {
     in_pulsada: { accion: 'accion' }, in_mantenida: { accion: 'correr' }, mv_mover: { x: 180 },
@@ -212,14 +212,23 @@ export function plantillaAcademia(nombre) {
   const datos = datosProyecto(nombre, '2D'); datos.gravedad = 1200;
   datos.acciones.indice = ['KeyH']; datos.acciones.repetir = ['KeyR']; datos.acciones.silencio = ['KeyQ'];
   datos.escena_principal = 'escenas/academia.fscn';
-  const nav = '# Navegación independiente del Blueprint de demostración.\ncuando se_pulsa("indice"):\n    cambiar_escena("escenas/academia.fscn")\ncuando se_pulsa("repetir"):\n    reiniciar_nivel()\ncuando se_pulsa("silencio"):\n    parar_musica()\n';
-  archivos['scripts/navegacion.agl'] = nav;
+  archivos['scripts/navegacion.ara'] = `# Navegación independiente del Blueprint de demostración.
+clase Navegacion extiende Nodo2D:
+    cuando se_pulsa("indice"):
+        cambiar_escena("escenas/academia.fscn")
+
+    cuando se_pulsa("repetir"):
+        reiniciar_nivel()
+
+    cuando se_pulsa("silencio"):
+        parar_musica()
+`;
   const receptor = blueprintVacio('receptor', 'Nodo2D'), rg = grafo(receptor);
   const re = rg.n('ev_recibir', { senal: 'abrir' }), rm = rg.n('tx_fijar', { nodo: 'Resultado', texto: 'Señal abrir recibida' }); rg.c(re, 'salida', rm);
-  archivos['blueprints/receptor.bp'] = receptor;
-  archivos['scripts/emisor.agl'] = 'cuando se_pulsa("accion"):\n    emitir("abrir")\n';
-  archivos['scripts/musica.agl'] = 'cuando empieza():\n    musica("tema.wav", 0.3)\n';
-  archivos['scripts/puntos.agl'] = 'cuando se_actualiza(delta):\n    texto = "Puntos: " + texto(puntos)\n';
+  archivos['blueprints/receptor.bp'] = receptor; archivos[generadoDe('blueprints/receptor.bp')] = compilarBlueprint(receptor, 'blueprints/receptor.bp').codigo;
+  archivos['scripts/emisor.ara'] = 'clase Emisor extiende Nodo2D:\n    cuando se_pulsa("accion"):\n        emitir("abrir")\n';
+  archivos['scripts/musica.ara'] = 'clase Musica extiende Nodo2D:\n    cuando empieza():\n        musica("tema.wav", 0.3)\n';
+  archivos['scripts/puntos.ara'] = 'clase Puntos extiende Etiqueta:\n    cuando se_actualiza(delta):\n        yo.texto = "Puntos: {puntos()}"\n';
   const indice = [label('Titulo', 'ACADEMIA / BLUEPRINTS', 44, 24, 30), label('Intro', `${ids.length} laboratorios · todos los bloques de esta versión · selecciona una estación`, 44, 68, 17)];
   CATEGORIAS.forEach((cat, col) => {
     const x = 35 + (col % 3) * 416, y = 112 + Math.floor(col / 3) * 190;
@@ -229,22 +238,22 @@ export function plantillaAcademia(nombre) {
     });
   });
   archivos['escenas/academia.fscn'] = escenaVacia('2D', N('Nodo2D', 'Academia', {}, [N('Interfaz', 'Índice', {}, indice)]));
-  const manual = ['# Academia completa de Blueprints — Falcon Engine 1.2.0', '', 'Crea esta plantilla en el gestor, abre la escena principal y pulsa Jugar (F5). El índice da acceso directo a todos los laboratorios. H: índice; R: repetir; E: ejecutar; Q: parar música. Para victoria/derrota usa la opción de volver a jugar del reproductor.', '', 'Cada escena contiene el Blueprint editable en el nodo Laboratorio (o Baliza, Temporizador o botón para sus eventos). En el explorador abre blueprints/<id>.bp. Los comentarios explican el experimento. generado/<id>.agl permite comparar con Águila; edita el .bp, no el archivo generado.', '', '## Conceptos', '', 'Las flechas blancas marcan orden; los cables de color llevan datos y se evalúan cuando una acción los necesita. Los valores sin cable son constantes. Decimal y entero son compatibles. Variables pertenecen a cada instancia; exportadas se pueden ajustar en el Inspector. Una función tiene su propio grafo y parámetros; Devolver termina su ejecución. Los eventos de contacto necesitan colisión y un cuerpo que entre/salga. Mostrar escribe en Salida; Cambiar texto escribe en la interfaz.', '', 'Movimiento usa píxeles/segundo en 2D. Los bloques Mover, Posición y Colocar en de este catálogo tienen dos ejes: no constituyen una API completa de shooter 3D. La plantilla CQB usa los bloques generales Leer propiedad, Cambiar propiedad, Consultar método y Ejecutar método para controlar Z, disparos y visión desde Blueprints que compilan a Águila. Los recursos de audio se generan localmente sin descargas.', '', '## Recetas combinadas', '', 'Movimiento: Al actualizar → Mover; Eje × velocidad → velocidad x. Salto: Acción pulsada Y En suelo → Si → Saltar. Recogible: Al tocar → Es Jugador → Si → Ganar puntos → Eliminar. Puerta: Emitir abrir → Al recibir abrir → Desplazar. Vida: Restar daño → Limitar 0..100 → Fijar vida → Comparar <= 0 → Si → Perder. Después de cada receta, modifica una sola constante y comprueba el efecto.', ''];
+  const manual = ['# Academia completa de Blueprints — Falcon Engine 1.2.0', '', 'Crea esta plantilla en el gestor, abre la escena principal y pulsa Jugar (F5). El índice da acceso directo a todos los laboratorios. H: índice; R: repetir; E: ejecutar; Q: parar música. Para victoria/derrota usa la opción de volver a jugar del reproductor.', '', 'Cada escena contiene el Blueprint editable en el nodo Laboratorio (o Baliza, Temporizador o botón para sus eventos). En el explorador abre blueprints/<id>.bp. Los comentarios explican el experimento. generado/blueprints/<id>.ara muestra el Ara que sale del Blueprint; edita el .bp, no el archivo generado.', '', '## Conceptos', '', 'Las flechas blancas marcan orden; los cables de color llevan datos y se evalúan cuando una acción los necesita. Los valores sin cable son constantes. Decimal y entero son compatibles. Variables pertenecen a cada instancia; exportadas se pueden ajustar en el Inspector. Una función tiene su propio grafo y parámetros; Devolver termina su ejecución. Los eventos de contacto necesitan colisión y un cuerpo que entre/salga. Mostrar escribe en Salida; Cambiar texto escribe en la interfaz.', '', 'Movimiento usa píxeles/segundo en 2D. Los bloques Mover, Posición y Colocar en de este catálogo tienen dos ejes: no constituyen una API completa de shooter 3D. La plantilla CQB usa los bloques generales Leer propiedad, Cambiar propiedad, Consultar método y Ejecutar método para controlar Z, disparos y visión desde Blueprints que compilan a Ara. Los recursos de audio se generan localmente sin descargas.', '', '## Recetas combinadas', '', 'Movimiento: Al actualizar → Mover; Eje × velocidad → velocidad x. Salto: Acción pulsada Y En suelo → Si → Saltar. Recogible: Al tocar → Es Jugador → Si → Ganar puntos → Eliminar. Puerta: Emitir abrir → Al recibir abrir → Desplazar. Vida: Restar daño → Limitar 0..100 → Fijar vida → Comparar <= 0 → Si → Perder. Después de cada receta, modifica una sola constante y comprueba el efecto.', ''];
   ids.forEach((id, i) => {
     const d = NODOS[id], bp = ejemploBloque(id), ruta = `blueprints/${id}.bp`;
-    archivos[ruta] = bp; archivos[`generado/${id}.agl`] = compilarBlueprint(bp, ruta).codigo;
+    archivos[ruta] = bp; archivos[generadoDe(ruta)] = compilarBlueprint(bp, ruta).codigo;
     const esContacto = ['ev_tocar', 'ev_dejar'].includes(id);
     const laboratorio = N('Personaje2D', 'Laboratorio', { posicion: [360, 490], controles: 'plataformas', velocidad: 180 }, [N('Sprite', 'Cuerpo', { ancho: 36, alto: 52, color: '#3DDC84', forma: 'rectangulo' }), N('Colision', 'Colisión', { ancho: 36, alto: 52 })], !esContacto && !['ev_clic', 'ev_termina'].includes(id) ? { blueprint: ruta } : {});
     const baliza = N('Area2D', 'Baliza', { posicion: [600, 490] }, [N('Sprite', 'BalizaVisual', { ancho: 55, alto: 75, color: '#F2B85C', forma: 'rectangulo' }), N('Colision', 'ColisiónBaliza', { ancho: 55, alto: 75 })], { grupos: ['objetivos'], ...(esContacto ? { blueprint: ruta } : {}) });
     const ui = [N('PanelUI', 'PanelLectura', { posicion: [20, 15], ancho: 1240, alto: 315, color: '#10271E' }), label('Título', `${String(i + 1).padStart(2, '0')} / ${ids.length} — ${d.titulo}`, 44, 34, 29), ...textoLineas(d.ayuda, 44, 82, 125), ...textoLineas('PRUEBA: ' + CASOS[id][0], 44, 144, 125), ...textoLineas('RETO: ' + CASOS[id][1], 44, 202, 125), label('Archivo', `${ruta}  |  ${d.cat}`, 44, 274, 15, '#4FD1C5'), label('Resultado', 'Resultado: esperando…', 44, 350, 22), label('Marcador', 'Puntos: 0', 1000, 350, 20)];
-    ui[ui.length - 1].script = 'scripts/puntos.agl';
+    ui[ui.length - 1].script = 'scripts/puntos.ara';
     ui.push(button('Índice / H', 'escenas/academia.fscn', 44, 632), button('Anterior', `escenas/${ids[(i + ids.length - 1) % ids.length]}.fscn`, 292, 632), button('Siguiente', `escenas/${ids[(i + 1) % ids.length]}.fscn`, 540, 632), label('Controles', 'A/D mover · Espacio saltar · E probar · R repetir · Q silencio', 44, 686, 16));
     if (id === 'ev_clic') ui.push(N('Boton', 'BotónLaboratorio', { texto: 'Pulsa para probar', posicion: [900, 490], ancho: 250 }, [], { blueprint: ruta }));
-    const hijos = [N('Camara2D', 'Cámara', { posicion: [640, 360], seguir: '', suavizado: 0 }), laboratorio, baliza, N('Plataforma', 'Suelo', { posicion: [640, 550], ancho: 1280, alto: 30 }), N('Sprite', 'Plantilla', { posicion: [800, 490], ancho: 40, alto: 60, color: '#B39DFF' }, [], { visible: false }), N('Interfaz', 'Interfaz', {}, ui), N('Nodo2D', 'Navegación', {}, [], { script: 'scripts/navegacion.agl' })];
+    const hijos = [N('Camara2D', 'Cámara', { posicion: [640, 360], seguir: '', suavizado: 0 }), laboratorio, baliza, N('Plataforma', 'Suelo', { posicion: [640, 550], ancho: 1280, alto: 30 }), N('Sprite', 'Plantilla', { posicion: [800, 490], ancho: 40, alto: 60, color: '#B39DFF' }, [], { visible: false }), N('Interfaz', 'Interfaz', {}, ui), N('Nodo2D', 'Navegación', {}, [], { script: 'scripts/navegacion.ara' })];
     if (id === 'ev_termina') hijos.push(N('Temporizador', 'Temporizador', { tiempo: 2, repetir: true, al_empezar: true }, [], { blueprint: ruta }));
-    if (id === 'ev_recibir') hijos.push(N('Nodo2D', 'Emisor', {}, [], { script: 'scripts/emisor.agl' }));
+    if (id === 'ev_recibir') hijos.push(N('Nodo2D', 'Emisor', {}, [], { script: 'scripts/emisor.ara' }));
     if (id === 'es_emitir') hijos.push(N('Nodo2D', 'Receptor', {}, [], { blueprint: 'blueprints/receptor.bp' }));
-    if (id === 'au_parar') hijos.push(N('Nodo2D', 'MúsicaInicial', {}, [], { script: 'scripts/musica.agl' }));
+    if (id === 'au_parar') hijos.push(N('Nodo2D', 'MúsicaInicial', {}, [], { script: 'scripts/musica.ara' }));
     archivos[`escenas/${id}.fscn`] = escenaVacia('2D', N('Nodo2D', d.titulo, {}, hijos));
     const pines = pinesDe(Object.values(bp.grafos).flatMap(g => g.nodos).find(n => n.def === id), bp);
     manual.push(`## ${i + 1}. ${d.titulo} (${id})`, '', d.ayuda, '', `- Categoría: ${d.cat}. Archivo: ${ruta}.`, `- Entradas: ${pines.entradas.map(p => `${p.etq || p.n} (${p.t})`).join(', ') || 'ninguna'}.`, `- Salidas: ${pines.salidas.map(p => `${p.etq || p.n} (${p.t})`).join(', ') || 'ninguna'}.`, `- Prueba y resultado: ${CASOS[id][0]}`, `- Ejercicio: ${CASOS[id][1]}`, '');

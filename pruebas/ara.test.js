@@ -2,6 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
 import { Mundo, NodoVivo } from '../src/motor/mundo.js';
 import { TIPOS } from '../src/motor/tipos.js';
 import { FUNCIONES, EVENTOS } from '../src/aguila/biblioteca.js';
@@ -221,7 +222,7 @@ test('al exportar, los scripts de Ara van compilados y el juego los carga sin el
   const { join } = await import('node:path');
   const { createRequire } = await import('node:module');
   const { compilarAra } = createRequire(import.meta.url)('../src/principal/exportar.js');
-  const raizApp = new URL('..', import.meta.url).pathname;
+  const raizApp = fileURLToPath(new URL('..', import.meta.url));
   const dir = await mkdtemp(join(tmpdir(), 'falcon-ara-'));
   try {
     await mkdir(join(dir, 'scripts'), { recursive: true });
@@ -304,7 +305,7 @@ test('al exportar, los Blueprints van compilados en el mismo módulo, y uno con 
   const { createRequire } = await import('node:module');
   const { blueprintVacio } = await import('../src/motor/blueprints.js');
   const { compilarAra } = createRequire(import.meta.url)('../src/principal/exportar.js');
-  const raizApp = new URL('..', import.meta.url).pathname;
+  const raizApp = fileURLToPath(new URL('..', import.meta.url));
   const dir = await mkdtemp(join(tmpdir(), 'falcon-bp-'));
   try {
     await mkdir(join(dir, 'blueprints'), { recursive: true });
@@ -319,5 +320,16 @@ test('al exportar, los Blueprints van compilados en el mismo módulo, y uno con 
     await assert.rejects(compilarAra(dir, raizApp), /El Blueprint blueprints\/puerta\.bp tiene un error: La variable «si»/);
   } finally {
     await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('el gestor, el editor y el juego permiten compilar WebAssembly (Ara) con su política de seguridad', async () => {
+  // Sin 'wasm-unsafe-eval', Electron no deja compilar el compilador ni los scripts de Ara (Node no aplica la
+  // política, así que el resto de pruebas no lo vería; probar-instalado.cjs sí, con la aplicación de verdad).
+  for (const pagina of ['src/gestor/gestor.html', 'src/editor/editor.html', 'src/juego/juego.html']) {
+    const html = await readFile(new URL('../' + pagina, import.meta.url), 'utf8');
+    const csp = /http-equiv="Content-Security-Policy" content="([^"]*)"/.exec(html)?.[1] || '';
+    const script = csp.split(';').map((d) => d.trim()).find((d) => d.startsWith('script-src')) || '';
+    assert.match(script, /'wasm-unsafe-eval'/, `${pagina}: script-src no permite WebAssembly`);
   }
 });

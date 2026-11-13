@@ -1,8 +1,8 @@
 {
   "name": "falcon-engine",
   "productName": "Falcon Engine",
-  "version": "1.2.0",
-  "description": "Motor de videojuegos 2D y 3D con el lenguaje Águila",
+  "version": "1.3.0",
+  "description": "Motor de videojuegos 2D y 3D con el lenguaje Ara",
   "main": "src/principal/main.js",
   "author": "Falcon Engine",
   "license": "SEE LICENSE IN LICENSE",

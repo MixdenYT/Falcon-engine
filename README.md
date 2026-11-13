@@ -64,7 +64,7 @@ cerrar; los paquetes portátiles anteriores ofrecen descarga manual.
 
 Consulta [ACTUALIZACIONES.md](ACTUALIZACIONES.md) para publicar los instaladores,
 sus metadatos y las notas de versión. La versión publicada y el tag deben coincidir
-con la versión del paquete. La **1.2.0** incorpora Umbral CQB.
+con la versión del paquete. La **1.2.0** incorporó Umbral CQB; la **1.3.0** cambia Águila por Ara.
 
 ## El editor en imágenes
 

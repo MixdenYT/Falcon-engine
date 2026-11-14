@@ -131,9 +131,17 @@ module.exports = async function verificarCQB({ directorio, reabrir = false }) {
 
   const abrir = async (nombre, punto) => { await mirar(...punto); exigir(d.tactico.interaccion(j)?.nombre === nombre, 'Objeto F no alcanzable: ' + nombre); await pulsar('KeyF'); await avanzar(1.2); exigir(d.tactico.estado(m.buscarPorNombre(nombre)).angulo > 85, 'No se abrió ' + nombre); };
   const disparar = async enemigo => {
-    raton(true); await avanzar(0.2); let p = pos(enemigo); await mirar(p[0], p[1] + 1.35, p[2]);
-    const direccion = new THREE.Vector3(); d.camaraUsada.getWorldDirection(direccion);
-    const visto = d.primerImpacto(d.camaraUsada.position, direccion, 65, [j]);
+    raton(true); await avanzar(0.2);
+    // Si el enemigo está entrando en su cobertura, se sigue apuntando hasta que
+    // asome (como haría un jugador) en lugar de depender del fotograma exacto.
+    const direccion = new THREE.Vector3(); let visto;
+    for (let intento = 0; intento < 30; intento++) {
+      const p = pos(enemigo); await mirar(p[0], p[1] + 1.35, p[2]);
+      d.camaraUsada.getWorldDirection(direccion);
+      visto = d.primerImpacto(d.camaraUsada.position, direccion, 65, [j]);
+      if (visto?.nodo === enemigo) break;
+      await avanzar(0.1);
+    }
     exigir(visto?.nodo === enemigo, 'La mira no ve a ' + enemigo.nombre + ': ' + visto?.nodo?.nombre);
     const antes = enemigo.aguilaObtener('vida'); await pulsar('KeyJ'); await avanzar(0.2); raton(false);
     exigir(enemigo.aguilaObtener('vida') < antes, 'El disparo no alcanzó a ' + enemigo.nombre);

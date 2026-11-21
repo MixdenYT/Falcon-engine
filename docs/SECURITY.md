@@ -239,6 +239,8 @@ La integridad depende **solo** del `sha512` de `latest.yml`, que se sirve desde 
 
 **Corrección.** Activarlo solo cuando `!app.isPackaged`, o detrás de una variable de compilación.
 
+**Nota (1.4.0).** `herramientas/probar-instalado.cjs` necesita este modo en la app empaquetada: es el paso de `releases.yml` que instala el NSIS o la AppImage y ejecuta las plantillas. Con el IPC por raíces (`be4429d`) el guion ya no podía guardar sus resultados. Ahora `modoCaptura` concede escritura solo a las carpetas de `--captura` y `--guion`, y la página de juego con `--guion` usa el preload completo y puede escribir ahí (`ventanaCaptura` en `paraEscribir`). El juego real con `preload-juego.js` se sigue probando con «Probar» desde el editor. No cambia el escenario: hace falta controlar la línea de comandos. Si se aplica la corrección, hay que dar a `probar-instalado.cjs` otra vía.
+
 ### B6 · Baja: Ara no tiene límite de pasos
 
 **Dónde.** Águila corta los bucles infinitos (`src/aguila/interprete.js:120,137`, con 2.000.000 de pasos por evento). En `src/ara/puente.js` no se encontró nada equivalente para el wasm de Ara.

@@ -263,8 +263,9 @@ ipcMain.handle('fs:leer', async (e, ruta, codificacion = 'utf8') => {
     return { ok: true, datos: codificacion === 'binario' ? new Uint8Array(datos) : datos };
   } catch (err) { return { ok: false, error: err.message, codigo: err.code }; }
 });
+let ventanaCaptura = null; // modo --captura: su guion de prueba también escribe desde la página del juego
 function paraEscribir(e, ruta) {
-  const r = de(e, 'gestor', 'editor') && rutaPermitida(e, ruta, true);
+  const r = (de(e, 'gestor', 'editor') || (ventanaCaptura && e.sender === ventanaCaptura)) && rutaPermitida(e, ruta, true);
   if (!r) throw new Error(NO_PERMITIDA);
   return r;
 }
@@ -495,14 +496,19 @@ async function modoCaptura() {
   const [ancho, alto] = (args.tamano || '1389x868').split('x').map(Number);
   // Permisos y preload como si el usuario hubiera abierto esa página (la línea de comandos es de confianza).
   const pagina = new URL('falcon://app/' + args.pagina), proyecto = pagina.searchParams.get('proyecto');
+  // Un guion de prueba guarda sus evidencias con falcon.fs.escribir, que el preload reducido no tiene;
+  // el juego real con preload-juego se prueba desde el editor («Probar») y en el juego exportado.
   const v = crearVentana({
     width: ancho, height: alto, minWidth: ancho, minHeight: alto, show: false, paintWhenInitiallyHidden: true, useContentSize: true,
-    webPreferences: preferenciasWeb(paginaDe(pagina.href) === 'juego' ? 'preload-juego.js' : 'preload.js'),
+    webPreferences: preferenciasWeb(paginaDe(pagina.href) === 'juego' && !args.guion ? 'preload-juego.js' : 'preload.js'),
   });
   v.webContents.setFrameRate(60);
   ventanaPrincipal = v;
   if (paginaDe(pagina.href) === 'gestor') permisosGestor(v.webContents);
-  else if (proyecto) fijarPermisos(v.webContents, proyecto, [{ ruta: proyecto, escritura: paginaDe(pagina.href) === 'editor' }]);
+  else fijarPermisos(v.webContents, proyecto, proyecto ? [{ ruta: proyecto, escritura: paginaDe(pagina.href) === 'editor' }] : []);
+  // Las carpetas de la captura y del guion las da la línea de comandos (de confianza): ahí escribe la prueba.
+  for (const a of [args.captura, args.guion]) if (a) conceder(v.webContents, path.dirname(path.resolve(a)), true);
+  if (args.guion) ventanaCaptura = v.webContents;
   await v.loadURL('falcon://app/' + args.pagina);
   const espera = (ms) => new Promise(r => setTimeout(r, ms));
   await espera(Number(args.espera || 1200));

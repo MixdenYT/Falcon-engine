@@ -152,6 +152,28 @@ test('urlExterna solo deja abrir páginas web', () => {
     'smb://servidor/c$', String.raw`\\servidor\c$\x.exe`, 'C:/Windows/notepad.exe', 'falcon://app/x', 'mailto:a@b.c', '', null]) assert.ok(!R.urlExterna(u), String(u));
 });
 
+test('permisoWeb solo concede el bloqueo del ratón y copiar, y solo a falcon://app', () => {
+  for (const p of ['pointerLock', 'clipboard-sanitized-write']) {
+    assert.ok(R.permisoWeb(p, 'falcon://app/src/juego/juego.html?modo=prueba'), p);
+    assert.ok(R.permisoWeb(p, 'falcon://app'), p + ' (origen)');
+    for (const o of ['falcon://fs/C:/x/a.html', 'https://app/', 'file:///C:/x.html', '', undefined]) assert.ok(!R.permisoWeb(p, o), `${p} ${o}`);
+  }
+  for (const p of ['media', 'geolocation', 'notifications', 'fullscreen', 'midi', 'midiSysex', 'clipboard-read', 'hid', 'usb', 'serial',
+    'display-capture', 'openExternal', 'idle-detection', 'keyboardLock', 'unknown']) assert.ok(!R.permisoWeb(p, 'falcon://app/src/editor/editor.html'), p);
+});
+
+test('todas las ventanas van con sandbox y gestor de permisos', () => {
+  const leer = (f) => readFileSync(new URL(`../src/principal/${f}`, import.meta.url), 'utf8');
+  for (const f of ['main.js', 'jugador.js']) {
+    const t = leer(f);
+    assert.ok(!/sandbox:\s*false/.test(t) && /sandbox:\s*true/.test(t), f);
+    assert.match(t, /setPermissionRequestHandler\(.*permisoWeb/, f);
+    assert.match(t, /setPermissionCheckHandler\(.*permisoWeb/, f);
+  }
+  // Un preload con sandbox solo puede pedir 'electron' (y unos pocos módulos sin acceso al sistema).
+  for (const f of ['preload.js', 'preload-juego.js']) assert.deepEqual([...leer(f).matchAll(/require\(\s*'([^']+)'/g)].map(m => m[1]), ['electron'], f);
+});
+
 test('datosSaneados: la página no añade recientes ni cambia la carpeta de proyectos a su antojo', () => {
   const actual = { recientes: [{ ruta: 'C:/p/a', nombre: 'A' }, { ruta: 'C:/p/b', nombre: 'B' }], ajustes: { carpetaProyectos: 'C:/p', cuadricula: 32 } };
   const nada = () => false;

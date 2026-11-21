@@ -1,14 +1,14 @@
 // Proceso principal de Falcon Engine (Electron).
 // Gestiona ventanas, acceso a archivos, la ventana de prueba del juego y la exportación.
 
-const { app, BrowserWindow, ipcMain, dialog, shell, protocol, net, screen, nativeImage } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, protocol, net, screen, nativeImage, session } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
 const fsp = require('node:fs/promises');
 const { pathToFileURL } = require('node:url');
 const { exportarJuego } = require('./exportar.js');
 const { crearActualizaciones } = require('./actualizaciones.js');
-const { rutaDeUrl, rutaReal, permitida, puedeBorrar, paginaDe, urlExterna, datosSaneados } = require('./rutas.js');
+const { rutaDeUrl, rutaReal, permitida, puedeBorrar, paginaDe, urlExterna, permisoWeb, datosSaneados } = require('./rutas.js');
 
 const RAIZ_APP = path.resolve(__dirname, '..', '..');
 const ICONO = path.join(RAIZ_APP, 'recursos', 'icono.png');
@@ -128,7 +128,7 @@ let sesionJuego = null; // { ventana, editor: webContents }
 
 const preferenciasWeb = (preload = 'preload.js') => ({
   preload: path.join(__dirname, preload),
-  contextIsolation: true, nodeIntegration: false, sandbox: false,
+  contextIsolation: true, nodeIntegration: false, sandbox: true,
   spellcheck: false,
   backgroundThrottling: !args.captura,
   offscreen: !!args.captura,
@@ -155,7 +155,7 @@ function crearVentana(opciones = {}) {
   });
   v.webContents.setWindowOpenHandler(({ url }) => { if (urlExterna(url)) shell.openExternal(url); return { action: 'deny' }; });
   // Evita que soltar un archivo en la ventana navegue fuera de la app.
-  v.webContents.on('will-navigate', (e, url) => { if (!url.startsWith('falcon://')) e.preventDefault(); });
+  v.webContents.on('will-navigate', (e, url) => { if (!url.startsWith('falcon://app/')) e.preventDefault(); });
   if (args.captura) {
     // Incluye la ventana de juego abierta por el editor: un fallo de carga no
     // debe quedar reducido a un timeout sin el error original en las pruebas.
@@ -469,6 +469,9 @@ ipcMain.handle('exportar', async (e, op = {}) => {
 // ---- Inicio ----
 app.whenReady().then(async () => {
   registrarProtocolo();
+  // M1 en docs/SECURITY.md: solo los permisos web que usa Falcon (ver permisoWeb en rutas.js).
+  session.defaultSession.setPermissionRequestHandler((wc, permiso, cb, d) => cb(permisoWeb(permiso, d.requestingUrl)));
+  session.defaultSession.setPermissionCheckHandler((wc, permiso, origen) => permisoWeb(permiso, origen));
   crearActualizaciones({
     app, ipcMain, net,
     esGestor: (wc) => wc === ventanaPrincipal?.webContents && wc.getURL().split('?')[0] === urlApp('src/gestor/gestor.html'),

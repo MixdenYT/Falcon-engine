@@ -65,6 +65,16 @@ function urlExterna(texto) {
 }
 
 /**
+ * Permisos web que Falcon usa de verdad: bloquear el ratón (cámara FPS y vuelo del visor 3D) y copiar
+ * un enlace al portapapeles (gestor). Solo para nuestras páginas; cámara, micro, ubicación, avisos,
+ * pantalla completa HTML, MIDI, USB/HID/serie, etc. se niegan. El mando (Gamepad API) no pide permiso.
+ */
+const PERMISOS_WEB = new Set(['pointerLock', 'clipboard-sanitized-write']);
+function permisoWeb(permiso, origen) {
+  try { const u = new URL(origen); return PERMISOS_WEB.has(permiso) && u.protocol === 'falcon:' && u.host === 'app'; } catch { return false; }
+}
+
+/**
  * Datos que una página puede guardar en falcon-datos.json. Los recientes solo se quitan o reordenan
  * (los añade el proceso principal al abrir un proyecto), y la carpeta de proyectos solo cambia a una
  * carpeta que el usuario eligió (`puedeCarpeta`).
@@ -98,4 +108,4 @@ function rutaDeUrl(texto, raizApp, windows = WIN) {
   return null;
 }
 
-module.exports = { dentroDe, rutaReal, permitida, puedeBorrar, paginaDe, urlExterna, datosSaneados, rutaDeUrl };
+module.exports = { dentroDe, rutaReal, permitida, puedeBorrar, paginaDe, urlExterna, permisoWeb, datosSaneados, rutaDeUrl };

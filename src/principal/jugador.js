@@ -1,12 +1,12 @@
 // Proceso principal de un juego exportado con Falcon Engine.
 // Abre una ventana normal con el reproductor y el proyecto incluido en resources/app/juego.
 
-const { app, BrowserWindow, ipcMain, protocol, net, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, protocol, net, shell, session } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
 const fsp = require('node:fs/promises');
 const { pathToFileURL } = require('node:url');
-const { dentroDe, urlExterna } = require('./rutas.js');
+const { dentroDe, urlExterna, permisoWeb } = require('./rutas.js');
 
 const RAIZ = path.resolve(__dirname, '..', '..');
 const JUEGO = path.join(RAIZ, 'juego');
@@ -88,11 +88,14 @@ ipcMain.handle('juego:captura', async (e) => {
 
 app.whenReady().then(() => {
   registrarProtocolo();
+  // Solo los permisos web que usa Falcon (ver permisoWeb en rutas.js y M1 en docs/SECURITY.md).
+  session.defaultSession.setPermissionRequestHandler((wc, permiso, cb, d) => cb(permisoWeb(permiso, d.requestingUrl)));
+  session.defaultSession.setPermissionCheckHandler((wc, permiso, origen) => permisoWeb(permiso, origen));
   const [ancho, alto] = datos.resolucion || [1280, 720];
   const v = new BrowserWindow({
     width: ancho, height: alto, useContentSize: true, backgroundColor: '#000000', title: NOMBRE,
     icon: path.join(RAIZ, 'recursos', 'icono.png'), autoHideMenuBar: true,
-    webPreferences: { preload: path.join(__dirname, 'preload-juego.js'), contextIsolation: true, nodeIntegration: false, sandbox: false },
+    webPreferences: { preload: path.join(__dirname, 'preload-juego.js'), contextIsolation: true, nodeIntegration: false, sandbox: true },
   });
   v.setMenu(null);
   // F10 es una tecla de sistema en Windows (activa el menú de la ventana) y a veces no llega a la
@@ -102,6 +105,7 @@ app.whenReady().then(() => {
     ev.preventDefault();
     v.webContents.executeJavaScript("window.dispatchEvent(new KeyboardEvent('keydown', { key: 'F10', code: 'F10' }))").catch(() => {});
   });
+  v.webContents.on('will-navigate', (e, url) => { if (!url.startsWith('falcon://app/')) e.preventDefault(); });
   v.webContents.setWindowOpenHandler(({ url }) => { if (urlExterna(url)) shell.openExternal(url); return { action: 'deny' }; });
   const q = new URLSearchParams({ modo: 'exportado', proyecto: JUEGO.split(path.sep).join('/') });
   v.loadURL(`falcon://app/src/juego/juego.html?${q}`);

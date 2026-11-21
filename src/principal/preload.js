@@ -51,7 +51,12 @@ contextBridge.exposeInMainWorld('falcon', {
     info: (ruta) => ipcRenderer.invoke('fs:info', ruta),
     listar: (ruta, recursivo) => ipcRenderer.invoke('fs:listar', ruta, recursivo),
     tamano: (ruta) => ipcRenderer.invoke('fs:tamano', ruta),
-    rutaDeArchivo: (archivo) => webUtils.getPathForFile(archivo),
+    // Solo un File real (soltado o elegido por el usuario) tiene ruta; el proceso principal la permite para leer.
+    rutaDeArchivo: (archivo) => {
+      const r = webUtils.getPathForFile(archivo);
+      if (r) ipcRenderer.send('fs:soltado', r);
+      return r;
+    },
   },
   dialogo: {
     carpeta: (op) => ipcRenderer.invoke('dialogo:carpeta', op),

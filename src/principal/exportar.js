@@ -19,8 +19,8 @@ const PLATAFORMAS = {
 const ARCHIVOS_APP = [
   'src/package.json', 'src/aguila', 'src/motor', 'src/juego',
   // Ara: los scripts van ya compilados (.falcon/ara.wasm), así que el juego no lleva el compilador (ara_web.wasm).
-  'src/ara/puente.js', 'src/ara/ara.mjs', 'src/ara/compilador.mjs', 'src/ara/motor.ara', 'src/ara/ara_runtime.wasm', 'src/ui/base.css', 'src/ui/iconos.js', 'src/ui/componentes.js',
-  'src/principal/package.json', 'src/principal/jugador.js', 'src/principal/preload.js',
+  'src/ara/puente.js', 'src/ara/api.js', 'src/ara/api-motor.js', 'src/ara/ara.mjs', 'src/ara/compilador.mjs', 'src/ara/motor.ara', 'src/ara/ara_runtime.wasm', 'src/ui/base.css', 'src/ui/iconos.js', 'src/ui/componentes.js',
+  'src/principal/package.json', 'src/principal/jugador.js', 'src/principal/preload-juego.js', 'src/principal/rutas.js',
   'recursos/icono.png',
   'node_modules/three/build/three.module.js', 'node_modules/three/build/three.core.js', 'node_modules/three/examples/jsm',
   'node_modules/three/examples/jsm/utils/BufferGeometryUtils.js', 'node_modules/three/examples/jsm/utils/SkeletonUtils.js',

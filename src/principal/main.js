@@ -8,7 +8,7 @@ const fsp = require('node:fs/promises');
 const { pathToFileURL } = require('node:url');
 const { exportarJuego } = require('./exportar.js');
 const { crearActualizaciones } = require('./actualizaciones.js');
-const { rutaDeUrl } = require('./rutas.js');
+const { rutaDeUrl, rutaReal, permitida, puedeBorrar, paginaDe, urlExterna, datosSaneados } = require('./rutas.js');
 
 const RAIZ_APP = path.resolve(__dirname, '..', '..');
 const ICONO = path.join(RAIZ_APP, 'recursos', 'icono.png');
@@ -45,7 +45,8 @@ function escribirDatos(d) {
 function registrarProtocolo() {
   protocol.handle('falcon', async (req) => {
     const ruta = rutaDeUrl(req.url, RAIZ_APP);
-    if (!ruta) return new Response('No encontrado', { status: 404 });
+    // falcon://fs solo sirve lo que alguna ventana puede leer (el protocolo no dice qué ventana lo pide).
+    if (!ruta || (new URL(req.url).host === 'fs' && !permitidaEnAlguna(ruta))) return new Response('No encontrado', { status: 404 });
     try {
       const r = await net.fetch(pathToFileURL(ruta).toString());
       const tipo = tipoMime(ruta);
@@ -80,22 +81,65 @@ const urlApp = (rel, consulta = {}) => {
   return `falcon://app/${rel}${q ? '?' + q : ''}`;
 };
 
+// ---- Permisos por ventana (A1 en docs/SECURITY.md) ----
+// Cada webContents solo toca las raíces que le dio el proceso principal: el proyecto que abrió el
+// usuario y lo que eligió en un diálogo nativo. Nunca lo que diga la página.
+const permisos = new Map(); // id de webContents → { proyecto, raices: [{ ruta (real), escritura, proyecto }] }
+
+function fijarPermisos(wc, proyecto, raices) {
+  if (!permisos.has(wc.id)) wc.once('destroyed', () => permisos.delete(wc.id));
+  permisos.set(wc.id, { proyecto, raices: raices.map(r => ({ ...r, ruta: rutaReal(r.ruta) })) });
+}
+function conceder(wc, ruta, escritura) { permisos.get(wc.id)?.raices.push({ ruta: rutaReal(ruta), escritura }); }
+
+/** La página que envía el mensaje si es una de `paginas` y el marco principal de una ventana nuestra; si no, null. */
+function de(e, ...paginas) {
+  const f = e.senderFrame;
+  const p = f && !f.parent ? paginaDe(f.url) : null;
+  return p && paginas.includes(p) ? p : null;
+}
+const TODAS = ['gestor', 'editor', 'juego'];
+
+/** La ruta resuelta si el remitente puede usarla (para leer o para escribir); si no, null. */
+function rutaPermitida(e, ruta, escritura = false) {
+  if (typeof ruta !== 'string' || !ruta) return null;
+  const r = path.resolve(ruta); // sin `..`: lo que se comprueba es lo que se abre
+  return permitida(permisos.get(e.sender.id)?.raices || [], rutaReal(r), escritura) ? r : null;
+}
+function permitidaEnAlguna(ruta) {
+  const real = rutaReal(ruta);
+  for (const p of permisos.values()) if (permitida(p.raices, real)) return true;
+  return false;
+}
+const NO_PERMITIDA = 'Ruta no permitida: está fuera del proyecto y de las carpetas elegidas.';
+
+function carpetaProyectos(d) { return d.ajustes?.carpetaProyectos || path.join(app.getPath('documents'), 'Falcon Engine Proyectos'); }
+function permisosGestor(wc) {
+  const d = leerDatos();
+  fijarPermisos(wc, null, [
+    { ruta: carpetaProyectos(d), escritura: true },
+    ...(d.recientes || []).filter(r => typeof r?.ruta === 'string').map(r => ({ ruta: r.ruta, escritura: true, proyecto: true })),
+  ]);
+}
+
 // ---- Ventanas ----
 let ventanaPrincipal = null;
 let sesionJuego = null; // { ventana, editor: webContents }
+
+const preferenciasWeb = (preload = 'preload.js') => ({
+  preload: path.join(__dirname, preload),
+  contextIsolation: true, nodeIntegration: false, sandbox: false,
+  spellcheck: false,
+  backgroundThrottling: !args.captura,
+  offscreen: !!args.captura,
+});
 
 function crearVentana(opciones = {}) {
   const v = new BrowserWindow({
     width: 1440, height: 900, minWidth: 1100, minHeight: 680,
     frame: false, backgroundColor: '#050605', show: false, icon: ICONO,
     title: 'Falcon Engine',
-    webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
-      contextIsolation: true, nodeIntegration: false, sandbox: false,
-      spellcheck: false,
-      backgroundThrottling: !args.captura,
-      offscreen: !!args.captura,
-    },
+    webPreferences: preferenciasWeb(),
     ...opciones,
   });
   v.setMenu(null); // Alt se reserva para el paso lento del juego; la app usa sus propios menús.
@@ -109,7 +153,7 @@ function crearVentana(opciones = {}) {
     ev.preventDefault();
     v.webContents.executeJavaScript("window.dispatchEvent(new KeyboardEvent('keydown', { key: 'F10', code: 'F10' }))").catch(() => {});
   });
-  v.webContents.setWindowOpenHandler(({ url }) => { shell.openExternal(url); return { action: 'deny' }; });
+  v.webContents.setWindowOpenHandler(({ url }) => { if (urlExterna(url)) shell.openExternal(url); return { action: 'deny' }; });
   // Evita que soltar un archivo en la ventana navegue fuera de la app.
   v.webContents.on('will-navigate', (e, url) => { if (!url.startsWith('falcon://')) e.preventDefault(); });
   if (args.captura) {
@@ -127,62 +171,78 @@ function crearVentana(opciones = {}) {
 
 function abrirGestor() {
   if (!ventanaPrincipal) ventanaPrincipal = crearVentana();
+  permisosGestor(ventanaPrincipal.webContents);
   ventanaPrincipal.loadURL(urlApp('src/gestor/gestor.html'));
 }
 
 function abrirEditor(rutaProyecto) {
   if (!ventanaPrincipal) ventanaPrincipal = crearVentana();
+  fijarPermisos(ventanaPrincipal.webContents, rutaProyecto, [{ ruta: rutaProyecto, escritura: true }]);
   ventanaPrincipal.loadURL(urlApp('src/editor/editor.html', { proyecto: rutaProyecto }));
 }
 
 // ---- IPC: ventana ----
-ipcMain.on('ventana:minimizar', (e) => BrowserWindow.fromWebContents(e.sender)?.minimize());
+// Cada manejador comprueba qué página lo llama (de) antes de hacer nada.
+ipcMain.on('ventana:minimizar', (e) => { if (de(e, ...TODAS)) BrowserWindow.fromWebContents(e.sender)?.minimize(); });
 ipcMain.on('ventana:maximizar', (e) => {
-  const v = BrowserWindow.fromWebContents(e.sender);
+  const v = de(e, ...TODAS) && BrowserWindow.fromWebContents(e.sender);
   if (!v) return;
   v.isMaximized() ? v.unmaximize() : v.maximize();
 });
-ipcMain.on('ventana:cerrar', (e) => BrowserWindow.fromWebContents(e.sender)?.close());
+ipcMain.on('ventana:cerrar', (e) => { if (de(e, ...TODAS)) BrowserWindow.fromWebContents(e.sender)?.close(); });
 ipcMain.handle('ventana:maximizada', (e) => BrowserWindow.fromWebContents(e.sender)?.isMaximized() ?? false);
-ipcMain.on('ventana:titulo', (e, t) => BrowserWindow.fromWebContents(e.sender)?.setTitle(t));
-ipcMain.on('ventana:enfocar-editor', () => { if (ventanaPrincipal) { if (ventanaPrincipal.isMinimized()) ventanaPrincipal.restore(); ventanaPrincipal.focus(); } });
+ipcMain.on('ventana:titulo', (e, t) => { if (de(e, ...TODAS)) BrowserWindow.fromWebContents(e.sender)?.setTitle(String(t)); });
+ipcMain.on('ventana:enfocar-editor', (e) => { if (de(e, 'juego') && ventanaPrincipal) { if (ventanaPrincipal.isMinimized()) ventanaPrincipal.restore(); ventanaPrincipal.focus(); } });
 ipcMain.on('ventana:pantalla-completa', (e) => {
-  const v = BrowserWindow.fromWebContents(e.sender);
+  const v = de(e, ...TODAS) && BrowserWindow.fromWebContents(e.sender);
   if (v) v.setFullScreen(!v.isFullScreen());
 });
-ipcMain.on('ventana:tamano-contenido', (e, { ancho, alto }) => {
-  const v = BrowserWindow.fromWebContents(e.sender);
-  if (!v) return;
+ipcMain.on('ventana:tamano-contenido', (e, { ancho, alto } = {}) => {
+  const v = de(e, 'juego') && BrowserWindow.fromWebContents(e.sender);
+  if (!v || !(ancho > 0 && alto > 0)) return;
   if (v.isMaximized()) v.unmaximize();
   const area = screen.getDisplayMatching(v.getBounds()).workAreaSize;
-  v.setContentSize(Math.min(ancho, area.width), Math.min(alto, area.height));
+  v.setContentSize(Math.round(Math.min(ancho, area.width)), Math.round(Math.min(alto, area.height)));
   v.center();
 });
 
 // ---- IPC: aplicación ----
-ipcMain.handle('app:info', () => ({
+ipcMain.handle('app:info', (e) => de(e, ...TODAS) && {
   version: VERSION, plataforma: process.platform, arquitectura: process.arch,
   electron: process.versions.electron, raizApp: RAIZ_APP,
   documentos: app.getPath('documents'), inicio: app.getPath('home'),
   usuario: require('node:os').userInfo().username,
-}));
-ipcMain.handle('app:datos', () => leerDatos());
-ipcMain.handle('app:guardar-datos', (e, d) => { escribirDatos(d); return true; });
+});
+// El juego solo necesita los ajustes, no la lista de proyectos recientes.
+ipcMain.handle('app:datos', (e) => {
+  const p = de(e, ...TODAS), d = leerDatos();
+  return p === 'juego' ? { ajustes: d.ajustes || {} } : p ? d : null;
+});
+ipcMain.handle('app:guardar-datos', (e, d) => {
+  if (!de(e, 'gestor', 'editor')) return false;
+  escribirDatos(datosSaneados(d, leerDatos(), (c) => !!rutaPermitida(e, c, true)));
+  return true;
+});
+// Solo el gestor abre proyectos: carpetas que ya puede usar y que contienen un proyecto.
 ipcMain.on('app:abrir-proyecto', (e, ruta) => {
+  if (!de(e, 'gestor') || !rutaPermitida(e, ruta, true) || !fs.existsSync(archivoProyecto(ruta))) return;
   const d = leerDatos();
   d.recientes = (d.recientes || []).filter(r => path.resolve(r.ruta) !== path.resolve(ruta));
   let info = {};
   try { info = JSON.parse(fs.readFileSync(archivoProyecto(ruta), 'utf8')); } catch {}
   d.recientes.unshift({
-    ruta, nombre: info.nombre || path.basename(ruta), tipo: info.tipo || '2D',
+    ruta, nombre: String(info.nombre || path.basename(ruta)), tipo: info.tipo === '3D' ? '3D' : '2D',
     abierto: Date.now(), talon: archivoProyecto(ruta).endsWith('.talon'),
   });
   d.recientes = d.recientes.slice(0, 30);
   escribirDatos(d);
   abrirEditor(ruta);
 });
-ipcMain.on('app:gestor', () => abrirGestor());
-ipcMain.handle('app:archivo-proyecto', (e, ruta) => archivoProyecto(ruta));
+ipcMain.on('app:gestor', (e) => { if (de(e, 'gestor', 'editor')) abrirGestor(); });
+ipcMain.handle('app:archivo-proyecto', (e, ruta) => {
+  if (!de(e, ...TODAS) || !rutaPermitida(e, ruta)) throw new Error(NO_PERMITIDA);
+  return archivoProyecto(ruta);
+});
 
 function archivoProyecto(ruta) {
   const f = path.join(ruta, 'proyecto.falcon');
@@ -193,38 +253,65 @@ function archivoProyecto(ruta) {
 }
 
 // ---- IPC: archivos ----
+// Toda ruta pasa por rutaPermitida. El juego solo lee; escribir es cosa del editor y del gestor.
 // Devuelve { ok, datos } para no llenar la consola de errores al leer archivos opcionales.
 ipcMain.handle('fs:leer', async (e, ruta, codificacion = 'utf8') => {
+  const r = de(e, ...TODAS) && rutaPermitida(e, ruta);
+  if (!r) return { ok: false, error: NO_PERMITIDA, codigo: 'EACCES' };
   try {
-    const datos = await fsp.readFile(ruta, codificacion === 'binario' ? null : codificacion);
+    const datos = await fsp.readFile(r, codificacion === 'binario' ? null : codificacion);
     return { ok: true, datos: codificacion === 'binario' ? new Uint8Array(datos) : datos };
   } catch (err) { return { ok: false, error: err.message, codigo: err.code }; }
 });
+function paraEscribir(e, ruta) {
+  const r = de(e, 'gestor', 'editor') && rutaPermitida(e, ruta, true);
+  if (!r) throw new Error(NO_PERMITIDA);
+  return r;
+}
 ipcMain.handle('fs:escribir', async (e, ruta, datos) => {
-  await fsp.mkdir(path.dirname(ruta), { recursive: true });
+  const r = paraEscribir(e, ruta);
+  await fsp.mkdir(path.dirname(r), { recursive: true });
   // Escritura atómica: primero a un temporal y luego se renombra.
-  const tmp = ruta + '.tmp-falcon';
+  const tmp = r + '.tmp-falcon';
   await fsp.writeFile(tmp, typeof datos === 'string' ? datos : Buffer.from(datos));
-  await fsp.rename(tmp, ruta);
+  await fsp.rename(tmp, r);
   return true;
 });
-ipcMain.handle('fs:existe', (e, ruta) => fs.existsSync(ruta));
-ipcMain.handle('fs:crear-carpeta', (e, ruta) => fsp.mkdir(ruta, { recursive: true }).then(() => true));
+ipcMain.handle('fs:existe', (e, ruta) => { const r = de(e, ...TODAS) && rutaPermitida(e, ruta); return !!r && fs.existsSync(r); });
+ipcMain.handle('fs:crear-carpeta', (e, ruta) => fsp.mkdir(paraEscribir(e, ruta), { recursive: true }).then(() => true));
+// Solo a la papelera y nunca una raíz entera (salvo un proyecto reciente desde el gestor). Si falla, se informa.
 ipcMain.handle('fs:borrar', async (e, ruta) => {
-  try { await shell.trashItem(ruta); }
-  catch { await fsp.rm(ruta, { recursive: true, force: true }); }
+  const r = paraEscribir(e, ruta);
+  if (!puedeBorrar(permisos.get(e.sender.id).raices, rutaReal(r), fs.existsSync(archivoProyecto(r)))) throw new Error(NO_PERMITIDA);
+  await shell.trashItem(r);
   return true;
 });
-ipcMain.handle('fs:renombrar', (e, de, a) => fsp.rename(de, a).then(() => true));
-ipcMain.handle('fs:copiar', (e, de, a) => fsp.cp(de, a, { recursive: true, force: false, errorOnExist: false }).then(() => true));
+ipcMain.handle('fs:renombrar', async (e, origen, destino) => {
+  const a = paraEscribir(e, origen), b = paraEscribir(e, destino);
+  await fsp.rename(a, b);
+  return true;
+});
+// El origen puede estar fuera del proyecto si el usuario lo eligió (diálogo, o arrastrar y soltar).
+ipcMain.handle('fs:copiar', async (e, origen, destino) => {
+  const a = de(e, 'gestor', 'editor') && rutaPermitida(e, origen), b = paraEscribir(e, destino);
+  if (!a) throw new Error(NO_PERMITIDA);
+  await fsp.cp(a, b, { recursive: true, force: false, errorOnExist: false });
+  return true;
+});
+// Archivo soltado en la ventana: el preload saca la ruta de un File real, que la página no puede inventar.
+ipcMain.on('fs:soltado', (e, ruta) => { if (de(e, 'editor') && typeof ruta === 'string' && ruta) conceder(e.sender, ruta, false); });
 ipcMain.handle('fs:info', async (e, ruta) => {
+  const r = de(e, ...TODAS) && rutaPermitida(e, ruta);
+  if (!r) return { existe: false };
   try {
-    const s = await fsp.stat(ruta);
+    const s = await fsp.stat(r);
     return { existe: true, carpeta: s.isDirectory(), tamano: s.size, modificado: s.mtimeMs };
   } catch { return { existe: false }; }
 });
 ipcMain.handle('fs:listar', async (e, ruta, recursivo = false) => {
   const salida = [];
+  const raiz = de(e, ...TODAS) && rutaPermitida(e, ruta);
+  if (!raiz) return salida;
   async function recorrer(dir, rel) {
     let entradas = [];
     try { entradas = await fsp.readdir(dir, { withFileTypes: true }); } catch { return; }
@@ -238,11 +325,13 @@ ipcMain.handle('fs:listar', async (e, ruta, recursivo = false) => {
       if (recursivo && d.isDirectory()) await recorrer(abs, r);
     }
   }
-  await recorrer(ruta, '');
+  await recorrer(raiz, '');
   return salida;
 });
 ipcMain.handle('fs:tamano', async (e, ruta) => {
   let total = 0;
+  const raiz = de(e, 'gestor', 'editor') && rutaPermitida(e, ruta);
+  if (!raiz) return total;
   async function rec(d) {
     let es = [];
     try { es = await fsp.readdir(d, { withFileTypes: true }); } catch { return; }
@@ -252,32 +341,43 @@ ipcMain.handle('fs:tamano', async (e, ruta) => {
       else { try { total += (await fsp.stat(a)).size; } catch {} }
     }
   }
-  await rec(ruta);
+  await rec(raiz);
   return total;
 });
 
 // ---- IPC: diálogos y sistema ----
+// Lo que el usuario elige en un diálogo nativo queda permitido en esa ventana hasta que cambie de página.
 ipcMain.handle('dialogo:carpeta', async (e, op = {}) => {
+  if (!de(e, 'gestor', 'editor')) return null;
   const r = await dialog.showOpenDialog(BrowserWindow.fromWebContents(e.sender), {
     title: op.titulo || 'Elegir carpeta', defaultPath: op.ruta, properties: ['openDirectory', 'createDirectory'],
   });
-  return r.canceled ? null : r.filePaths[0];
+  if (r.canceled) return null;
+  conceder(e.sender, r.filePaths[0], true);
+  return r.filePaths[0];
 });
 ipcMain.handle('dialogo:archivos', async (e, op = {}) => {
+  if (!de(e, 'gestor', 'editor')) return [];
   const r = await dialog.showOpenDialog(BrowserWindow.fromWebContents(e.sender), {
     title: op.titulo || 'Elegir archivos', defaultPath: op.ruta,
     properties: ['openFile', ...(op.varios ? ['multiSelections'] : [])],
     filters: op.filtros || [],
   });
-  return r.canceled ? [] : r.filePaths;
+  if (r.canceled) return [];
+  for (const f of r.filePaths) conceder(e.sender, f, false);
+  return r.filePaths;
 });
 ipcMain.handle('dialogo:guardar', async (e, op = {}) => {
+  if (!de(e, 'gestor', 'editor')) return null;
   const r = await dialog.showSaveDialog(BrowserWindow.fromWebContents(e.sender), {
     title: op.titulo || 'Guardar', defaultPath: op.ruta, filters: op.filtros || [],
   });
-  return r.canceled ? null : r.filePath;
+  if (r.canceled || !r.filePath) return null;
+  conceder(e.sender, r.filePath, true);
+  return r.filePath;
 });
-ipcMain.handle('dialogo:mensaje', async (e, op) => {
+ipcMain.handle('dialogo:mensaje', async (e, op = {}) => {
+  if (!de(e, 'gestor', 'editor')) return null;
   const r = await dialog.showMessageBox(BrowserWindow.fromWebContents(e.sender), {
     type: op.tipo || 'question', title: op.titulo || 'Falcon Engine', message: op.mensaje, detail: op.detalle,
     buttons: op.botones || ['Aceptar'], defaultId: 0, cancelId: op.cancelar ?? (op.botones ? op.botones.length - 1 : 0),
@@ -285,25 +385,32 @@ ipcMain.handle('dialogo:mensaje', async (e, op) => {
   return r.response;
 });
 ipcMain.on('sistema:mostrar-en-carpeta', (e, ruta) => {
-  if (fs.existsSync(ruta) && fs.statSync(ruta).isDirectory()) shell.openPath(ruta);
-  else shell.showItemInFolder(ruta);
+  const r = de(e, 'gestor', 'editor') && rutaPermitida(e, ruta);
+  if (!r) return;
+  if (fs.existsSync(r) && fs.statSync(r).isDirectory()) shell.openPath(r);
+  else shell.showItemInFolder(r);
 });
-ipcMain.on('sistema:abrir-url', (e, url) => shell.openExternal(url));
+ipcMain.on('sistema:abrir-url', (e, url) => { if (de(e, 'gestor', 'editor') && urlExterna(url)) shell.openExternal(url); });
 
 // ---- Prueba del juego en otra ventana ----
-ipcMain.handle('juego:probar', async (e, op) => {
+// Se prueba el proyecto abierto en el editor (no el que diga la página), con un preload reducido y solo lectura.
+ipcMain.handle('juego:probar', async (e, op = {}) => {
+  const proyecto = de(e, 'editor') && permisos.get(e.sender.id)?.proyecto;
+  if (!proyecto) return false;
   const editor = e.sender;
   if (sesionJuego && !sesionJuego.ventana.isDestroyed()) sesionJuego.ventana.close();
-  const [ancho, alto] = op.resolucion || [1280, 720];
+  const [ancho, alto] = (Array.isArray(op.resolucion) ? op.resolucion : [1280, 720]).map(n => Math.max(160, Math.min(7680, Number(n) || 720)));
   const area = screen.getPrimaryDisplay().workAreaSize;
   const escala = Math.min(1, (area.width - 80) / ancho, (area.height - 140) / (alto + 96));
   const v = crearVentana({
     width: Math.round(ancho * escala), height: Math.round(alto * escala) + 96,
     minWidth: 480, minHeight: 360, useContentSize: true,
     title: `${op.nombre || 'Juego'} · Prueba`,
+    webPreferences: preferenciasWeb('preload-juego.js'),
   });
+  fijarPermisos(v.webContents, proyecto, [{ ruta: proyecto, escritura: false }]);
   sesionJuego = { ventana: v, editor };
-  v.loadURL(urlApp('src/juego/juego.html', { proyecto: op.proyecto, escena: op.escena || '', modo: 'prueba' }));
+  v.loadURL(urlApp('src/juego/juego.html', { proyecto, escena: String(op.escena || ''), modo: 'prueba' }));
   v.on('closed', () => {
     if (sesionJuego && sesionJuego.ventana === v) {
       if (!editor.isDestroyed()) editor.send('juego:de', { tipo: 'cerrado' });
@@ -313,17 +420,22 @@ ipcMain.handle('juego:probar', async (e, op) => {
   return true;
 });
 ipcMain.on('juego:a', (e, msg) => {
+  if (!de(e, 'editor') || !msg) return;
   if (sesionJuego && !sesionJuego.ventana.isDestroyed()) {
     if (msg.tipo === 'detener') { sesionJuego.ventana.close(); return; }
     sesionJuego.ventana.webContents.send('juego:a', msg);
   }
 });
 ipcMain.on('juego:de', (e, msg) => {
-  if (sesionJuego && !sesionJuego.editor.isDestroyed()) sesionJuego.editor.send('juego:de', msg);
+  if (!de(e, 'juego') || sesionJuego?.ventana.webContents !== e.sender) return;
+  if (!sesionJuego.editor.isDestroyed()) sesionJuego.editor.send('juego:de', msg);
 });
-ipcMain.handle('juego:captura', async (e, rutaProyecto) => {
+// Las capturas van a la carpeta capturas del proyecto que se prueba.
+ipcMain.handle('juego:captura', async (e) => {
+  if (!de(e, 'juego')) return null;
   const v = BrowserWindow.fromWebContents(e.sender);
   const img = await v.webContents.capturePage();
+  const rutaProyecto = permisos.get(e.sender.id)?.proyecto;
   const dir = rutaProyecto ? path.join(rutaProyecto, 'capturas') : path.join(app.getPath('pictures'), 'Capturas de juegos');
   await fsp.mkdir(dir, { recursive: true });
   const f = path.join(dir, `captura-${new Date().toISOString().replace(/[:.]/g, '-')}.png`);
@@ -332,11 +444,22 @@ ipcMain.handle('juego:captura', async (e, rutaProyecto) => {
 });
 
 // ---- Exportación ----
-ipcMain.handle('exportar', async (e, op) => {
+// Se exporta el proyecto abierto a una carpeta permitida (la del proyecto o una elegida con «Examinar»),
+// con el icono de la app: la página no decide qué se lee ni qué se borra.
+ipcMain.handle('exportar', async (e, op = {}) => {
+  if (!de(e, 'editor')) return { ok: false, error: 'No permitido.' };
   const wc = e.sender;
+  const proyecto = permisos.get(wc.id)?.proyecto;
+  const destino = rutaPermitida(e, op.destino, true);
+  if (!proyecto || !destino) return { ok: false, error: 'Elige la carpeta de destino con «Examinar».' };
   const progreso = (p) => { if (!wc.isDestroyed()) wc.send('exportar:progreso', p); };
   try {
-    const salidas = await exportarJuego({ ...op, raizApp: RAIZ_APP, progreso, cache: path.join(app.getPath('userData'), 'cache-exportacion') });
+    const salidas = await exportarJuego({
+      proyecto, destino, plataformas: Array.isArray(op.plataformas) ? op.plataformas : [],
+      nombre: op.nombre, version: op.version, pantallaCompleta: !!op.pantallaCompleta,
+      icono: path.join(RAIZ_APP, 'recursos', 'icono.ico'),
+      raizApp: RAIZ_APP, progreso, cache: path.join(app.getPath('userData'), 'cache-exportacion'),
+    });
     return { ok: true, salidas };
   } catch (err) {
     return { ok: false, error: String(err && err.message || err) };
@@ -367,9 +490,16 @@ app.on('window-all-closed', () => app.quit());
 // Uso: electron . --captura=salida.png --pagina=src/editor/editor.html?proyecto=... --espera=1500 --guion=archivo.js
 async function modoCaptura() {
   const [ancho, alto] = (args.tamano || '1389x868').split('x').map(Number);
-  const v = crearVentana({ width: ancho, height: alto, minWidth: ancho, minHeight: alto, show: false, paintWhenInitiallyHidden: true, useContentSize: true });
+  // Permisos y preload como si el usuario hubiera abierto esa página (la línea de comandos es de confianza).
+  const pagina = new URL('falcon://app/' + args.pagina), proyecto = pagina.searchParams.get('proyecto');
+  const v = crearVentana({
+    width: ancho, height: alto, minWidth: ancho, minHeight: alto, show: false, paintWhenInitiallyHidden: true, useContentSize: true,
+    webPreferences: preferenciasWeb(paginaDe(pagina.href) === 'juego' ? 'preload-juego.js' : 'preload.js'),
+  });
   v.webContents.setFrameRate(60);
   ventanaPrincipal = v;
+  if (paginaDe(pagina.href) === 'gestor') permisosGestor(v.webContents);
+  else if (proyecto) fijarPermisos(v.webContents, proyecto, [{ ruta: proyecto, escritura: paginaDe(pagina.href) === 'editor' }]);
   await v.loadURL('falcon://app/' + args.pagina);
   const espera = (ms) => new Promise(r => setTimeout(r, ms));
   await espera(Number(args.espera || 1200));

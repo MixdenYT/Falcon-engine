@@ -244,7 +244,7 @@ async function nuevoProyecto(idPlantilla = 'vacio2d') {
       <div style="color:var(--texto-3);font-size:12px;margin-top:6px">El modo Sencillo muestra lo esencial y un curso guiado. Puedes cambiarlo cuando quieras.</div>
     </div>
     <div class="fila"><label class="etiqueta-campo">Ubicación</label>
-      <div class="fila-flex"><input class="campo mono" data-c="carpeta" value="${esc(datos.ajustes.carpetaProyectos)}"><button class="btn secundario" data-c="examinar">${icono('carpeta', '', 16)}Examinar</button></div>
+      <div class="fila-flex"><input class="campo mono" data-c="carpeta" readonly title="Elige la carpeta con Examinar" value="${esc(datos.ajustes.carpetaProyectos)}"><button class="btn secundario" data-c="examinar">${icono('carpeta', '', 16)}Examinar</button></div>
       <div class="ruta-final"></div>
     </div>
     <div class="progreso-crear oculto"><span class="cargando"></span><span class="txt">Creando…</span></div>
@@ -357,7 +357,7 @@ function vistaAjustes(c) {
     <header class="cabecera"><div><h1>Ajustes</h1><p>Preferencias generales de Falcon Engine en este equipo.</p></div></header>
     <section class="ajustes">
       <div class="ajuste"><div class="texto-ajuste"><b>Carpeta de proyectos</b><span>Donde se crean los proyectos nuevos e importados.</span></div>
-        <div class="control"><input class="campo mono" data-k="carpetaProyectos" value="${esc(a.carpetaProyectos)}"><button class="btn secundario peq" data-a="carpeta">Cambiar</button></div></div>
+        <div class="control"><input class="campo mono" data-k="carpetaProyectos" readonly title="Elige la carpeta con Cambiar" value="${esc(a.carpetaProyectos)}"><button class="btn secundario peq" data-a="carpeta">Cambiar</button></div></div>
       <div class="ajuste"><div class="texto-ajuste"><b>Modo del editor por defecto</b><span>Para proyectos nuevos. Sencillo muestra lo esencial.</span></div>
         <div class="control"><div class="segmentado peq" data-k="modoPorDefecto"><button data-v="sencillo">Sencillo</button><button data-v="avanzado">Avanzado</button></div></div></div>
       <div class="ajuste"><div class="texto-ajuste"><b>Guardado automático</b><span>Guarda las escenas y scripts abiertos cada pocos minutos.</span></div>

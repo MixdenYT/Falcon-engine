@@ -6,6 +6,7 @@ const path = require('node:path');
 const fs = require('node:fs');
 const fsp = require('node:fs/promises');
 const { pathToFileURL } = require('node:url');
+const { dentroDe, urlExterna } = require('./rutas.js');
 
 const RAIZ = path.resolve(__dirname, '..', '..');
 const JUEGO = path.join(RAIZ, 'juego');
@@ -25,7 +26,7 @@ const TIPOS = {
 };
 
 // Solo se sirven archivos de la propia aplicación.
-function dentro(ruta) { const r = path.resolve(ruta); return r === RAIZ || r.startsWith(RAIZ + path.sep); }
+const dentro = (ruta) => typeof ruta === 'string' && dentroDe(RAIZ, ruta);
 
 function registrarProtocolo() {
   protocol.handle('falcon', async (req) => {
@@ -91,7 +92,7 @@ app.whenReady().then(() => {
   const v = new BrowserWindow({
     width: ancho, height: alto, useContentSize: true, backgroundColor: '#000000', title: NOMBRE,
     icon: path.join(RAIZ, 'recursos', 'icono.png'), autoHideMenuBar: true,
-    webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: false },
+    webPreferences: { preload: path.join(__dirname, 'preload-juego.js'), contextIsolation: true, nodeIntegration: false, sandbox: false },
   });
   v.setMenu(null);
   // F10 es una tecla de sistema en Windows (activa el menú de la ventana) y a veces no llega a la
@@ -101,7 +102,7 @@ app.whenReady().then(() => {
     ev.preventDefault();
     v.webContents.executeJavaScript("window.dispatchEvent(new KeyboardEvent('keydown', { key: 'F10', code: 'F10' }))").catch(() => {});
   });
-  v.webContents.setWindowOpenHandler(({ url }) => { shell.openExternal(url); return { action: 'deny' }; });
+  v.webContents.setWindowOpenHandler(({ url }) => { if (urlExterna(url)) shell.openExternal(url); return { action: 'deny' }; });
   const q = new URLSearchParams({ modo: 'exportado', proyecto: JUEGO.split(path.sep).join('/') });
   v.loadURL(`falcon://app/src/juego/juego.html?${q}`);
   // Captura automática para pruebas: FALCON_CAPTURA=ruta.png

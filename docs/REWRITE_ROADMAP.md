@@ -48,7 +48,7 @@ Electron 44 + three.js 0.186; unas 22.900 líneas de JS en `src/`. Hay 50 prueba
 | FFI nativa (`externa` en `.exe`) | **No existe**: rechazada en `nativo.ara:313`; imports fijos de KERNEL32 |
 | Ventanas, GPU, audio, imágenes | **No existen** en el lenguaje ni en la biblioteca |
 | `f32`, búferes de bytes, estructuras por valor | No existen |
-| Trigonometría | No existe como integrada. **En desarrollo** (`sen`, `cos`, `tan`, `atan2`, de fdlibm); trabajo interrumpido, sin commit |
+| Trigonometría | Integrada (`sen`, `cos`, `tan`, `asen`, `acos`, `atan`, `atan2`, de fdlibm, igual bit a bit en JIT, wasm y código máquina). Falcon la usa desde el 21-11-2026 |
 | Closures, genéricos, traits, hilos | No existen |
 | Memoria | Conteo de referencias; los ciclos se pierden |
 
@@ -88,7 +88,7 @@ Reglas de la frontera:
 | Fase | Contenido | Estado |
 |---|---|---|
 | 0 | Auditoría, línea base y esta hoja de ruta | Completado |
-| 1 | Fundación:<br>• trigonometría en Ara<br>• `herramientas/compilar-nucleo-ara.mjs`<br>• `src/motor/ara/nucleo.wasm` versionado | En desarrollo |
+| 1 | Fundación:<br>• trigonometría en Ara<br>• `herramientas/compilar-nucleo-ara.mjs`<br>• `src/motor/ara/nucleo.wasm` versionado | Completado |
 | 2 | Núcleo en Ara, por bloques, cada uno con las pruebas headless en verde:<br>1. física 2D (en revisión)<br>2. contactos 2D (los pares, en revisión con B3)<br>3. temporizadores, partículas, animación de sprites<br>4. física 3D, controles y CQB<br>5. compilador de Blueprints | En desarrollo |
 | 3 | Ara nativo:<br>• FFI con DLL, convención Win64<br>• `f32` y búferes<br>• ventana Win32<br>• triángulo OpenGL<br>• llamadas indirectas | Pendiente |
 | 4 | Runtime nativo: el núcleo de la fase 2 corre en un `.exe` y dibuja con la fase 3; escena 2D primero | Pendiente |
@@ -117,14 +117,34 @@ Reglas de la frontera:
   - B3 (transformaciones, cajas y contactos 2D), en revisión:
     - Ara guarda por nodo (índice = posición en `Mundo.todos()`) su padre, su matriz local y su caja local. Con eso calcula `matrizPadre`, `caja`, `mover` (con `aplicarMovimiento2d`) y los pares de `contactos2d`.
     - `Mundo.sincronizarAra` solo manda los nodos que cambiaron. Compara con lo último que mandó; si el núcleo pasa a otro mundo, lo manda todo. Las celdas se reenvían solo si cambian (`poner`, `quitar` o un objeto `celdas` nuevo).
-    - Las sumas son las de la `DOMMatrix` de `pruebas/dom.js`, en el mismo orden. El seno y el coseno de la rotación los calcula JS, porque el compilador de Falcon no tiene trigonometría (`shortcut:` en `mundo.js`).
+    - Las sumas son las de la `DOMMatrix` de `pruebas/dom.js`, en el mismo orden. El seno y el coseno de la rotación los calcula Ara (`sen`/`cos`, fdlibm) desde los grados.
     - `pruebas/fisica2d-ara.test.js`, 10 pruebas. Cubren padres anidados con escala y rotación, `Fondo` y áreas, y scripts que entre pasos cambian padres, posiciones, escalas, visibilidad y celdas, crean y eliminan nodos. También dos mundos que se turnan el núcleo. Los pares de `contactos2d` también salen iguales.
     - 200 personajes (Node, ms/paso, JS → Ara):
       - con plataformas, 0,27 → 0,12;
       - con mosaicos, 0,74 → 0,19;
       - con `contactos2d`, 0,63 → 0,34 y 1,15 → 0,45.
-    - Riesgo: en Electron la ruta JS usa la `DOMMatrix` nativa de Chromium. En nodos girados (y quizá en el signo de algún cero) puede redondear distinto que Ara. Las pruebas comparan con la de `pruebas/dom.js`.
+    - Riesgo: en Electron la ruta JS usa la `DOMMatrix` nativa de Chromium. En nodos girados (y quizá en el signo de algún cero) puede redondear distinto que Ara. Las pruebas comparan con la de `pruebas/dom.js`. Medido el 21-11-2026, ver «Verificación en Electron».
     - Pendiente:
       - leer los resultados de `mover` y los pares con menos cruces;
       - `contactos2d` es O(n²);
-      - pasar la trigonometría a Ara cuando Falcon actualice su compilador.
+      - ~~pasar la trigonometría a Ara cuando Falcon actualice su compilador~~ (hecho, ver abajo).
+- Compilador de Ara al día y trigonometría en el núcleo (21-11-2026):
+  - `src/ara/` actualizado desde `motor-ara` de Ara (2ff41f0) con `herramientas/copiar-a-falcon.sh`:
+    - `ara_web.wasm`: 1.620.646 → 1.457.050 bytes;
+    - `ara_runtime.wasm`: 96.279 → 87.758 bytes. Ahora es el runtime escrito en Ara (`crates/ara_wasm/runtime/`), el que copia el script; antes era el de Rust de `runtime-web.sh`;
+    - `ara.mjs` (fotos de memoria y anfitrión de sistema); `compilador.mjs` sin cambios.
+  - El runtime va a la par con el compilador: el `nucleo.wasm` anterior con el runtime nuevo da posiciones erróneas. Hay que regenerar `nucleo.wasm` en cada actualización; la prueba «nucleo.wasm está al día» lo detecta.
+  - `Fisica2D.nodo` recibe los grados y calcula `cos`/`sen` en Ara. Se quita el `shortcut:` de `mundo.js`.
+  - Ara (fdlibm) y `Math.sin`/`Math.cos` de V8 no siempre coinciden en el último bit:
+    - en Node 26 difieren en 12 de los 721 grados enteros entre −360 y 360 (por ejemplo, 48°), y en un 2 % de ángulos al azar;
+    - V8 tampoco es estable: Electron 44 y Node 26 difieren entre sí en 198 de 2.881 medios grados;
+    - `DOMMatrix.rotateSelf` de Chromium difiere de Ara en 2.520 de esos 2.881 (reduce el ángulo y redondea los múltiplos de 90°).
+  - Decisión: la ruta de Ara es la del juego y es determinista en todas las plataformas; JS es el respaldo. Las pruebas de `fisica2d-ara.test.js` siguen idénticas (giran 12° y −27,5°, donde coinciden). Con 48° la ruta JS de Node se separa en el paso 9 por 1 ulp (−187,76070527542387 frente a …393).
+  - Verificación en Electron 44 (plantillas `plataformas` y `topdown`, `electron . --captura --guion`):
+    - (a) el núcleo se carga por `falcon://`: `nucleo` no nulo tras `cargarEscena`, y el jugador anda con teclas de verdad (x 220 → 487,7 en 1,2 s) sin perder el núcleo;
+    - (b) tres mundos completos (scripts, Blueprints, física y contactos) con la misma entrada y `Math.random` sembrado, 1.200 pasos:
+      - Ara contra JS con la `DOMMatrix` de `pruebas/dom.js`: idénticos en los 1.200 pasos, en las dos plantillas, también con plataformas giradas 48°, 194°, 311°…;
+      - Ara contra JS con la `DOMMatrix` nativa: se separan. Sin giros, en el paso 671 de `plataformas` (x 1026,666666666664 frente a …642, con el jugador caído a y ≈ 22.817) y en el 452 de `topdown` (y 71 frente a 70,99999996747634). Con plataformas giradas, en los pasos 88 y 500;
+      - causa: la aritmética de la `DOMMatrix` de Chromium (orden de las sumas y su propio seno y coseno), no la ruta de Ara. Para igualar el respaldo habría que cambiar `matrizLocal`/`matrizPadre` por la aritmética de `pruebas/dom.js`. No se ha hecho: el respaldo solo se usa si el núcleo no carga.
+    - (c) juego exportado con `exportarJuego` (win32-x64, motor local) y abierto con `FALCON_GUION`: `nucleo` no nulo, `.falcon/ara.wasm` cargado, `ara_web.wasm` da 404 (no lleva el compilador) y el jugador avanza 330 px en 90 pasos sin errores del núcleo. Con el árbol anterior a `be4429d` no arrancaba: faltaban `src/ara/api.js` y `api-motor.js` en `ARCHIVOS_APP` (ventana negra, sin errores en consola); `be4429d` los añadió.
+  - `Mundo.iniciar` omite las carpetas que no son del juego (`exportado`, `capturas`, `exportaciones`, `.git`), con el mismo criterio que `OMITIR_PROYECTO` de `exportar.js`. Antes, exportar a `<proyecto>/exportado` (el destino por defecto) metía en el juego los `.ara` de la exportación, y no arrancaba («el tipo `Nodo` ya está definido»). Lo prueba `pruebas/carpetas-omitidas.test.js`, que también exige que las dos listas sigan iguales.

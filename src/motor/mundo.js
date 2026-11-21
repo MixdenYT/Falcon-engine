@@ -13,6 +13,10 @@ import { nucleoAra } from './nucleo-ara.js';
 
 // Los nombres se comparan sin tildes ni mayúsculas. Se normalizan muchas veces por fotograma (`nodo("Jugador")`,
 // `hijo("Destino")`) y casi siempre los mismos: se guardan (con un tope, por si un juego crea nombres sin fin).
+// Carpetas del proyecto que no son del juego (capturas, juegos exportados dentro del proyecto...): mismo criterio que
+// OMITIR_PROYECTO de src/principal/exportar.js (una prueba los mantiene iguales).
+export const OMITIR_PROYECTO = new Set(['capturas', 'exportado', 'exportaciones', '.git']);
+
 const NORMALIZADOS = new Map();
 const norm = (s) => {
   const t = String(s);
@@ -410,7 +414,7 @@ export class Mundo {
   // ---------- Carga ----------
   async iniciar() {
     const archivos = await this.proyecto.listar('', true);
-    this.archivos = archivos.filter(a => !a.carpeta).map(a => a.rel.replace(/\\/g, '/'));
+    this.archivos = archivos.filter(a => !a.carpeta).map(a => a.rel.replace(/\\/g, '/')).filter(a => !OMITIR_PROYECTO.has(a.split('/')[0]));
     this.audio = new Audio(this.proyecto, this.archivos.filter(a => tipoRecurso(a) === 'sonido'));
     // Textos de scripts y blueprints.
     await Promise.all(this.archivos.filter(a => /\.(agl|ara|bp|fscn)$/i.test(a)).map(async (a) => {

@@ -120,7 +120,6 @@ Comprobado en Electron (modo `--captura` con guiones):
 - `ventana:maximizada` no comprueba el remitente, porque solo lee un booleano.
 - Las raíces concedidas por diálogo duran hasta que la ventana cambia de página desde el proceso principal (gestor y editor). `will-navigate` sigue dejando que la página navegue a otra URL `falcon://`, pero conserva sus permisos y no gana ninguno.
 - `jugador.js` sigue sin `realpath`: la carpeta del juego exportado no la controla un proyecto ajeno.
-- **Fallo previo, sin relación con la seguridad y sin corregir** (está en `src/motor/mundo.js`, que pertenece a otro agente): si se exporta a `<proyecto>/exportado`, que es el destino por defecto, el editor y la ventana de prueba compilan también los `.ara` de la exportación, entre ellos `resources/app/src/ara/motor.ara`, y el juego no arranca («el tipo `Nodo` ya está definido»). `mundo.js` debería omitir `exportado`, igual que `OMITIR_PROYECTO` en `exportar.js`.
 
 ### A2 · Alta: `falcon://fs/` sirve cualquier archivo del disco y `falcon://app/` permite path traversal
 

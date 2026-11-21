@@ -112,16 +112,16 @@ export function icono(nombre, clase = '', tam = 18) {
 
 export const NOMBRES_ICONOS = Object.keys(P);
 
-// Logotipo: perfil de halcón geométrico en un cuadrado redondeado.
+// Logotipo: halcón en picado sobre un cuadrado redondeado (recursos/logo.png).
 export function logo(tam = 32, variante = 'verde') {
   const fondo = { verde: '#3DDC84', oscuro: '#151A17', claro: '#E7EDE9', contorno: 'none' }[variante];
   const ave = { verde: '#06130B', oscuro: '#3DDC84', claro: '#050605', contorno: 'none' }[variante];
   const borde = variante === 'contorno' ? '<rect x="2" y="2" width="60" height="60" rx="16" fill="none" stroke="#3DDC84" stroke-width="3"/>' : '';
   const trazoAve = variante === 'contorno'
-    ? `<path d="${PERFIL}" fill="none" stroke="#3DDC84" stroke-width="3" stroke-linejoin="round"/>`
-    : `<path d="${PERFIL}" fill="${ave}"/><circle cx="40.5" cy="21" r="2.6" fill="${fondo}"/>`;
+    ? `<path d="${PERFIL}" fill="none" stroke="#3DDC84" stroke-width="2" stroke-linejoin="round"/>`
+    : `<path d="${PERFIL}" fill="${ave}" fill-rule="evenodd"/>`;
   return `<svg class="logo" width="${tam}" height="${tam}" viewBox="0 0 64 64" aria-label="Falcon Engine">${variante !== 'contorno' ? `<rect width="64" height="64" rx="17" fill="${fondo}"/>` : ''}${borde}${trazoAve}</svg>`;
 }
 
-// Silueta del halcón: cabeza curvada con el pico hacia la derecha y la cola partida abajo.
-const PERFIL = 'M47.5 15.2 50.8 20.6 44.6 22.4C44.2 31.6 39.2 39.6 31.9 44.6L27.6 40.7 22.7 49.5 13.5 45.1C17 31.1 26.4 18.6 38.7 14.4 41.9 13.3 44.9 13.6 47.5 15.2Z';
+// Silueta del halcón de recursos/logo.png; se regenera con: npx electron herramientas/trazar-logo.js
+const PERFIL = 'M54.6 9.7 54.6 11 54 13.4 53.2 14.9 52 16.2 38.6 24 53.2 17.9 53.3 18.2 52.7 20 51.5 22.2 50.5 23.2 49 24 36.8 28.5 49.8 25.7 50.1 25.7 48.7 28.1 47.2 29.5 45.4 30.3 34.8 32.4 43.8 32.3 42.4 33.8 40.3 35 33.3 36 51.9 49.1 48.5 50.4 45.4 51.1 37.1 44 42.9 51.2 37 49.8 33.3 43.5 31.6 42.6 30.3 45.1 26 46.4 26.9 48.2 25.9 49.4 25.2 49.8 24.3 49.8 24.9 49.3 25.1 48.4 25 48 24.1 47.4 23 47.5 22.4 48 22.2 48.7 22.3 49.7 21.8 49.3 21 48.3 21 47.2 22.6 45.4 24.1 45.6 26.1 44.3 27.2 38.9 25.8 40.3 22 38.5 20.8 37.2 18.1 33.4 16.4 32.3 15.1 32.2 14.2 32.5 13.5 33.1 13.1 34.4 12.2 33.3 12.1 32 12.5 31.1 13.7 30.2 14.1 28.9 16.3 27.6 19.4 26.9 21.5 27 20.1 28.3 22.1 28 25.6 28.3 25.8 28.5 23.9 31.3 23.3 32.8 32.8 21.9ZM13.1 14.1 24.8 22.8 27.3 26.3 27 27 26.5 27.5 23 26.9 23.9 25.9 21.9 25.7 19.7 25.7 17.1 26.5 14.7 23.7 13.6 21.3 13 17.5ZM21.7 39.4 25.4 41.2 24.8 43.4 20.5 44.1 20.7 45.8 20 46.7 19.1 47.2 18.3 47.2 19 46.4 19.1 45.4 18.2 44.5 17 44.8 16.4 45.5 16.3 46.4 16 46.3 15.4 45.2 15.6 43.7 17.5 42.4 18.8 43 21.1 42.3Z';

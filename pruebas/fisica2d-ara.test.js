@@ -133,3 +133,13 @@ test('nucleo.wasm está al día con src/motor/ara/*.ara', async () => {
   const guardado = await readFile(new URL('../src/motor/ara/nucleo.wasm', import.meta.url));
   assert.ok(Buffer.from(await compilarNucleo()).equals(guardado), 'ejecuta node herramientas/compilar-nucleo-ara.mjs');
 });
+
+test('cargar una escena conserva el núcleo de Ara que precargó iniciar()', async () => {
+  const nucleo = await nucleoAra();
+  const m = mundo(nodo('Nodo2D', 'Vieja'), nucleo);
+  m.proyecto.leerEscena = async () => ({ tipo: '2D', raiz: nodo('Nodo2D', 'Nueva', {}, [pj('Jugador')]) });
+  m.ctx = {}; // no se dibuja: basta con que exista
+  m.audio = { sonar() {}, pararNodo() {}, reproducirNodo() {}, pararTodo() {} };
+  await m.cargarEscena('principal.fscn');
+  assert.equal(m.nucleo, nucleo);
+});

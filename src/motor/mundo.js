@@ -516,7 +516,6 @@ export class Mundo {
     this.tiempo = 0;
     this.estado = 'jugando';
     this.pares = new Map();
-    this.nucleo = null; // núcleo de Ara (src/motor/nucleo-ara.js); sin él, la física va en JS
     this.temporizadores = [];
     this.puntosIniciales = this.interp.globales.vars.get('puntos') || 0;
     if (this.tipoEscena === '3D') {

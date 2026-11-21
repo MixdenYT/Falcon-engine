@@ -2,7 +2,7 @@
 
 Auditoría del 21-11-2026 (agente 08, ciberseguridad), sobre Falcon Engine 1.3.0 con Electron 44.9.0. El trabajo consistió en leer el código. No se ejecutaron pruebas de concepto contra la aplicación. Los números de línea corresponden al árbol de trabajo de esa fecha (commit `db8923f` y los cambios locales sin confirmar).
 
-> **Estado (21-11-2026, commit `5f79601`):** C1, A2 y la parte de CSP de M2 están corregidos. Quedan abiertos A1 (IPC sin límites), M1, M3, M4 y los hallazgos B. Como A1 sigue abierto, cualquier XSS nueva volvería a dar acceso al disco: **los proyectos de terceros siguen siendo de riesgo** hasta cerrar A1.
+> **Estado (21-11-2026, commits `5f79601` y `be4429d`):** C1, A1, A2 (también `falcon://fs`) y la parte de CSP de M2 están corregidos. Quedan abiertos M1 (`sandbox: false` y ningún gestor de permisos), M3 (actualizaciones sin firma), M4 (Electron 44.9.0) y los hallazgos B. Una XSS nueva ya no da acceso al disco fuera del proyecto abierto ni a `shell`, pero sí deja leer y escribir **dentro** de ese proyecto. Como M1 sigue abierto, el renderer tampoco está aislado del sistema por el sandbox.
 >
 > Comprobación en ejecución (Electron, modo `--captura` con un guion): un proyecto con HTML en `velocidad`, `posicion`, `ancho`, `gravedad` y en el `id` de un nodo abre en modo Sencillo sin ejecutar nada; `falcon://app/..%2f…` daba 200 antes del arreglo y ahora da 404; las texturas de `falcon://fs/` siguen cargando con CORS; el import map carga con la CSP nueva y un `onerror=` inyectado queda bloqueado (`script-src-attr`).
 
@@ -69,7 +69,7 @@ Resultado: ejecución de código como el usuario, solo con abrir el proyecto y s
 3. Quitar `'unsafe-inline'` de `script-src` (mover `editor.js:33`, que usa `onclick=` en línea, a `addEventListener`). Así una inyección HTML no ejecuta script.
 4. Aplicar A1: aunque haya una XSS, que no dé acceso al sistema.
 
-**Estado: corregido en `5f79601`** (puntos 1 a 3; el 4 es A1, sigue abierto).
+**Estado: corregido en `5f79601`** (puntos 1 a 3); el punto 4 (A1) se corrigió en `be4429d`.
 - Se revisaron con grep todas las interpolaciones en HTML de `src/editor`, `src/ui`, `src/gestor` y `src/juego`, no solo las siete de arriba. Se escapan con el `esc()` que ya existía (`src/ui/componentes.js:4`), o con `Number()` dentro de `style`: `sencillo.js:64,68`, `inspector.js:125,306` (`doc.dim` sale del `.fscn`), `acciones.js:310,311,332`, `recursos.js:396`, `malla.js:72`, `material.js:209` (parámetros del `.mat`) y `:141` (comilla simple en `url('…')`), `blueprints.js:62` (parámetros de funciones del `.bp`), `aguila.js:266` (`JSON.stringify` del filtro de un evento del script), `arbol.js:61` (`id` del nodo), `inferior.js:167,223` (rangos de animación de `importacion.json` y volumen de `proyecto.falcon`), `grafo.js:49,56` (posiciones del `.bp`), y `juego.js:87,270` (resolución y la variable `puntos` de los scripts, en la ventana del juego).
 - `normalizarNodo` (`src/motor/tipos.js`) valida cada propiedad conocida contra el tipo de su valor por defecto: número (acepta texto numérico), sí/no, texto (acepta un número), vector y objeto. Si no encaja, se usa el valor por defecto. El `id` tiene que cumplir `^[\w.-]{1,64}$`, y si no, se genera otro. `nombre`, `script` y `blueprint` deben ser texto, y `hijos`, `grupos`, `senales` y `exportados` deben tener la forma correcta. Las claves desconocidas se conservan para no romper proyectos antiguos. `normalizarEscena` solo admite `tipo` 2D o 3D. Una prueba (`pruebas/ejemplos.test.js`) comprueba que la validación no cambia ninguna escena de ninguna plantilla.
 - La CSP ya no lleva `'unsafe-inline'` en `script-src` (ver M2), y el `onclick=` de `editor.js:33` pasa a JS.
@@ -92,6 +92,36 @@ Resultado: ejecución de código como el usuario, solo con abrir el proyecto y s
 - Dar a la ventana de juego un preload reducido, como el que ya usa `jugador.js`: lectura dentro del proyecto y nada de escritura ni de `shell`.
 - Validar `e.senderFrame.url` (que empiece por `falcon://app/`) en cada manejador.
 
+**Estado: corregido en `be4429d`.** La lógica de autorización son funciones puras de `src/principal/rutas.js` (`dentroDe`, `rutaReal`, `permitida`, `puedeBorrar`, `paginaDe`, `urlExterna`, `datosSaneados`), cubiertas por `pruebas/seguridad.test.js`.
+- **Remitente.** Cada manejador llama a `de(e, …páginas)`: el mensaje tiene que venir del marco principal (`senderFrame.parent === null`) y su URL tiene que ser exactamente `falcon://app/src/{gestor,editor,juego}/….html`. Cada canal admite solo las páginas que lo usan. Por ejemplo, `app:abrir-proyecto` solo lo acepta del gestor, `exportar` y `juego:probar` solo del editor, y `juego:de` y `juego:captura` solo de la ventana de juego.
+- **Raíces por ventana.** El proceso principal guarda, para cada `webContents`, una lista de raíces `{ ruta (real), escritura }` y el proyecto. Nunca las toma de la página:
+  - **Gestor:** la carpeta de proyectos y los proyectos recientes de `falcon-datos.json`.
+  - **Editor:** la carpeta del proyecto que abrió el gestor (`app:abrir-proyecto` exige una carpeta permitida que contenga `proyecto.falcon` o `.talon`) o la línea de órdenes.
+  - **Ventana de prueba:** el proyecto del editor que la abre, **solo lectura**. `op.proyecto` de la página se ignora.
+  - **En las dos páginas con diálogos:** lo que el usuario elige en un diálogo nativo. `dialogo:carpeta` y `dialogo:guardar` dan escritura; `dialogo:archivos` da lectura del archivo elegido. También los archivos soltados en el editor: el preload saca la ruta de un `File` real con `webUtils.getPathForFile`, y una página no puede fabricar uno con ruta.
+- **Comprobación de rutas.** Primero se normaliza con `path.resolve`, sin `..`, y esa es la ruta que se usa. Después se resuelve con `realpath` (enlaces y uniones; si el archivo aún no existe, se resuelve su antepasado más cercano que sí exista) y se exige que caiga dentro de una raíz. En Windows no se distinguen mayúsculas, tampoco en la unidad. `C:\p:flujo`, `\\?\…` y las rutas UNC quedan fuera. Leer, listar, `existe` y `tamano` piden lectura. Escribir, crear carpetas, renombrar (las dos rutas) y el destino de copiar piden escritura. El origen de copiar solo necesita lectura, para importar recursos elegidos o soltados.
+- **Borrar.** Solo va a la papelera (`shell.trashItem`): si falla, se devuelve el error y **ya no hay `rm -rf` de respaldo**. Además, la ruta tiene que estar por debajo de una raíz con escritura y nunca ser la raíz misma. La única excepción es un proyecto reciente que se borra desde el gestor y que de verdad contiene un proyecto.
+- **URLs externas.** `sistema:abrir-url` y `setWindowOpenHandler` (en el editor y en el juego exportado) solo abren `https:` y `http:`. `file:`, `javascript:`, `ms-settings:`, `smb:`, las rutas sueltas, etc. se ignoran. No se usa `mailto:`.
+- **Exportar.** Se exporta el proyecto abierto en esa ventana. El destino tiene que estar permitido con escritura: por defecto es `<proyecto>/exportado`, o la carpeta elegida con «Examinar». El icono es siempre `recursos/icono.ico` de la app. Así, el `borrar()` de `exportar.js` solo actúa sobre `<destino permitido>/<nombre saneado>-<plataforma>`.
+- **`falcon-datos.json`.** `app:guardar-datos` no deja que la página añada recientes: solo puede quitarlos o reordenarlos, y se guardan los objetos que tiene el proceso principal. La carpeta de proyectos solo cambia a una carpeta permitida, es decir, elegida en un diálogo. Por eso, en el gestor, los campos de ubicación ahora son de solo lectura y se cambian con «Examinar» y «Cambiar». El juego recibe solo `ajustes`.
+- **Preload del juego.** `src/principal/preload-juego.js` lo usan la ventana de prueba y el juego exportado (`jugador.js`). Solo expone la ventana, `app.datos`, `app.archivoProyecto`, `fs.leer`, `fs.existe`, `fs.listar` y `juego.{alRecibir,informar,captura}`: nada de escritura, borrado, diálogos, `shell`, exportar ni actualizaciones. `juego:captura` guarda en `<proyecto>/capturas` según el proyecto registrado, sin tomar la ruta de la página.
+
+Comprobado en Electron (modo `--captura` con guiones):
+- Desde el gestor se crea la plantilla «plataformas» en la carpeta de proyectos y se abre en el editor.
+- En el editor se edita y se guarda (`gravedad` y un archivo nuevo), se exporta a `win32-x64` y se prueba el juego, que llega a 60 fps con los scripts de Ara.
+- El `.exe` exportado arranca con el preload reducido.
+- Desde el gestor, el editor y el juego, `fs.leer('C:/Windows/win.ini')` se rechaza, `fs.existe` da `false`, `fs.listar('C:/Windows')` da `[]` y `fetch('falcon://fs/C:/Windows/win.ini')` da 404 (en el juego exportado, 403).
+- Se rechazan: escribir fuera, también con `proyectos/../`; copiar un archivo de fuera al proyecto; renombrar hacia fuera; borrar la raíz del proyecto, la carpeta de proyectos y archivos de fuera; abrir `C:/Windows` como proyecto; inyectar recientes o la carpeta de proyectos en `falcon-datos.json`; y exportar a `C:/Users/Public`.
+- `secreto.txt`, que estaba fuera del proyecto, siguió intacto.
+
+**Queda.**
+- Los diálogos nativos (abrir proyecto, importar recursos, «Examinar») y arrastrar y soltar no se pueden automatizar. Se revisó a mano que concedan la raíz, pero no se ejecutaron.
+- Entre la comprobación y el uso hay una carrera (TOCTOU): un enlace que se cambie en ese intervalo escapa. Para aprovecharla hace falta poder escribir enlaces en el proyecto de forma concurrente.
+- `ventana:maximizada` no comprueba el remitente, porque solo lee un booleano.
+- Las raíces concedidas por diálogo duran hasta que la ventana cambia de página desde el proceso principal (gestor y editor). `will-navigate` sigue dejando que la página navegue a otra URL `falcon://`, pero conserva sus permisos y no gana ninguno.
+- `jugador.js` sigue sin `realpath`: la carpeta del juego exportado no la controla un proyecto ajeno.
+- **Fallo previo, sin relación con la seguridad y sin corregir** (está en `src/motor/mundo.js`, que pertenece a otro agente): si se exporta a `<proyecto>/exportado`, que es el destino por defecto, el editor y la ventana de prueba compilan también los `.ara` de la exportación, entre ellos `resources/app/src/ara/motor.ara`, y el juego no arranca («el tipo `Nodo` ya está definido»). `mundo.js` debería omitir `exportado`, igual que `OMITIR_PROYECTO` en `exportar.js`.
+
 ### A2 · Alta: `falcon://fs/` sirve cualquier archivo del disco y `falcon://app/` permite path traversal
 
 **Dónde.** `src/principal/main.js:46-68`.
@@ -103,10 +133,11 @@ Resultado: ejecución de código como el usuario, solo con abrir el proyecto y s
 
 **Corrección.** Resolver con `path.resolve` y `realpath`, y exigir que la ruta esté dentro de `RAIZ_APP` (host `app`) o del proyecto abierto (host `fs`), con la misma comprobación `dentro()` de `jugador.js:105`. Quitar `Access-Control-Allow-Origin: *`.
 
-**Estado: `falcon://app` corregido en `5f79601`; `falcon://fs` sigue abierto.**
+**Estado: `falcon://app` corregido en `5f79601` y `falcon://fs` en `be4429d`.**
 - La traducción de URL a ruta está en una función pura, `rutaDeUrl` (`src/principal/rutas.js`), que usa `main.js`. Decodifica, resuelve con `path.resolve` y exige que la ruta sea `RAIZ_APP` o esté debajo de `RAIZ_APP + path.sep`. Si no, devuelve 404. Una URL mal codificada también da 404, en vez de una excepción. Lo cubre `pruebas/seguridad.test.js`, y en Electron `..%2f` daba 200 antes del arreglo y ahora da 404.
 - `Access-Control-Allow-Origin` pasa de `*` a `falcon://app`. **No se puede quitar**, porque las páginas (origen `falcon://app`) cargan texturas, modelos y fuentes de `falcon://fs/` (otro origen), y `TextureLoader` y `GLTFLoader` piden CORS. Se comprobó en Electron que siguen cargando.
-- **Queda:** el host `fs` sigue sirviendo cualquier ruta absoluta. Para limitarlo al proyecto abierto en cada ventana hace falta que el proceso principal sepa qué proyecto tiene cada ventana, que es el mismo cambio que A1 (raíces permitidas). Tampoco se usa `realpath`, así que un enlace simbólico dentro de la app no se detecta. La carpeta de la app no la controla un proyecto. `jugador.js` (el juego exportado) ya estaba bien con `dentro()` y no se tocó.
+- `falcon://fs` solo sirve una ruta si alguna ventana abierta puede leerla según sus raíces (A1), con la misma comprobación con `realpath`. Si no, da 404. El protocolo no dice qué ventana hace la petición, así que se usa la unión de las raíces de todas las ventanas. En la práctica es el proyecto abierto, lo elegido en diálogos y, en el gestor, la carpeta de proyectos y los recientes (por las miniaturas). Se comprobó en Electron: `win.ini` da 404 y `proyecto.falcon` da 200.
+- **Queda:** como se usa esa unión, una página puede leer por `falcon://fs` lo que puede leer otra ventana abierta a la vez. Por ejemplo, la ventana de prueba ve lo mismo que el editor, que es su mismo proyecto. El host `app` sigue sin `realpath`, pero la carpeta de la app no la controla un proyecto.
 
 ### M1 · Media: renderers sin sandbox y sin gestor de permisos
 
@@ -163,6 +194,8 @@ La integridad depende **solo** del `sha512` de `latest.yml`, que se sirve desde 
 
 **Corrección.** En `abs()`, rechazar las rutas absolutas y los `..`. Las referencias deben quedarse relativas al proyecto.
 
+**Estado: mitigado en `be4429d`.** El IPC y `falcon://fs` rechazan las rutas que caen fuera de las raíces de la ventana. En Electron, `proyecto.leer('C:/Windows/win.ini')` ya no lee nada. `abs()` sigue igual: lo que se ha mitigado es el acceso al disco, pero las referencias con ruta absoluta todavía pueden apuntar a otro proyecto permitido en la misma ventana.
+
 ### B3 · Baja: las partidas guardadas se comparten entre proyectos del editor
 
 **Dónde.** `src/motor/mundo.js:397`: la clave es `'falcon:' + nombre_del_proyecto + ':' + k`, en el `localStorage` del origen único `falcon://app`.
@@ -203,7 +236,7 @@ La integridad depende **solo** del `sha512` de `latest.yml`, que se sirve desde 
 - **Ara (wasm) solo ve las importaciones del anfitrión** (`puente.js:251-366`): propiedades y métodos de nodo con la misma lista blanca que Águila, y globales del intérprete de Águila. WebAssembly no tiene otra salida. En los juegos exportados, el `.falcon/ara.wasm` precompilado tiene la misma superficie.
 - **Zip-slip al descomprimir Electron** (`exportar.js:120-164`). Se rechazan las entradas con `..` (línea 136), se usa `path.join` (las rutas absolutas no salen del destino) y yauzl 2.10 valida los nombres por defecto. Los symlinks no se crean en disco: se anotan y se reproducen dentro del `.tar.gz`. `@electron/get` 5.1.0 valida contra `SHASUMS256.txt` (`dist/index.js:20-31`) salvo que se pase `unsafelyDisableChecksums`, y aquí no se pasa.
 - **IPC de actualizaciones.** Solo responde al gestor (`actualizaciones.js:137-140`). El repositorio se valida con una expresión regular (línea 7). El token solo vive en el proceso principal y los errores no filtran cabeceras.
-- **Juego exportado.** `jugador.js` limita `fs:leer`, `fs:existe` y `fs:listar` a la carpeta del juego con `dentro()` (línea 105), y no expone escritura, borrado ni `shell`, salvo en `setWindowOpenHandler`, que los scripts no pueden alcanzar.
+- **Juego exportado.** `jugador.js` limita `fs:leer`, `fs:existe` y `fs:listar` a la carpeta del juego con `dentro()` (desde `be4429d`, con `dentroDe` de `rutas.js`, que en Windows no distingue mayúsculas). No expone escritura, borrado ni `shell`. Desde `be4429d` usa `preload-juego.js`, y `setWindowOpenHandler` solo abre `https:` y `http:`.
 - **GLTF y recursos remotos:** `connect-src falcon: data: blob:` impide cargar `uri` de red desde un modelo.
 
 ## Riesgos conocidos y aceptados
@@ -216,7 +249,7 @@ La integridad depende **solo** del `sha512` de `latest.yml`, que se sirve desde 
 ## Prioridad de corrección
 
 1. ~~C1: escapar los siete sumideros y validar tipos al cargar.~~ Hecho en `5f79601`.
-2. A1 y lo que queda de A2: rutas permitidas en el IPC y en `falcon://fs`, y `abrirUrl` solo con `https:`. (`falcon://app` ya está corregido.)
+2. ~~A1 y lo que queda de A2: rutas permitidas en el IPC y en `falcon://fs`, y `abrirUrl` solo con `https:`.~~ Hecho en `be4429d`.
 3. M1: `sandbox: true` y gestor de permisos. (La parte de CSP de M2 ya está hecha.)
 4. M4: subir Electron. M3: firma de código.
 5. Los hallazgos B.

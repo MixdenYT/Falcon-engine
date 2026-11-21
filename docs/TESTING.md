@@ -46,6 +46,7 @@ Estado comprobado el 21-11-2026 en la rama `motor-ara` (`db8923f`), con Windows 
 | `ejemplos.test.js` | 8 | Plantillas y Academia: cada bloque real en un grafo ejecutable, todas las plantillas compilan su Ara, puzle de cajas en Ara que se gana, combate e IA con scripts, rayos y cobertura, crear proyectos (WAV y metadatos). |
 | `huecos.test.js` | 3 (caseras) | `huecos.js` y `escena3d.js`: CSG del muro con puerta, colisión partida en cajas. |
 | `fisica2d-ara.test.js` | 10 | Núcleo de física 2D en Ara (`src/motor/ara/fisica2d.ara`) frente a la ruta JS, paso a paso; `cargarEscena` conserva el núcleo; `nucleo.wasm` al día. |
+| `nativo-2d.test.js` | 1 | El `.exe` de `examples/native-2d` frente a la ruta wasm de Falcon, bit a bit en 900 pasos. Se salta, con aviso, sin Windows o sin el compilador de Ara (`ARA_DIR` / `ARA`). |
 | `seguridad.test.js` | — | `normalizarNodo`/`normalizarEscena` con valores maliciosos, contención de rutas de `falcon://`, CSP sin `unsafe-inline`, autorización del IPC (`src/principal/rutas.js`) y preload reducido del juego. |
 | `carpetas-omitidas.test.js` | — | `Mundo.iniciar` no recoge scripts de `exportado/` y demás carpetas ajenas; la lista coincide con la de `exportar.js`. |
 | `release.test.js` | 2 | `verificar-release.cjs`: tres plataformas completas, `SHA256SUMS.txt`, rechazo de binarios alterados, de plataformas incompletas y de versiones distintas. |

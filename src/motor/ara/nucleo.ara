@@ -1,0 +1,70 @@
+# Lo que el núcleo wasm del motor exporta a JS (src/motor/nucleo-ara.js). Las clases de script son la única forma de
+# exportar funciones a JS, así que aquí solo hay envolturas finas: la lógica está en módulos que también compilan a
+# nativo (fisica2d.ara).
+
+externa tipo Nucleo
+
+# La física 2D (`Fisica` de fisica2d.ara), con resultados que cruzan como números.
+clase Fisica2D extiende Nucleo:
+    f = Fisica()
+
+    func empezar(n: entero):
+        f.empezar(n)
+
+    func nodo(i: entero, p: entero, sin_matriz: booleano, x: decimal, y_: decimal, grados: decimal, esc: booleano, sx: decimal, sy: decimal, caja_tipo: entero, ox: decimal, oy: decimal, w: decimal, h: decimal, solido: entero, cl: entero):
+        f.nodo(i, p, sin_matriz, x, y_, grados, esc, sx, sy, caja_tipo, ox, oy, w, h, solido, cl)
+
+    func preparar() -> entero:
+        devolver f.preparar()
+
+    func solido_cx(k: entero) -> decimal:
+        devolver f.scx[k]
+
+    func solido_cy(k: entero) -> decimal:
+        devolver f.scy[k]
+
+    func vaciar_celdas():
+        f.vaciar_celdas()
+
+    func celda(m: entero, c: entero, fila: entero):
+        f.celda(m, c, fila)
+
+    func mover(i: entero, mueve_x: decimal, mueve_y: decimal, e_x: decimal, e_y: decimal, v_y: decimal, usa_gravedad: booleano, gravedad: decimal, dt: decimal, amort: decimal, arrastre_x: decimal, arrastre_y: decimal):
+        f.mover(i, mueve_x, mueve_y, e_x, e_y, v_y, usa_gravedad, gravedad, dt, amort, arrastre_x, arrastre_y)
+
+    func r_ddx() -> decimal:
+        devolver f.ddx
+
+    func r_ddy() -> decimal:
+        devolver f.ddy
+
+    func r_emp_x() -> decimal:
+        devolver f.emp_x
+
+    func r_emp_y() -> decimal:
+        devolver f.emp_y
+
+    func r_vy() -> decimal:
+        devolver f.vy
+
+    # suelo + 2·pared + 4·techo (una llamada en vez de tres).
+    func r_banderas() -> entero:
+        devolver f.banderas()
+
+    func r_nodo_suelo() -> entero:
+        devolver f.nodo_suelo
+
+    func r_contactos() -> entero:
+        devolver f.nc
+
+    func contacto(k: entero) -> entero:
+        devolver f.contactos[k]
+
+    func pares() -> entero:
+        devolver f.pares()
+
+    func par_a(k: entero) -> entero:
+        devolver f.pa[k]
+
+    func par_b(k: entero) -> entero:
+        devolver f.pb[k]

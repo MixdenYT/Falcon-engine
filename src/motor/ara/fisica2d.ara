@@ -1,494 +1,464 @@
-# Física 2D de Falcon Engine, escrita en Ara (vía B de docs/REWRITE_ROADMAP.md).
+# Física 2D de Falcon Engine, escrita en Ara (vía B de docs/REWRITE_ROADMAP.md). Un solo código para las dos
+# plataformas: el núcleo wasm del motor (lo envuelve la clase `Fisica2D` de nucleo.ara) y los ejecutables nativos
+# (examples/native-2d, que lo importa con `importar fisica2d`). Por eso aquí no hay clases de script ni `externa`.
 #
 # Es la misma cuenta que `Mundo.fisica2d`, `Mundo.caja`, `Mundo.matrizPadre` y `Mundo.contactos2d` de
 # src/motor/mundo.js (y `matrizLocal` de render2d.js), operación por operación, para que el resultado sea idéntico
 # bit a bit. Cada nodo es un índice: su posición en `Mundo.todos()` del fotograma. JS (`Mundo.sincronizarAra`) le
-# pasa con `nodo` solo los nodos que cambiaron desde el fotograma anterior; Ara guarda su padre, su matriz local y
-# su caja, y calcula con ellas las matrices de mundo y las cajas de colisión. Después JS llama a `preparar`, mueve
+# pasa con `nodo` solo los nodos que cambiaron desde el fotograma anterior; `Fisica` guarda su padre, su matriz local
+# y su caja, y calcula con ellas las matrices de mundo y las cajas de colisión. Después JS llama a `preparar`, mueve
 # cada personaje con `mover` y pide con `pares` los nodos que se tocan. Ara no toca el árbol de escena.
-
-externa tipo Nucleo
 
 const SIN_NODO = -1
 # Una celda (c, f) de un mosaico se guarda como un solo entero: c y f caben de sobra en 2^21.
 const DESPLAZA = 4194304
 const MITAD = 2097152
 
-clase Fisica2D extiende Nucleo:
+estructura Fisica:
     # Nodos (índice = posición en Mundo.todos()); los `nn` primeros son los de este fotograma.
-    nn = 0
-    padre: lista[entero] = []
-    salta: lista[booleano] = []  # Fondo e Interfaz: no aplican su matriz a los hijos
-    px: lista[decimal] = []  # props.posicion tal cual (NaN incluido): `mover` la actualiza como JS
-    py: lista[decimal] = []
-    hay_rot: lista[booleano] = []
-    rcos: lista[decimal] = []  # coseno y seno de la rotación (fdlibm, como Math.sin/cos de V8)
-    rsen: lista[decimal] = []
-    hay_esc: lista[booleano] = []
-    ex: lista[decimal] = []
-    ey: lista[decimal] = []
-    la: lista[decimal] = []  # matriz local: a, b, c, d, e, f de DOMMatrix
-    lb: lista[decimal] = []
-    lc: lista[decimal] = []
-    ld: lista[decimal] = []
-    le: lista[decimal] = []
-    lf: lista[decimal] = []
-    ctipo: lista[entero] = []  # caja: 0 ninguna, 1 hijo Colision (desplazada cox, coy), 2 tamaño propio
-    cox: lista[decimal] = []
-    coy: lista[decimal] = []
-    cw: lista[decimal] = []
-    ch: lista[decimal] = []
-    tsol: lista[entero] = []  # 0 nada, 1 plataforma, 2 plataforma solo_arriba, 3 mosaico (cw = tam_celda)
-    papel: lista[entero] = []  # en contactos2d: 0 no participa, 1 personaje, 2 área, 3 área que vigila personajes, 4 otro
+    nn: entero
+    padre: lista[entero]
+    salta: lista[booleano]  # Fondo e Interfaz: no aplican su matriz a los hijos
+    px: lista[decimal]  # props.posicion tal cual (NaN incluido): `mover` la actualiza como JS
+    py: lista[decimal]
+    hay_rot: lista[booleano]
+    rcos: lista[decimal]  # coseno y seno de la rotación (fdlibm, como Math.sin/cos de V8)
+    rsen: lista[decimal]
+    hay_esc: lista[booleano]
+    ex: lista[decimal]
+    ey: lista[decimal]
+    la: lista[decimal]  # matriz local: a, b, c, d, e, f de DOMMatrix
+    lb: lista[decimal]
+    lc: lista[decimal]
+    ld: lista[decimal]
+    le: lista[decimal]
+    lf: lista[decimal]
+    ctipo: lista[entero]  # caja: 0 ninguna, 1 hijo Colision (desplazada cox, coy), 2 tamaño propio
+    cox: lista[decimal]
+    coy: lista[decimal]
+    cw: lista[decimal]
+    ch: lista[decimal]
+    tsol: lista[entero]  # 0 nada, 1 plataforma, 2 plataforma solo_arriba, 3 mosaico (cw = tam_celda)
+    papel: lista[entero]  # en contactos2d: 0 no participa, 1 personaje, 2 área, 3 área que vigila personajes, 4 otro
     # Resultado de `mul` y `matriz_padre` (una DOMMatrix) y de `caja`.
-    ma = 1.0
-    mb = 0.0
-    mc = 0.0
-    md = 1.0
-    me = 0.0
-    mf = 0.0
-    kx = 0.0
-    ky = 0.0
-    kw = 0.0
-    kh = 0.0
-    cadena: lista[entero] = []
+    ma: decimal
+    mb: decimal
+    mc: decimal
+    md: decimal
+    me: decimal
+    mf: decimal
+    kx: decimal
+    ky: decimal
+    kw: decimal
+    kh: decimal
+    cadena: lista[entero]
     # Sólidos sueltos (plataformas): caja, si solo bloquea por arriba, su nodo y su centro (con él calcula JS `_delta`).
-    sx0: lista[decimal] = []
-    sy0: lista[decimal] = []
-    sx1: lista[decimal] = []
-    sy1: lista[decimal] = []
-    suna: lista[booleano] = []
-    snodo: lista[entero] = []
-    scx: lista[decimal] = []
-    scy: lista[decimal] = []
+    sx0: lista[decimal]
+    sy0: lista[decimal]
+    sx1: lista[decimal]
+    sy1: lista[decimal]
+    suna: lista[booleano]
+    snodo: lista[entero]
+    scx: lista[decimal]
+    scy: lista[decimal]
     # Mosaicos sólidos: origen, tamaño de celda y nodo. Sus celdas van en `celdas`, por nodo.
-    mox: lista[decimal] = []
-    moy: lista[decimal] = []
-    mtam: lista[decimal] = []
-    mnodo: lista[entero] = []
-    celdas: diccionario[entero, booleano] = {}
+    mox: lista[decimal]
+    moy: lista[decimal]
+    mtam: lista[decimal]
+    mnodo: lista[entero]
+    celdas: diccionario[entero, booleano]
     # Los sólidos que toca la caja que se está probando (en el orden de JS: primero sueltos, luego celdas): los `nh`
     # primeros. Las listas se reutilizan entre llamadas (crearlas en cada `choques` costaba más que la cuenta).
-    nh = 0
-    hx0: lista[decimal] = []
-    hy0: lista[decimal] = []
-    hx1: lista[decimal] = []
-    hy1: lista[decimal] = []
-    huna: lista[booleano] = []
-    hnodo: lista[entero] = []
+    nh: entero
+    hx0: lista[decimal]
+    hy0: lista[decimal]
+    hx1: lista[decimal]
+    hy1: lista[decimal]
+    huna: lista[booleano]
+    hnodo: lista[entero]
     # Resultado del último `mover`.
-    ddx = 0.0  # lo que sumó a la posición local
-    ddy = 0.0
-    emp_x = 0.0
-    emp_y = 0.0
-    vy = 0.0
-    en_suelo = falso
-    en_pared = falso
-    en_techo = falso
-    nodo_suelo = -1
-    contactos: lista[entero] = []  # los `nc` primeros (se reutiliza, como las de `choques`)
-    nc = 0
+    ddx: decimal  # lo que sumó a la posición local
+    ddy: decimal
+    emp_x: decimal
+    emp_y: decimal
+    vy: decimal
+    en_suelo: booleano
+    en_pared: booleano
+    en_techo: booleano
+    nodo_suelo: entero
+    contactos: lista[entero]  # los `nc` primeros (se reutiliza, como las de `choques`)
+    nc: entero
     # `pares`: participantes de contactos2d (los `np`) y los pares que se tocan (los `npar`).
-    np = 0
-    qn: lista[entero] = []
-    qx0: lista[decimal] = []
-    qy0: lista[decimal] = []
-    qx1: lista[decimal] = []
-    qy1: lista[decimal] = []
-    npar = 0
-    pa: lista[entero] = []
-    pb: lista[entero] = []
+    np: entero
+    qn: lista[entero]
+    qx0: lista[decimal]
+    qy0: lista[decimal]
+    qx1: lista[decimal]
+    qy1: lista[decimal]
+    npar: entero
+    pa: lista[entero]
+    pb: lista[entero]
+
+    # Los campos empiezan a 0, 0.0, falso o vacíos; estos no.
+    func crear(este):
+        este.ma = 1.0
+        este.md = 1.0
+        este.nodo_suelo = SIN_NODO
 
     # ---------- Nodos y transformaciones ----------
 
-    func empezar(n: entero):
-        nn = n
-        mientras largo(padre) < n:
-            agregar(padre, SIN_NODO)
-            agregar(salta, falso)
-            agregar(px, 0.0)
-            agregar(py, 0.0)
-            agregar(hay_rot, falso)
-            agregar(rcos, 1.0)
-            agregar(rsen, 0.0)
-            agregar(hay_esc, falso)
-            agregar(ex, 1.0)
-            agregar(ey, 1.0)
-            agregar(la, 1.0)
-            agregar(lb, 0.0)
-            agregar(lc, 0.0)
-            agregar(ld, 1.0)
-            agregar(le, 0.0)
-            agregar(lf, 0.0)
-            agregar(ctipo, 0)
-            agregar(cox, 0.0)
-            agregar(coy, 0.0)
-            agregar(cw, 0.0)
-            agregar(ch, 0.0)
-            agregar(tsol, 0)
-            agregar(papel, 0)
+    func empezar(este, n: entero):
+        este.nn = n
+        mientras largo(este.padre) < n:
+            agregar(este.padre, SIN_NODO)
+            agregar(este.salta, falso)
+            agregar(este.px, 0.0)
+            agregar(este.py, 0.0)
+            agregar(este.hay_rot, falso)
+            agregar(este.rcos, 1.0)
+            agregar(este.rsen, 0.0)
+            agregar(este.hay_esc, falso)
+            agregar(este.ex, 1.0)
+            agregar(este.ey, 1.0)
+            agregar(este.la, 1.0)
+            agregar(este.lb, 0.0)
+            agregar(este.lc, 0.0)
+            agregar(este.ld, 1.0)
+            agregar(este.le, 0.0)
+            agregar(este.lf, 0.0)
+            agregar(este.ctipo, 0)
+            agregar(este.cox, 0.0)
+            agregar(este.coy, 0.0)
+            agregar(este.cw, 0.0)
+            agregar(este.ch, 0.0)
+            agregar(este.tsol, 0)
+            agregar(este.papel, 0)
 
-    func nodo(i: entero, p: entero, sin_matriz: booleano, x: decimal, y_: decimal, grados: decimal, esc: booleano, sx: decimal, sy: decimal, caja_tipo: entero, ox: decimal, oy: decimal, w: decimal, h: decimal, solido: entero, cl: entero):
-        padre[i] = p
-        salta[i] = sin_matriz
-        px[i] = x
-        py[i] = y_
-        hay_rot[i] = grados != 0.0
+    func nodo(este, i: entero, p: entero, sin_matriz: booleano, x: decimal, y_: decimal, grados: decimal, esc: booleano, sx: decimal, sy: decimal, caja_tipo: entero, ox: decimal, oy: decimal, w: decimal, h: decimal, solido: entero, cl: entero):
+        este.padre[i] = p
+        este.salta[i] = sin_matriz
+        este.px[i] = x
+        este.py[i] = y_
+        este.hay_rot[i] = grados != 0.0
         r = grados * PI / 180.0  # mismo orden que `g * Math.PI / 180` de rotateSelf
-        rcos[i] = cos(r)
-        rsen[i] = sen(r)
-        hay_esc[i] = esc
-        ex[i] = sx
-        ey[i] = sy
-        ctipo[i] = caja_tipo
-        cox[i] = ox
-        coy[i] = oy
-        cw[i] = w
-        ch[i] = h
-        tsol[i] = solido
-        papel[i] = cl
-        local(i)
+        este.rcos[i] = cos(r)
+        este.rsen[i] = sen(r)
+        este.hay_esc[i] = esc
+        este.ex[i] = sx
+        este.ey[i] = sy
+        este.ctipo[i] = caja_tipo
+        este.cox[i] = ox
+        este.coy[i] = oy
+        este.cw[i] = w
+        este.ch[i] = h
+        este.tsol[i] = solido
+        este.papel[i] = cl
+        este.local(i)
 
     # `this.multiply(o)` de DOMMatrix (pruebas/dom.js): las mismas sumas en el mismo orden. Deja el resultado en m*.
-    func mul(a1: decimal, b1: decimal, c1: decimal, d1: decimal, e1: decimal, f1: decimal, a2: decimal, b2: decimal, c2: decimal, d2: decimal, e2: decimal, f2: decimal):
-        ma = a1 * a2 + c1 * b2
-        mb = b1 * a2 + d1 * b2
-        mc = a1 * c2 + c1 * d2
-        md = b1 * c2 + d1 * d2
-        me = a1 * e2 + c1 * f2 + e1
-        mf = b1 * e2 + d1 * f2 + f1
-
-    func o_cero(v: decimal) -> decimal:  # `v || 0` de JS
-        si v != v o v == 0.0:
-            devolver 0.0
-        devolver v
-
-    func escala(v: decimal) -> decimal:  # `Math.abs(v) || 1` de JS
-        a = abs(v)
-        si a != a o a == 0.0:
-            devolver 1.0
-        devolver a
+    func mul(este, a1: decimal, b1: decimal, c1: decimal, d1: decimal, e1: decimal, f1: decimal, a2: decimal, b2: decimal, c2: decimal, d2: decimal, e2: decimal, f2: decimal):
+        este.ma = a1 * a2 + c1 * b2
+        este.mb = b1 * a2 + d1 * b2
+        este.mc = a1 * c2 + c1 * d2
+        este.md = b1 * c2 + d1 * d2
+        este.me = a1 * e2 + c1 * f2 + e1
+        este.mf = b1 * e2 + d1 * f2 + f1
 
     # `matrizLocal` de render2d.js: identidad, translateSelf, rotateSelf y scaleSelf.
-    func local(i: entero):
-        mul(1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, o_cero(px[i]), o_cero(py[i]))
-        si hay_rot[i]:
-            mul(ma, mb, mc, md, me, mf, rcos[i], rsen[i], 0.0 - rsen[i], rcos[i], 0.0, 0.0)
-        si hay_esc[i]:
-            mul(ma, mb, mc, md, me, mf, ex[i], 0.0, 0.0, ey[i], 0.0, 0.0)
-        la[i] = ma
-        lb[i] = mb
-        lc[i] = mc
-        ld[i] = md
-        le[i] = me
-        lf[i] = mf
+    func local(este, i: entero):
+        este.mul(1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, o_cero(este.px[i]), o_cero(este.py[i]))
+        si este.hay_rot[i]:
+            este.mul(este.ma, este.mb, este.mc, este.md, este.me, este.mf, este.rcos[i], este.rsen[i], 0.0 - este.rsen[i], este.rcos[i], 0.0, 0.0)
+        si este.hay_esc[i]:
+            este.mul(este.ma, este.mb, este.mc, este.md, este.me, este.mf, este.ex[i], 0.0, 0.0, este.ey[i], 0.0, 0.0)
+        este.la[i] = este.ma
+        este.lb[i] = este.mb
+        este.lc[i] = este.mc
+        este.ld[i] = este.md
+        este.le[i] = este.me
+        este.lf[i] = este.mf
 
     # `matrizPadre`: la identidad por las matrices locales de los antepasados, de la raíz hacia abajo. Se calcula
     # cada vez (como en JS): así un personaje que se mueve ya cuenta para sus descendientes, sin marcas de sucio.
-    func matriz_padre(i: entero):
+    func matriz_padre(este, i: entero):
         k = 0
-        p = padre[i]
+        p = este.padre[i]
         mientras p != SIN_NODO:
-            si k < largo(cadena):
-                cadena[k] = p
+            si k < largo(este.cadena):
+                este.cadena[k] = p
             sino:
-                agregar(cadena, p)
+                agregar(este.cadena, p)
             k += 1
-            p = padre[p]
-        ma = 1.0
-        mb = 0.0
-        mc = 0.0
-        md = 1.0
-        me = 0.0
-        mf = 0.0
+            p = este.padre[p]
+        este.ma = 1.0
+        este.mb = 0.0
+        este.mc = 0.0
+        este.md = 1.0
+        este.me = 0.0
+        este.mf = 0.0
         mientras k > 0:
             k -= 1
-            q = cadena[k]
-            si no salta[q]:
-                mul(ma, mb, mc, md, me, mf, la[q], lb[q], lc[q], ld[q], le[q], lf[q])
+            q = este.cadena[k]
+            si no este.salta[q]:
+                este.mul(este.ma, este.mb, este.mc, este.md, este.me, este.mf, este.la[q], este.lb[q], este.lc[q], este.ld[q], este.le[q], este.lf[q])
 
     # `Mundo.caja`: centro y tamaño de la caja de colisión en el mundo, en kx, ky, kw, kh. Deja la matriz de mundo en m*.
-    func caja(i: entero):
-        matriz_padre(i)
-        mul(ma, mb, mc, md, me, mf, la[i], lb[i], lc[i], ld[i], le[i], lf[i])
-        si ctipo[i] == 1:
-            kx = ma * cox[i] + mc * coy[i] + me
-            ky = mb * cox[i] + md * coy[i] + mf
+    func caja(este, i: entero):
+        este.matriz_padre(i)
+        este.mul(este.ma, este.mb, este.mc, este.md, este.me, este.mf, este.la[i], este.lb[i], este.lc[i], este.ld[i], este.le[i], este.lf[i])
+        si este.ctipo[i] == 1:
+            este.kx = este.ma * este.cox[i] + este.mc * este.coy[i] + este.me
+            este.ky = este.mb * este.cox[i] + este.md * este.coy[i] + este.mf
         sino:
-            kx = me
-            ky = mf
-        kw = cw[i] * escala(ma)
-        kh = ch[i] * escala(md)
+            este.kx = este.me
+            este.ky = este.mf
+        este.kw = este.cw[i] * escala(este.ma)
+        este.kh = este.ch[i] * escala(este.md)
 
     # ---------- Sólidos ----------
 
     # Los sólidos y mosaicos de este fotograma (`solidos2d` y el origen de `celdasSolidas`). Devuelve cuántos sólidos sueltos hay.
-    func preparar() -> entero:
-        sx0 = []
-        sy0 = []
-        sx1 = []
-        sy1 = []
-        suna = []
-        snodo = []
-        scx = []
-        scy = []
-        mox = []
-        moy = []
-        mtam = []
-        mnodo = []
-        para i en rango(nn):
-            t = tsol[i]
+    func preparar(este) -> entero:
+        este.sx0 = []
+        este.sy0 = []
+        este.sx1 = []
+        este.sy1 = []
+        este.suna = []
+        este.snodo = []
+        este.scx = []
+        este.scy = []
+        este.mox = []
+        este.moy = []
+        este.mtam = []
+        este.mnodo = []
+        para i en rango(este.nn):
+            t = este.tsol[i]
             si t == 1 o t == 2:
-                caja(i)
-                agregar(sx0, kx - kw / 2.0)
-                agregar(sy0, ky - kh / 2.0)
-                agregar(sx1, kx + kw / 2.0)
-                agregar(sy1, ky + kh / 2.0)
-                agregar(suna, t == 2)
-                agregar(snodo, i)
-                agregar(scx, kx)
-                agregar(scy, ky)
+                este.caja(i)
+                agregar(este.sx0, este.kx - este.kw / 2.0)
+                agregar(este.sy0, este.ky - este.kh / 2.0)
+                agregar(este.sx1, este.kx + este.kw / 2.0)
+                agregar(este.sy1, este.ky + este.kh / 2.0)
+                agregar(este.suna, t == 2)
+                agregar(este.snodo, i)
+                agregar(este.scx, este.kx)
+                agregar(este.scy, este.ky)
             sino si t == 3:
-                caja(i)
-                agregar(mox, me)
-                agregar(moy, mf)
-                agregar(mtam, cw[i])
-                agregar(mnodo, i)
-        devolver largo(sx0)
+                este.caja(i)
+                agregar(este.mox, este.me)
+                agregar(este.moy, este.mf)
+                agregar(este.mtam, este.cw[i])
+                agregar(este.mnodo, i)
+        devolver largo(este.sx0)
 
-    func solido_cx(k: entero) -> decimal:
-        devolver scx[k]
-
-    func solido_cy(k: entero) -> decimal:
-        devolver scy[k]
-
-    func vaciar_celdas():
-        celdas = {}
+    func vaciar_celdas(este):
+        este.celdas = {}
 
     # Celda (c, f) del mosaico que es el nodo `m`.
-    func celda(m: entero, c: entero, f: entero):
-        celdas[clave(m, c, f)] = verdadero
+    func celda(este, m: entero, c: entero, f: entero):
+        este.celdas[clave(m, c, f)] = verdadero
 
-    func clave(m: entero, c: entero, f: entero) -> entero:
-        devolver (m * DESPLAZA + c + MITAD) * DESPLAZA + f + MITAD
-
-    func tocar(x0: decimal, y0: decimal, x1: decimal, y1: decimal, una: booleano, nodo: entero):
-        si nh < largo(hx0):
-            hx0[nh] = x0
-            hy0[nh] = y0
-            hx1[nh] = x1
-            hy1[nh] = y1
-            huna[nh] = una
-            hnodo[nh] = nodo
+    func tocar(este, x0: decimal, y0: decimal, x1: decimal, y1: decimal, una: booleano, nodo: entero):
+        si este.nh < largo(este.hx0):
+            este.hx0[este.nh] = x0
+            este.hy0[este.nh] = y0
+            este.hx1[este.nh] = x1
+            este.hy1[este.nh] = y1
+            este.huna[este.nh] = una
+            este.hnodo[este.nh] = nodo
         sino:
-            agregar(hx0, x0)
-            agregar(hy0, y0)
-            agregar(hx1, x1)
-            agregar(hy1, y1)
-            agregar(huna, una)
-            agregar(hnodo, nodo)
-        nh += 1
+            agregar(este.hx0, x0)
+            agregar(este.hy0, y0)
+            agregar(este.hx1, x1)
+            agregar(este.hy1, y1)
+            agregar(este.huna, una)
+            agregar(este.hnodo, nodo)
+        este.nh += 1
 
     # Lo que choca con la caja (x0, y0)-(x1, y1): `choques` de mundo.js.
-    func choques(x0: decimal, y0: decimal, x1: decimal, y1: decimal):
-        nh = 0
-        para i en rango(largo(sx0)):
-            si x1 > sx0[i] y x0 < sx1[i] y y1 > sy0[i] y y0 < sy1[i]:
-                tocar(sx0[i], sy0[i], sx1[i], sy1[i], suna[i], snodo[i])
-        para m en rango(largo(mox)):
-            t = mtam[m]
-            ox = mox[m]
-            oy = moy[m]
+    func choques(este, x0: decimal, y0: decimal, x1: decimal, y1: decimal):
+        este.nh = 0
+        para i en rango(largo(este.sx0)):
+            si x1 > este.sx0[i] y x0 < este.sx1[i] y y1 > este.sy0[i] y y0 < este.sy1[i]:
+                este.tocar(este.sx0[i], este.sy0[i], este.sx1[i], este.sy1[i], este.suna[i], este.snodo[i])
+        para m en rango(largo(este.mox)):
+            t = este.mtam[m]
+            ox = este.mox[m]
+            oy = este.moy[m]
             c0 = piso((x0 - ox) / t)
             c1 = piso((x1 - ox - 0.0001) / t)
             f0 = piso((y0 - oy) / t)
             f1 = piso((y1 - oy - 0.0001) / t)
             para c en rango(c0, c1 + 1):
                 para f en rango(f0, f1 + 1):
-                    si tiene(celdas, clave(mnodo[m], c, f)):
-                        tocar(ox + decimal(c) * t, oy + decimal(f) * t, ox + decimal(c + 1) * t, oy + decimal(f + 1) * t, falso, mnodo[m])
+                    si tiene(este.celdas, clave(este.mnodo[m], c, f)):
+                        este.tocar(ox + decimal(c) * t, oy + decimal(f) * t, ox + decimal(c + 1) * t, oy + decimal(f + 1) * t, falso, este.mnodo[m])
 
-    func anotar(nodo: entero):
-        para i en rango(nc):
-            si contactos[i] == nodo:
+    func anotar(este, nodo: entero):
+        para i en rango(este.nc):
+            si este.contactos[i] == nodo:
                 devolver
-        si nc < largo(contactos):
-            contactos[nc] = nodo
+        si este.nc < largo(este.contactos):
+            este.contactos[este.nc] = nodo
         sino:
-            agregar(contactos, nodo)
-        nc += 1
+            agregar(este.contactos, nodo)
+        este.nc += 1
 
     # ---------- Personajes ----------
 
     # Mueve el Personaje2D `i` un paso (`Mundo.fisica2d` y `aplicarMovimiento2d`). `amort` es 0.02^dt (lo calcula JS
     # con Math.pow, para no depender de dos implementaciones de la potencia). `gravedad` ya viene escalada;
     # `arrastre_*` es lo que se movió el suelo.
-    func mover(i: entero, mueve_x: decimal, mueve_y: decimal, e_x: decimal, e_y: decimal, v_y: decimal, usa_gravedad: booleano, gravedad: decimal, dt: decimal, amort: decimal, arrastre_x: decimal, arrastre_y: decimal):
-        caja(i)
-        cx0 = kx
-        cy0 = ky
-        w = kw
-        h = kh
+    func mover(este, i: entero, mueve_x: decimal, mueve_y: decimal, e_x: decimal, e_y: decimal, v_y: decimal, usa_gravedad: booleano, gravedad: decimal, dt: decimal, amort: decimal, arrastre_x: decimal, arrastre_y: decimal):
+        este.caja(i)
+        cx0 = este.kx
+        cy0 = este.ky
+        w = este.kw
+        h = este.kh
         cx = cx0 + arrastre_x
         cy = cy0 + arrastre_y
-        emp_x = e_x
-        emp_y = e_y
-        vy = v_y
-        en_pared = falso
-        en_techo = falso
-        nc = 0
+        este.emp_x = e_x
+        este.emp_y = e_y
+        este.vy = v_y
+        este.en_pared = falso
+        este.en_techo = falso
+        este.nc = 0
         # Horizontal
-        emp_x *= amort
-        si abs(emp_x) < 1.0:
-            emp_x = 0.0
-        dx = (mueve_x + emp_x) * dt
+        este.emp_x *= amort
+        si abs(este.emp_x) < 1.0:
+            este.emp_x = 0.0
+        dx = (mueve_x + este.emp_x) * dt
         si dx != 0.0 y dx == dx:  # como `if (dx)` de JS: NaN no mueve
             cx += dx
-            choques(cx - w / 2.0, cy - h / 2.0 + 0.5, cx + w / 2.0, cy + h / 2.0 - 0.5)
-            para k en rango(nh):
-                si huna[k]:
+            este.choques(cx - w / 2.0, cy - h / 2.0 + 0.5, cx + w / 2.0, cy + h / 2.0 - 0.5)
+            para k en rango(este.nh):
+                si este.huna[k]:
                     continuar
                 si dx > 0.0:
-                    cx = minimo(cx, hx0[k] - w / 2.0)
+                    cx = minimo(cx, este.hx0[k] - w / 2.0)
                 sino:
-                    cx = maximo(cx, hx1[k] + w / 2.0)
-                en_pared = verdadero
-                emp_x = 0.0
-                anotar(hnodo[k])
+                    cx = maximo(cx, este.hx1[k] + w / 2.0)
+                este.en_pared = verdadero
+                este.emp_x = 0.0
+                este.anotar(este.hnodo[k])
         # Vertical
         vy_total = 0.0
         si usa_gravedad:
-            vy += gravedad * dt
-            vy = minimo(vy, 2400.0)
-            vy_total = vy
+            este.vy += gravedad * dt
+            este.vy = minimo(este.vy, 2400.0)
+            vy_total = este.vy
         sino:
-            emp_y *= amort
-            si abs(emp_y) < 1.0:
-                emp_y = 0.0
-            vy_total = mueve_y + emp_y
+            este.emp_y *= amort
+            si abs(este.emp_y) < 1.0:
+                este.emp_y = 0.0
+            vy_total = mueve_y + este.emp_y
         dy = vy_total * dt
         fondo_antes = cy + h / 2.0
         cy += dy
-        en_suelo = falso
-        nodo_suelo = SIN_NODO
-        choques(cx - w / 2.0 + 0.5, cy - h / 2.0, cx + w / 2.0 - 0.5, cy + h / 2.0)
-        para k en rango(nh):
+        este.en_suelo = falso
+        este.nodo_suelo = SIN_NODO
+        este.choques(cx - w / 2.0 + 0.5, cy - h / 2.0, cx + w / 2.0 - 0.5, cy + h / 2.0)
+        para k en rango(este.nh):
             si dy >= 0.0:
-                si huna[k] y fondo_antes > hy0[k] + 0.5:
+                si este.huna[k] y fondo_antes > este.hy0[k] + 0.5:
                     continuar
-                cy = minimo(cy, hy0[k] - h / 2.0)
+                cy = minimo(cy, este.hy0[k] - h / 2.0)
                 si usa_gravedad:
-                    vy = 0.0
-                en_suelo = verdadero
-                nodo_suelo = hnodo[k]
+                    este.vy = 0.0
+                este.en_suelo = verdadero
+                este.nodo_suelo = este.hnodo[k]
             sino:
-                si huna[k]:
+                si este.huna[k]:
                     continuar
-                cy = maximo(cy, hy1[k] + h / 2.0)
+                cy = maximo(cy, este.hy1[k] + h / 2.0)
                 si usa_gravedad:
-                    vy = maximo(0.0, vy)
-                en_techo = verdadero
-            anotar(hnodo[k])
+                    este.vy = maximo(0.0, este.vy)
+                este.en_techo = verdadero
+            este.anotar(este.hnodo[k])
         si no usa_gravedad:
-            en_suelo = verdadero
+            este.en_suelo = verdadero
         # aplicarMovimiento2d: lo movido, a coordenadas locales.
-        matriz_padre(i)
-        ddx = (cx - cx0) / escala(ma)
-        ddy = (cy - cy0) / escala(md)
-        px[i] = px[i] + ddx
-        py[i] = py[i] + ddy
-        local(i)
+        este.matriz_padre(i)
+        este.ddx = (cx - cx0) / escala(este.ma)
+        este.ddy = (cy - cy0) / escala(este.md)
+        este.px[i] = este.px[i] + este.ddx
+        este.py[i] = este.py[i] + este.ddy
+        este.local(i)
 
-    func r_ddx() -> decimal:
-        devolver ddx
-
-    func r_ddy() -> decimal:
-        devolver ddy
-
-    func r_emp_x() -> decimal:
-        devolver emp_x
-
-    func r_emp_y() -> decimal:
-        devolver emp_y
-
-    func r_vy() -> decimal:
-        devolver vy
-
-    # suelo + 2·pared + 4·techo (una llamada en vez de tres).
-    func r_banderas() -> entero:
+    # Lo que dejó el último `mover`: suelo + 2·pared + 4·techo.
+    func banderas(este) -> entero:
         b = 0
-        si en_suelo:
+        si este.en_suelo:
             b += 1
-        si en_pared:
+        si este.en_pared:
             b += 2
-        si en_techo:
+        si este.en_techo:
             b += 4
         devolver b
 
-    func r_nodo_suelo() -> entero:
-        devolver nodo_suelo
-
-    func r_contactos() -> entero:
-        devolver nc
-
-    func contacto(k: entero) -> entero:
-        devolver contactos[k]
-
     # ---------- Contactos ----------
 
-    func es_antepasado(a: entero, b: entero) -> booleano:
-        p = padre[b]
+    func es_antepasado(este, a: entero, b: entero) -> booleano:
+        p = este.padre[b]
         mientras p != SIN_NODO:
             si p == a:
                 devolver verdadero
-            p = padre[p]
+            p = este.padre[p]
         devolver falso
 
     # Los pares de nodos cuyas cajas se tocan (`contactos2d`, en su orden). Devuelve cuántos hay; se leen con par_a/par_b.
-    func pares() -> entero:
-        np = 0
-        para i en rango(nn):
-            si papel[i] == 0:
+    func pares(este) -> entero:
+        este.np = 0
+        para i en rango(este.nn):
+            si este.papel[i] == 0:
                 continuar
-            caja(i)
-            si np < largo(qn):
-                qn[np] = i
-                qx0[np] = kx - kw / 2.0
-                qy0[np] = ky - kh / 2.0
-                qx1[np] = kx + kw / 2.0
-                qy1[np] = ky + kh / 2.0
+            este.caja(i)
+            si este.np < largo(este.qn):
+                este.qn[este.np] = i
+                este.qx0[este.np] = este.kx - este.kw / 2.0
+                este.qy0[este.np] = este.ky - este.kh / 2.0
+                este.qx1[este.np] = este.kx + este.kw / 2.0
+                este.qy1[este.np] = este.ky + este.kh / 2.0
             sino:
-                agregar(qn, i)
-                agregar(qx0, kx - kw / 2.0)
-                agregar(qy0, ky - kh / 2.0)
-                agregar(qx1, kx + kw / 2.0)
-                agregar(qy1, ky + kh / 2.0)
-            np += 1
-        npar = 0
-        para i en rango(np):
-            a = qn[i]
-            ca = papel[a]
-            para j en rango(i + 1, np):
-                b = qn[j]
-                cb = papel[b]
+                agregar(este.qn, i)
+                agregar(este.qx0, este.kx - este.kw / 2.0)
+                agregar(este.qy0, este.ky - este.kh / 2.0)
+                agregar(este.qx1, este.kx + este.kw / 2.0)
+                agregar(este.qy1, este.ky + este.kh / 2.0)
+            este.np += 1
+        este.npar = 0
+        para i en rango(este.np):
+            a = este.qn[i]
+            ca = este.papel[a]
+            para j en rango(i + 1, este.np):
+                b = este.qn[j]
+                cb = este.papel[b]
                 si ca == 4 y cb == 4:
                     continuar
                 si (ca == 3 y cb != 1) o (cb == 3 y ca != 1):
                     continuar
-                si qx1[i] > qx0[j] y qx0[i] < qx1[j] y qy1[i] > qy0[j] y qy0[i] < qy1[j]:
-                    si es_antepasado(a, b) o es_antepasado(b, a):
+                si este.qx1[i] > este.qx0[j] y este.qx0[i] < este.qx1[j] y este.qy1[i] > este.qy0[j] y este.qy0[i] < este.qy1[j]:
+                    si este.es_antepasado(a, b) o este.es_antepasado(b, a):
                         continuar
-                    si npar < largo(pa):
-                        pa[npar] = a
-                        pb[npar] = b
+                    si este.npar < largo(este.pa):
+                        este.pa[este.npar] = a
+                        este.pb[este.npar] = b
                     sino:
-                        agregar(pa, a)
-                        agregar(pb, b)
-                    npar += 1
-        devolver npar
+                        agregar(este.pa, a)
+                        agregar(este.pb, b)
+                    este.npar += 1
+        devolver este.npar
 
-    func par_a(k: entero) -> entero:
-        devolver pa[k]
+func o_cero(v: decimal) -> decimal:  # `v || 0` de JS
+    si v != v o v == 0.0:
+        devolver 0.0
+    devolver v
 
-    func par_b(k: entero) -> entero:
-        devolver pb[k]
+func escala(v: decimal) -> decimal:  # `Math.abs(v) || 1` de JS
+    a = abs(v)
+    si a != a o a == 0.0:
+        devolver 1.0
+    devolver a
+
+func clave(m: entero, c: entero, f: entero) -> entero:
+    devolver (m * DESPLAZA + c + MITAD) * DESPLAZA + f + MITAD

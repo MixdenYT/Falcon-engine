@@ -23,7 +23,7 @@ Por orden de la fase 2 y después:
 2. Física 3D, `Controles3D` y la lógica de CQB (`mundo3d.js`, `control3d.js`, `tactico3d.js`).
 3. El compilador de Blueprints (`blueprints.js`).
 4. Escena y eventos (`mundo.js`, `tipos.js`). Hoy el árbol es de JS.
-5. Capa de plataforma (render, audio, entrada, editor DOM, `principal/`). Se queda en JS hasta que Ara nativo pueda sustituirla (fases 3 a 5, Plan). Ver [`ARCHITECTURE.md`](ARCHITECTURE.md).
+5. Capa de plataforma (render, audio, entrada, editor DOM, `principal/`). Se queda en JS hasta que Ara nativo pueda sustituirla (fases 3 a 5). Primer corte: `examples/native-2d`, un `.exe` con ventana, OpenGL 1.1 y teclado que usa la física 2D del núcleo. Ver [`ARCHITECTURE.md`](ARCHITECTURE.md).
 
 ## Criterio para mover un bloque
 

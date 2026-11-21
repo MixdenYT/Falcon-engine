@@ -35,7 +35,7 @@ Cada `.bp` se compila a una clase de Ara con `compilarBlueprint`. Esa clase entr
 
 | Pieza | Qué es |
 |---|---|
-| `src/motor/ara/*.ara` | El código. Hoy solo `fisica2d.ara`, la clase `Fisica2D extiende Nucleo` |
+| `src/motor/ara/*.ara` | El código: `fisica2d.ara` (módulo con la `estructura Fisica`, que también compila a nativo), `espacio3d.ara` (clase `Espacio3D`) y `nucleo.ara` (`externa tipo Nucleo` y la clase `Fisica2D`, envoltura fina de `Fisica` para JS) |
 | `src/motor/ara/nucleo.wasm` | El código compilado, **versionado** en git. Los juegos exportados lo llevan porque copian `src/motor`, y lo cargan sin el compilador |
 | `herramientas/compilar-nucleo-ara.mjs` | Regenera `nucleo.wasm`; con `--comprobar` solo verifica |
 | `src/motor/nucleo-ara.js` | Lo carga una vez (`nucleoAra()`) y expone `fisica2d.*` con llamadas síncronas |
@@ -89,5 +89,5 @@ Referencia: `ara-etapa5/ara/docs/NATIVO.md`. Las líneas citadas son de Ara `7e4
   - una DLL no puede leer la memoria de Ara, así que todo pasa por el búfer;
   - no hay funciones variádicas;
   - el JIT no ejecuta `externa`.
-- **En Falcon, nada usa la FFI todavía.** Es la base de las fases 3 y 4 de [`REWRITE_ROADMAP.md`](REWRITE_ROADMAP.md), que están en Plan.
+- **En Falcon la usa solo el ejemplo nativo** `examples/native-2d` (fase 4, primer corte de [`REWRITE_ROADMAP.md`](REWRITE_ROADMAP.md)). Es un `.exe` con ventana Win32, OpenGL 1.1 y teclado, que importa `src/motor/ara/fisica2d.ara`: la misma física que el núcleo wasm. `pruebas/nativo-2d.test.js` comprueba que da lo mismo bit a bit. El motor (Electron) no la usa.
 - En wasm, una `externa "x.dll"` se importa del módulo `"x.dll"`. El cargador solo da los módulos `ara` y `anfitrion` (`ara.mjs:311`), así que un script de juego que la declare no se puede instanciar. Es una deducción del código; no se ha probado.

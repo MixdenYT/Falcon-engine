@@ -236,7 +236,7 @@ export const SCRIPTS = S;
 
 // ---------- Blueprints ----------
 
-function bpJugador() {
+export function bpJugador() {
   const bp = blueprintVacio('jugador', 'Personaje2D');
   bp.variables = [
     { nombre: 'velocidad', tipo: 'decimal', valor: 220, exportar: true },
@@ -391,12 +391,10 @@ async function recursos2D(archivos, importacion) {
   });
 }
 
-async function plantillaPlataformas(nombre) {
-  const archivos = {};
-  const importacion = {};
-  await recursos2D(archivos, importacion);
+/** El nivel de la plantilla «plataformas». También lo usa el ejemplo nativo (herramientas/escena-nativa-2d.mjs). */
+export function nivelPlataformas() {
   const ANCHO = 70 * 40;
-  const nivel = N('Nodo2D', 'Nivel1', {}, [
+  return N('Nodo2D', 'Nivel1', {}, [
     N('Fondo', 'Fondo', { imagen: 'sprites/fondo.png', paralaje: 0.25 }),
     jugador2D(220, 568, { limites: [0, 0, ANCHO, 720], extra: { blueprint: 'blueprints/jugador.bp' } }),
     N('Mosaicos', 'Mosaicos', { tam_celda: 40, imagen: 'sprites/mosaicos/cesped.png', color: '#6B4528', color_borde: '#52B85A', celdas: suelo(70, 15, 3, 40, [[22, 24], [44, 45]]) }),
@@ -424,7 +422,13 @@ async function plantillaPlataformas(nombre) {
     ], { script: 'scripts/meta.ara' }),
     interfazContador(),
   ], { script: 'scripts/nivel.ara' });
+}
 
+async function plantillaPlataformas(nombre) {
+  const archivos = {};
+  const importacion = {};
+  await recursos2D(archivos, importacion);
+  const nivel = nivelPlataformas();
   const menu = N('Nodo2D', 'Menu', {}, [
     N('Fondo', 'Fondo', { imagen: 'sprites/fondo.png', paralaje: 0 }),
     N('Interfaz', 'Interfaz', {}, [

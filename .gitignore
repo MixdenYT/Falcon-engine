@@ -3,3 +3,5 @@ dist-actualizaciones/
 pruebas-instalador/
 trabajo-meshy/
 recursos/cqb/modelos/personajes/*.glb
+
+examples/native-2d/build/

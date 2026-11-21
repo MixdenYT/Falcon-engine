@@ -42,7 +42,8 @@ Lo marcado **Plan** no existe en el código. Plan y fases: [`REWRITE_ROADMAP.md`
 
 ### Núcleo en Ara
 
-- `src/motor/ara/fisica2d.ara` se precompila a `nucleo.wasm`, que va versionado.
+- `src/motor/ara/*.ara` se precompila a `nucleo.wasm`, que va versionado.
+- La lógica va en módulos sin clases de script (`fisica2d.ara`, la `estructura Fisica`), que compilan también a nativo. Las clases que JS llama (`Fisica2D` en `nucleo.ara`) solo los envuelven.
 - `Mundo.iniciar` lo precarga (`mundo.js:424`). Si no carga, la física sigue en JS (`mundo.js:305`, `mundo.js:820-828`).
 - Hoy solo hay física 2D: matrices, cajas, `mover` y los pares de `contactos2d`. Detalle en [`ARA_INTEGRATION.md`](ARA_INTEGRATION.md).
 
@@ -84,7 +85,7 @@ Falcon Runtime ─ núcleo en Ara: escena, física, controles, IA, animación
   - llamadas indirectas y retrollamadas;
   - ejemplos de ventana Win32 con OpenGL.
 
-  Falcon aún no la usa (ver [`ARA_INTEGRATION.md`](ARA_INTEGRATION.md) §6).
+  Falcon la usa solo en `examples/native-2d`: el nivel de «plataformas» en un `.exe` (Win32, OpenGL 1.1, teclado) con la misma física 2D que el núcleo wasm, igual bit a bit (ver [`ARA_INTEGRATION.md`](ARA_INTEGRATION.md) §6).
 
 ## Reglas de frontera
 

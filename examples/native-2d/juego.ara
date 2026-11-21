@@ -1,0 +1,334 @@
+# Falcon Engine nativo, primer corte (fase 4 de docs/REWRITE_ROADMAP.md): el nivel de la plantilla «plataformas» en un
+# .exe de Windows x64, sin Electron ni JavaScript. Ventana Win32 con la función de ventana en Ara, OpenGL 1.1,
+# teclado con GetAsyncKeyState y la física 2D del motor (src/motor/ara/fisica2d.ara, la misma que corre en wasm) a
+# paso fijo con QueryPerformanceCounter. Se compila con `node herramientas/escena-nativa-2d.mjs` (ver README.md).
+#
+# Modos (variables de entorno):
+#   FALCON_PASOS=N            sin ventana: N pasos con la entrada del guion; escribe el estado final (la prueba
+#                             pruebas/nativo-2d.test.js lo compara con la ruta wasm de Falcon, bit a bit).
+#   FALCON_CAPTURA=ruta.bmp   con ventana: juega el guion 150 pasos, guarda el fotograma (glReadPixels) y sale.
+importar nativo.bufer
+importar fisica2d
+importar escena
+
+externa "kernel32.dll" func GetModuleHandleW(nombre: entero) -> entero
+externa "kernel32.dll" func QueryPerformanceCounter(dir: entero) -> booleano
+externa "kernel32.dll" func QueryPerformanceFrequency(dir: entero) -> booleano
+externa "kernel32.dll" func GetEnvironmentVariableW(nombre: entero, valor: entero, n: u32) -> u32
+externa "kernel32.dll" func CreateFileW(ruta: entero, acceso: u32, compartir: u32, seguridad: entero, crear: u32, banderas: u32, plantilla: entero) -> entero
+externa "kernel32.dll" func WriteFile(archivo: entero, datos: entero, n: u32, escritos: entero, solapado: entero) -> booleano
+externa "kernel32.dll" func CloseHandle(h: entero) -> booleano
+externa "kernel32.dll" func Sleep(milisegundos: u32)
+externa "user32.dll" func LoadCursorW(instancia: entero, cursor: entero) -> entero
+externa "user32.dll" func RegisterClassExW(descripcion: entero) -> u32
+externa "user32.dll" func AdjustWindowRect(rect: entero, estilo: u32, menu: booleano) -> booleano
+externa "user32.dll" func CreateWindowExW(estilo_ext: u32, nombre_clase: entero, titulo: entero, estilo: u32, x: i32, y_: i32, ancho: i32, alto: i32, padre: entero, menu: entero, instancia: entero, datos: entero) -> entero
+externa "user32.dll" func DefWindowProcW(ventana: entero, mensaje: u32, w: entero, l: entero) -> entero
+externa "user32.dll" func DestroyWindow(ventana: entero) -> booleano
+externa "user32.dll" func PostQuitMessage(codigo: i32)
+externa "user32.dll" func PostMessageW(ventana: entero, mensaje: u32, w: entero, l: entero) -> booleano
+externa "user32.dll" func ValidateRect(ventana: entero, rect: entero) -> booleano
+externa "user32.dll" func PeekMessageW(mensaje: entero, ventana: entero, desde: u32, hasta: u32, quitar: u32) -> booleano
+externa "user32.dll" func TranslateMessage(mensaje: entero) -> booleano
+externa "user32.dll" func DispatchMessageW(mensaje: entero) -> entero
+externa "user32.dll" func GetDC(ventana: entero) -> entero
+externa "user32.dll" func GetAsyncKeyState(tecla: i32) -> i32
+externa "gdi32.dll" func ChoosePixelFormat(dc: entero, formato: entero) -> i32
+externa "gdi32.dll" func SetPixelFormat(dc: entero, n: i32, formato: entero) -> booleano
+externa "gdi32.dll" func SwapBuffers(dc: entero) -> booleano
+externa "opengl32.dll" func wglCreateContext(dc: entero) -> entero
+externa "opengl32.dll" func wglMakeCurrent(dc: entero, contexto: entero) -> booleano
+externa "opengl32.dll" func wglDeleteContext(contexto: entero) -> booleano
+externa "opengl32.dll" func wglGetProcAddress(nombre: entero) -> entero
+externa "opengl32.dll" func glClearColor(r: f32, g: f32, b: f32, a: f32)
+externa "opengl32.dll" func glClear(que: u32)
+externa "opengl32.dll" func glViewport(x: i32, y_: i32, ancho: i32, alto: i32)
+externa "opengl32.dll" func glMatrixMode(modo: u32)
+externa "opengl32.dll" func glLoadIdentity()
+externa "opengl32.dll" func glOrtho(izq: decimal, der: decimal, abajo: decimal, arriba: decimal, cerca: decimal, lejos: decimal)
+externa "opengl32.dll" func glColor3d(r: decimal, g: decimal, b: decimal)
+externa "opengl32.dll" func glRectd(x0: decimal, y0: decimal, x1: decimal, y1: decimal)
+externa "opengl32.dll" func glReadPixels(x: i32, y_: i32, ancho: i32, alto: i32, formato: u32, tipo: u32, datos: entero)
+externa "msvcrt.dll" func _gcvt(valor: decimal, cifras: i32, texto: entero) -> entero
+externa "ara:indirecta" func gl_intervalo(f: entero, intervalo: i32) -> booleano
+
+const WM_DESTROY = 2
+const WM_PAINT = 15
+const WM_CLOSE = 16
+const CS_VREDRAW_HREDRAW_OWNDC = 35
+const WS_OVERLAPPEDWINDOW = 13565952
+const WS_VISIBLE = 268435456
+const IDC_ARROW = 32512
+const PM_REMOVE = 1
+const GL_COLOR_BUFFER_BIT = 16384
+const GL_PROJECTION = 5889
+const GL_BGRA = 32993
+const GL_UNSIGNED_BYTE = 5121
+const VK_SPACE = 32
+const VK_LEFT = 37
+const VK_UP = 38
+const VK_RIGHT = 39
+const TECLA_A = 65
+const TECLA_D = 68
+const TECLA_W = 87
+const ANCHO = 1280
+const ALTO = 720
+const DT = 1.0 / 60.0  # el paso fijo de la física
+const PASOS_CAPTURA = 150
+
+global cerrada = falso
+
+# Un personaje (Personaje2D) y lo que su física guarda entre pasos (en Falcon, los campos de NodoVivo).
+estructura Personaje:
+    nodo: entero
+    usa_gravedad: booleano
+    gravedad: decimal
+    vy: decimal
+    emp_x: decimal
+    emp_y: decimal
+    en_suelo: booleano
+    nodo_suelo: entero
+
+func ventana_proc(ventana: entero, mensaje: entero, w: entero, l: entero) -> entero:
+    m = mensaje % 4294967296  # un UINT llega con la mitad alta sin definir
+    si m == WM_PAINT:
+        ValidateRect(ventana, 0)
+        devolver 0
+    si m == WM_CLOSE:
+        DestroyWindow(ventana)
+        devolver 0
+    si m == WM_DESTROY:
+        cerrada = verdadero
+        PostQuitMessage(0)
+        devolver 0
+    devolver DefWindowProcW(ventana, m, w, l)
+
+# ---------- La entrada guionizada de la prueba (la misma regla que `guion` de herramientas/escena-nativa-2d.mjs) ----------
+
+func guion_dx(i: entero) -> decimal:
+    si (i // 120) % 4 == 3:
+        devolver -1.0
+    devolver 1.0
+
+func guion_salta(i: entero) -> booleano:
+    devolver i % 35 == 10
+
+# ---------- Juego ----------
+
+func crear_personajes() -> lista[Personaje]:
+    r: lista[Personaje] = []
+    nodos = escena.personajes()
+    gravedades = escena.gravedades()
+    usan = escena.usan_gravedad()
+    para k en rango(largo(nodos)):
+        agregar(r, Personaje(nodos[k], usan[k], gravedades[k], 0.0, 0.0, 0.0, falso, SIN_NODO))
+    devolver r
+
+# Un paso del mundo: lo que hacen el Blueprint del jugador (andar con el eje, saltar si toca el suelo) y
+# `Mundo.fisica2dAra` + `contactos2d` de src/motor/mundo.js. Las plataformas del nivel no se mueven: arrastre 0.
+func paso(f: Fisica, ps: lista[Personaje], dx: decimal, salta: booleano):
+    para p en ps:
+        si p.nodo == escena.JUGADOR y salta y p.en_suelo:
+            p.vy = 0.0 - escena.SALTO
+            p.en_suelo = falso
+    f.preparar()
+    para p en ps:
+        mueve = 0.0
+        si p.nodo == escena.JUGADOR:
+            mueve = dx * escena.VELOCIDAD
+        f.mover(p.nodo, mueve, 0.0, p.emp_x, p.emp_y, p.vy, p.usa_gravedad, p.gravedad, DT, escena.AMORT, 0.0, 0.0)
+        p.emp_x = f.emp_x
+        si p.usa_gravedad:
+            p.vy = f.vy
+        sino:
+            p.emp_y = f.emp_y
+        p.en_suelo = f.en_suelo
+        p.nodo_suelo = f.nodo_suelo
+    f.pares()
+
+# Un decimal con 17 cifras: basta para leerlo de vuelta exacto (la prueba compara bit a bit).
+func cifras(b: Bufer, x: decimal) -> texto:
+    _gcvt(x, 17, direccion(b, 0))
+    n = 0
+    mientras leer_u8(b, n) != 0:
+        n += 1
+    letras: lista[entero] = []
+    para k en rango(n):
+        agregar(letras, leer_u8(b, k))
+    devolver texto_de_bytes(letras, 0, n)
+
+# Una variable de entorno (vacío si no está).
+func variable(b: Bufer, nombre: texto) -> texto:
+    poner_texto_ancho(b, 0, nombre)
+    n = GetEnvironmentVariableW(direccion(b, 0), direccion(b, 256), 256)
+    letras: lista[entero] = []
+    para k en rango(n):
+        agregar(letras, leer_u16(b, 256 + 2 * k))
+    devolver texto_de_bytes(letras, 0, largo(letras))
+
+func segundos(b: Bufer, frecuencia: entero) -> decimal:
+    QueryPerformanceCounter(direccion(b, 0))
+    devolver decimal(leer_i64(b, 0)) / decimal(frecuencia)
+
+func pulsada(tecla: entero) -> booleano:
+    devolver GetAsyncKeyState(tecla) % 65536 >= 32768
+
+func color(c: entero):
+    glColor3d(decimal(c // 65536) / 255.0, decimal(c // 256 % 256) / 255.0, decimal(c % 256) / 255.0)
+
+# Rectángulos de color: el fondo, las celdas de los mosaicos y las cajas de todo lo que tiene caja, con la cámara
+# siguiendo al jugador dentro del nivel.
+func dibujar(f: Fisica, colores: lista[entero], cm: lista[entero], cc: lista[entero], cf: lista[entero]):
+    f.caja(escena.JUGADOR)
+    cx = minimo(maximo(f.kx - ANCHO / 2.0, 0.0), escena.ANCHO_NIVEL - ANCHO)
+    glMatrixMode(GL_PROJECTION)
+    glLoadIdentity()
+    glOrtho(cx, cx + ANCHO, decimal(ALTO), 0.0, -1.0, 1.0)
+    glClear(GL_COLOR_BUFFER_BIT)
+    para k en rango(largo(cm)):
+        m = cm[k]
+        f.caja(m)
+        t = f.cw[m]
+        x = f.me + decimal(cc[k]) * t
+        y_ = f.mf + decimal(cf[k]) * t
+        color(colores[m])
+        glRectd(x, y_, x + t, y_ + t)
+        color(escena.BORDE_MOSAICO)
+        glRectd(x, y_, x + t, y_ + 4.0)
+    para i en rango(f.nn):
+        si colores[i] >= 0 y f.tsol[i] != 3 y f.ctipo[i] != 0 y i != escena.JUGADOR:
+            caja(f, i, colores[i])
+    caja(f, escena.JUGADOR, colores[escena.JUGADOR])  # el jugador, delante de todo
+
+func caja(f: Fisica, i: entero, c: entero):
+    f.caja(i)
+    color(c)
+    glRectd(f.kx - f.kw / 2.0, f.ky - f.kh / 2.0, f.kx + f.kw / 2.0, f.ky + f.kh / 2.0)
+
+# El fotograma (BGRA, de abajo arriba) a un BMP de 32 bits.
+func guardar_bmp(ruta: texto):
+    n = ANCHO * ALTO * 4
+    b = bufer(54 + n + 1024)
+    poner_u8(b, 0, 66)
+    poner_u8(b, 1, 77)
+    poner_i32(b, 2, 54 + n)
+    poner_i32(b, 10, 54)
+    poner_i32(b, 14, 40)
+    poner_i32(b, 18, ANCHO)
+    poner_i32(b, 22, ALTO)
+    poner_u16(b, 26, 1)
+    poner_u16(b, 28, 32)
+    poner_i32(b, 34, n)
+    glReadPixels(0, 0, ANCHO, ALTO, GL_BGRA, GL_UNSIGNED_BYTE, direccion(b, 54))
+    poner_texto_ancho(b, 54 + n, ruta)
+    h = CreateFileW(direccion(b, 54 + n), 1073741824, 0, 0, 2, 128, 0)  # GENERIC_WRITE, CREATE_ALWAYS
+    WriteFile(h, direccion(b, 0), 54 + n, direccion(b, 54 + n + 1016), 0)
+    CloseHandle(h)
+    soltar_bufer(b)
+
+# ---------- Programa ----------
+
+b = bufer(4096)  # las estructuras de la ventana
+t = bufer(1024)  # lo de las funciones de arriba (entorno, tiempo, cifras)
+f = Fisica()
+escena.cargar(f)
+ps = crear_personajes()
+QueryPerformanceFrequency(direccion(t, 0))
+frecuencia = leer_i64(t, 0)
+pasos = variable(t, "FALCON_PASOS")
+captura = variable(t, "FALCON_CAPTURA")
+
+si pasos != "":
+    # Sin ventana: el guion, y el estado en texto (con FALCON_TRAZA, tras cada paso; si no, solo al final).
+    n = entero(pasos)
+    traza = variable(t, "FALCON_TRAZA") != ""
+    t0 = segundos(t, frecuencia)
+    para i en rango(n):
+        paso(f, ps, guion_dx(i), guion_salta(i))
+        si traza o i == n - 1:
+            imprimir("paso {i}")
+            para p en ps:
+                imprimir("personaje {p.nodo} {cifras(t, f.px[p.nodo])} {cifras(t, f.py[p.nodo])} {cifras(t, p.vy)} {cifras(t, p.emp_x)} {cifras(t, p.emp_y)} {p.en_suelo} {p.nodo_suelo}")
+            para k en rango(f.npar):
+                imprimir("par {f.pa[k]} {f.pb[k]}")
+    ms = (segundos(t, frecuencia) - t0) * 1000.0 / decimal(maximo(n, 1))
+    imprimir("ms_por_paso {ms}")
+sino:
+    poner_texto_ancho(b, 96, "FalconNativo2D")
+    poner_texto_ancho(b, 160, "Falcon Engine nativo: plataformas (Ara + OpenGL)")
+    instancia = GetModuleHandleW(0)
+    poner_i32(b, 0, 80)  # WNDCLASSEXW
+    poner_i32(b, 4, CS_VREDRAW_HREDRAW_OWNDC)
+    poner_i64(b, 8, retrollamada(ventana_proc))
+    poner_i64(b, 24, instancia)
+    poner_i64(b, 40, LoadCursorW(0, IDC_ARROW))
+    poner_i64(b, 64, direccion(b, 96))
+    RegisterClassExW(direccion(b, 0))
+    # El área de dibujo, de ANCHO × ALTO: la ventana es algo mayor (RECT en 512).
+    poner_i32(b, 520, ANCHO)
+    poner_i32(b, 524, ALTO)
+    AdjustWindowRect(direccion(b, 512), WS_OVERLAPPEDWINDOW, falso)
+    ventana = CreateWindowExW(0, direccion(b, 96), direccion(b, 160), WS_OVERLAPPEDWINDOW + WS_VISIBLE, 60, 60, leer_i32(b, 520) - leer_i32(b, 512), leer_i32(b, 524) - leer_i32(b, 516), 0, 0, instancia, 0)
+    dc = GetDC(ventana)
+    poner_u16(b, 384, 40)  # PIXELFORMATDESCRIPTOR: RGBA de 32 bits, doble búfer, para OpenGL
+    poner_u16(b, 386, 1)
+    poner_i32(b, 388, 37)
+    poner_u8(b, 393, 32)
+    SetPixelFormat(dc, ChoosePixelFormat(dc, direccion(b, 384)), direccion(b, 384))
+    contexto = wglCreateContext(dc)
+    wglMakeCurrent(dc, contexto)
+    poner_texto(b, 3072, "wglSwapIntervalEXT")
+    intervalo = wglGetProcAddress(direccion(b, 3072))
+    con_sincronia = intervalo != 0 y gl_intervalo(intervalo, 1)
+    glViewport(0, 0, ANCHO, ALTO)
+    fondo = escena.FONDO
+    glClearColor(decimal(fondo // 65536) / 255.0, decimal(fondo // 256 % 256) / 255.0, decimal(fondo % 256) / 255.0, 1)
+    colores = escena.colores()
+    cm = escena.celdas_mosaico()
+    cc = escena.celdas_c()
+    cf = escena.celdas_f()
+
+    # Bucle: mensajes, física a paso fijo con el tiempo real (hasta 5 pasos por fotograma) y un fotograma.
+    antes = segundos(t, frecuencia)
+    inicio = antes
+    acumulado = 0.0
+    hechos = 0
+    fotogramas = 0
+    saltar_antes = falso
+    mientras no cerrada:
+        mientras PeekMessageW(direccion(b, 1024), 0, 0, 0, PM_REMOVE):
+            TranslateMessage(direccion(b, 1024))
+            DispatchMessageW(direccion(b, 1024))
+        si cerrada:
+            romper
+        ahora_s = segundos(t, frecuencia)
+        acumulado = minimo(acumulado + ahora_s - antes, 5.0 * DT)
+        antes = ahora_s
+        mientras acumulado >= DT:
+            acumulado -= DT
+            si captura != "":
+                paso(f, ps, guion_dx(hechos), guion_salta(hechos))
+            sino:
+                dx = 0.0
+                si pulsada(VK_RIGHT) o pulsada(TECLA_D):
+                    dx += 1.0
+                si pulsada(VK_LEFT) o pulsada(TECLA_A):
+                    dx -= 1.0
+                saltar = pulsada(VK_SPACE) o pulsada(VK_UP) o pulsada(TECLA_W)
+                paso(f, ps, dx, saltar y no saltar_antes)  # como `se_pulsa`: solo al pulsar
+                saltar_antes = saltar
+            hechos += 1
+        dibujar(f, colores, cm, cc, cf)
+        si captura != "" y hechos >= PASOS_CAPTURA:
+            guardar_bmp(captura)
+            PostMessageW(ventana, WM_CLOSE, 0, 0)
+        SwapBuffers(dc)
+        fotogramas += 1
+        si no con_sincronia:
+            Sleep(1)
+    duracion = segundos(t, frecuencia) - inicio
+    wglMakeCurrent(0, 0)
+    wglDeleteContext(contexto)
+    imprimir("fotogramas {fotogramas}, pasos {hechos}, {decimal(fotogramas) / maximo(duracion, 0.001)} fps")
+soltar_bufer(b)
+soltar_bufer(t)

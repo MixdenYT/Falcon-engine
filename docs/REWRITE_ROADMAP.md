@@ -1,6 +1,6 @@
 # Falcon Engine — Powered by Ara: hoja de ruta
 
-Estado: **arquitectura aprobada por el usuario el 21-11-2026**. Fases 1 y 3 completadas; fase 2 en desarrollo.
+Estado: **arquitectura aprobada por el usuario el 21-11-2026**. Fases 1 y 3 completadas; fases 2 y 4 en desarrollo.
 Rama de trabajo: `motor-ara`, en `falcon-engine` y en `ara-etapa5/ara`. Solo hay commits locales; no se ha subido nada a GitHub.
 
 ## Cómo se trabaja
@@ -92,7 +92,7 @@ Reglas de la frontera:
 | 1 | Fundación:<br>• trigonometría en Ara<br>• `herramientas/compilar-nucleo-ara.mjs`<br>• `src/motor/ara/nucleo.wasm` versionado | Completado |
 | 2 | Núcleo en Ara, por bloques, cada uno con las pruebas headless en verde:<br>1. física 2D (en revisión)<br>2. contactos 2D (los pares, en revisión con B3)<br>3. temporizadores, partículas, animación de sprites<br>4. física 3D, controles y CQB (B4 en revisión: rayos y A*)<br>5. compilador de Blueprints | En desarrollo |
 | 3 | Ara nativo (Windows x64):<br>• FFI con DLL, convención Win64<br>• `f32` y búferes<br>• ventana Win32<br>• triángulo y cubo OpenGL<br>• llamadas indirectas y retrollamadas | Completado (Ara `7e4e99b`, 232/232 pruebas) |
-| 4 | Runtime nativo: el núcleo de la fase 2 corre en un `.exe` y dibuja con la fase 3; escena 2D primero | Pendiente |
+| 4 | Runtime nativo: el núcleo de la fase 2 corre en un `.exe` y dibuja con la fase 3; escena 2D primero | En desarrollo: primer corte hecho (`examples/native-2d`, ver abajo) |
 | 5 | Lumbre nativo: capacidades documentadas por plataforma | Pendiente |
 | 6 | Compatibilidad: matriz real Windows x64, Linux x64, ARM64 y wasm | Pendiente |
 | 7 | Seguridad (fuzzing del parser e importadores), benchmarks, ejemplos (`examples/`) | Pendiente |
@@ -149,3 +149,38 @@ Reglas de la frontera:
       - causa: la aritmética de la `DOMMatrix` de Chromium (orden de las sumas y su propio seno y coseno), no la ruta de Ara. Para igualar el respaldo habría que cambiar `matrizLocal`/`matrizPadre` por la aritmética de `pruebas/dom.js`. No se ha hecho: el respaldo solo se usa si el núcleo no carga.
     - (c) juego exportado con `exportarJuego` (win32-x64, motor local) y abierto con `FALCON_GUION`: `nucleo` no nulo, `.falcon/ara.wasm` cargado, `ara_web.wasm` da 404 (no lleva el compilador) y el jugador avanza 330 px en 90 pasos sin errores del núcleo. Con el árbol anterior a `be4429d` no arrancaba: faltaban `src/ara/api.js` y `api-motor.js` en `ARCHIVOS_APP` (ventana negra, sin errores en consola); `be4429d` los añadió.
   - `Mundo.iniciar` omite las carpetas que no son del juego (`exportado`, `capturas`, `exportaciones`, `.git`), con el mismo criterio que `OMITIR_PROYECTO` de `exportar.js`. Antes, exportar a `<proyecto>/exportado` (el destino por defecto) metía en el juego los `.ara` de la exportación, y no arrancaba («el tipo `Nodo` ya está definido»). Lo prueba `pruebas/carpetas-omitidas.test.js`, que también exige que las dos listas sigan iguales.
+- Fase 4, primer corte: un juego 2D nativo (`examples/native-2d`):
+  - **Física compartida.** `src/motor/ara/fisica2d.ara` deja de ser una clase de script. Ahora es un módulo: la `estructura Fisica` con sus métodos y tres funciones sueltas. Así compila también a nativo.
+    - `src/motor/ara/nucleo.ara` tiene `externa tipo Nucleo` y la clase `Fisica2D`: una envoltura fina que llama a `Fisica` y deja los resultados como números.
+    - Las exportaciones a JS no cambian (`Fisica2D.func.*`), así que `nucleo-ara.js` sigue igual.
+    - `fisica2d-ara.test.js` sigue 10/10.
+    - `nucleo.wasm` baja de 141.148 a 106.753 bytes: los 80 campos de la clase ya no se exportan a JS (`Fisica2D.leer.*` y `Fisica2D.poner.*`).
+    - Coste por paso (`herramientas/medir-fisica2d.mjs`, Ara, ms, antes → después; ruido de ±5 %):
+      - plataformas, 0,121 → 0,112;
+      - con contactos, 0,316 → 0,305;
+      - celdas, 0,126 → 0,123;
+      - celdas con contactos, 0,370 → 0,364.
+  - **El `.exe`** (`examples/native-2d/juego.ara`):
+    - ventana Win32 con `WndProc` en Ara (`retrollamada`) y OpenGL 1.1 (rectángulos de color);
+    - teclado con `GetAsyncKeyState`;
+    - paso fijo de 1/60 s con `QueryPerformanceCounter`;
+    - importa `fisica2d.ara` del motor. Lo compila `herramientas/escena-nativa-2d.mjs`.
+  - **La escena** es el nivel de la plantilla «plataformas»: `nivelPlataformas()`, que ahora exporta `plantillas.js`.
+    - Llega al `.exe` como un módulo de Ara generado: las llamadas que `Mundo.sincronizarAra` haría al núcleo, grabadas tal cual.
+    - `shortcut:` Ara no tiene JSON. Hay que pasar a leer el `.fscn` cuando lo tenga o cuando haga falta cargar escenas sin recompilar.
+  - **Prueba** `pruebas/nativo-2d.test.js`:
+    - 900 pasos de guion, comparados en cada paso, bit a bit, con la ruta wasm de Falcon. Compara posiciones, `vy`, empujes, suelo y nodo de suelo de los 2 personajes, y los pares de `contactos2d`;
+    - el guion pisa mosaicos y plataformas, choca con paredes y toca monedas;
+    - se salta, con aviso, sin Windows o sin el compilador de Ara (`ARA_DIR` / `ARA`).
+    - `npm test`: 86/86, salida 0.
+  - **Captura:** `docs/img/nativo-2d.png` (`glReadPixels` con `FALCON_CAPTURA`).
+  - **Cifras** en este equipo (Snapdragon X Plus; el `.exe` es x64 emulado con Prism, Node es arm64 nativo):
+    - paso completo del nivel (2 personajes, 64 nodos, contactos): `.exe` 0,0042 ms; Falcon con el núcleo wasm 0,0124 ms; Falcon con JS 0,044 ms. La ruta de Falcon incluye `sincronizarAra` y el reparto en JS;
+    - la ventana va a 58,7 fps con sincronía vertical.
+  - **Pendiente:**
+    - sprites, texturas y texto;
+    - audio;
+    - scripts y Blueprints en nativo: hoy el `.exe` repite a mano lo que hace el Blueprint del jugador (andar y saltar);
+    - plataformas móviles (arrastre);
+    - leer escenas sin recompilar;
+    - Linux y ARM64 nativos (no hay FFI de Ara para ellos).

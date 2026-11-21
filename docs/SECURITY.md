@@ -2,7 +2,9 @@
 
 Auditoría del 21-11-2026 (agente 08, ciberseguridad), sobre Falcon Engine 1.3.0 con Electron 44.9.0. El trabajo consistió en leer el código. No se ejecutaron pruebas de concepto contra la aplicación. Los números de línea corresponden al árbol de trabajo de esa fecha (commit `db8923f` y los cambios locales sin confirmar).
 
-> **Hay un hallazgo CRÍTICO (C1).** Abrir un proyecto ajeno (una plantilla descargada, un zip de un amigo o un repositorio clonado) puede ejecutar código arbitrario en el equipo con los permisos del usuario. Mientras no se corrija, **los proyectos de terceros deben tratarse como ejecutables**.
+> **Estado (21-11-2026, commit `5f79601`):** C1, A2 y la parte de CSP de M2 están corregidos. Quedan abiertos A1 (IPC sin límites), M1, M3, M4 y los hallazgos B. Como A1 sigue abierto, cualquier XSS nueva volvería a dar acceso al disco: **los proyectos de terceros siguen siendo de riesgo** hasta cerrar A1.
+>
+> Comprobación en ejecución (Electron, modo `--captura` con un guion): un proyecto con HTML en `velocidad`, `posicion`, `ancho`, `gravedad` y en el `id` de un nodo abre en modo Sencillo sin ejecutar nada; `falcon://app/..%2f…` daba 200 antes del arreglo y ahora da 404; las texturas de `falcon://fs/` siguen cargando con CORS; el import map carga con la CSP nueva y un `onerror=` inyectado queda bloqueado (`script-src-attr`).
 
 ## Alcance real
 
@@ -67,6 +69,16 @@ Resultado: ejecución de código como el usuario, solo con abrir el proyecto y s
 3. Quitar `'unsafe-inline'` de `script-src` (mover `editor.js:33`, que usa `onclick=` en línea, a `addEventListener`). Así una inyección HTML no ejecuta script.
 4. Aplicar A1: aunque haya una XSS, que no dé acceso al sistema.
 
+**Estado: corregido en `5f79601`** (puntos 1 a 3; el 4 es A1, sigue abierto).
+- Se revisaron con grep todas las interpolaciones en HTML de `src/editor`, `src/ui`, `src/gestor` y `src/juego`, no solo las siete de arriba. Se escapan con el `esc()` que ya existía (`src/ui/componentes.js:4`), o con `Number()` dentro de `style`: `sencillo.js:64,68`, `inspector.js:125,306` (`doc.dim` sale del `.fscn`), `acciones.js:310,311,332`, `recursos.js:396`, `malla.js:72`, `material.js:209` (parámetros del `.mat`) y `:141` (comilla simple en `url('…')`), `blueprints.js:62` (parámetros de funciones del `.bp`), `aguila.js:266` (`JSON.stringify` del filtro de un evento del script), `arbol.js:61` (`id` del nodo), `inferior.js:167,223` (rangos de animación de `importacion.json` y volumen de `proyecto.falcon`), `grafo.js:49,56` (posiciones del `.bp`), y `juego.js:87,270` (resolución y la variable `puntos` de los scripts, en la ventana del juego).
+- `normalizarNodo` (`src/motor/tipos.js`) valida cada propiedad conocida contra el tipo de su valor por defecto: número (acepta texto numérico), sí/no, texto (acepta un número), vector y objeto. Si no encaja, se usa el valor por defecto. El `id` tiene que cumplir `^[\w.-]{1,64}$`, y si no, se genera otro. `nombre`, `script` y `blueprint` deben ser texto, y `hijos`, `grupos`, `senales` y `exportados` deben tener la forma correcta. Las claves desconocidas se conservan para no romper proyectos antiguos. `normalizarEscena` solo admite `tipo` 2D o 3D. Una prueba (`pruebas/ejemplos.test.js`) comprueba que la validación no cambia ninguna escena de ninguna plantilla.
+- La CSP ya no lleva `'unsafe-inline'` en `script-src` (ver M2), y el `onclick=` de `editor.js:33` pasa a JS.
+
+**Queda.**
+- `proyecto.falcon`, `.mat`, `.malla`, `.bp` e `importacion.json` no se validan por tipo al cargar. Están protegidos solo por el escape en los sumideros y por la CSP.
+- `src/editor/visores/visor3d.js:358` interpola `n.id` sin `esc()`. Ese fichero tenía cambios del usuario sin confirmar y no se tocó. Hoy lo protege la validación del `id` en `normalizarNodo`, pero conviene añadir `esc()`.
+- Nada impide que se añada otra interpolación sin escapar. Si vuelve a pasar, la opción es un lint (`no-unsanitized`) o crear los nodos con DOM.
+
 ### A1 · Alta: el puente IPC da al renderer acceso total al disco y a `shell`
 
 **Dónde.** `src/principal/main.js:201-261` (`fs:leer`, `fs:escribir`, `fs:borrar`, `fs:renombrar`, `fs:copiar`, `fs:listar` y `fs:tamano` aceptan rutas absolutas sin límite), `main.js:217-219` (`fs:borrar` recurre a `fsp.rm(…, { recursive: true, force: true })` si la papelera falla), `main.js:295` (`sistema:abrir-url` pasa a `shell.openExternal` cualquier URL, incluidas `file:` y esquemas de aplicaciones), `main.js:116` (`setWindowOpenHandler` hace lo mismo con cualquier `window.open`), `main.js:339-347` (`exportar` recibe del renderer `destino`, que borra con `rm -rf` en `exportar.js:190`, e `icono`) y `main.js:174` (`app:guardar-datos` sobrescribe `falcon-datos.json` sin esquema). Ningún manejador comprueba `e.sender` ni la URL de quien llama. La ventana de prueba del juego (`juego:probar`, `main.js:304`) usa el mismo `preload.js` completo.
@@ -91,6 +103,11 @@ Resultado: ejecución de código como el usuario, solo con abrir el proyecto y s
 
 **Corrección.** Resolver con `path.resolve` y `realpath`, y exigir que la ruta esté dentro de `RAIZ_APP` (host `app`) o del proyecto abierto (host `fs`), con la misma comprobación `dentro()` de `jugador.js:105`. Quitar `Access-Control-Allow-Origin: *`.
 
+**Estado: `falcon://app` corregido en `5f79601`; `falcon://fs` sigue abierto.**
+- La traducción de URL a ruta está en una función pura, `rutaDeUrl` (`src/principal/rutas.js`), que usa `main.js`. Decodifica, resuelve con `path.resolve` y exige que la ruta sea `RAIZ_APP` o esté debajo de `RAIZ_APP + path.sep`. Si no, devuelve 404. Una URL mal codificada también da 404, en vez de una excepción. Lo cubre `pruebas/seguridad.test.js`, y en Electron `..%2f` daba 200 antes del arreglo y ahora da 404.
+- `Access-Control-Allow-Origin` pasa de `*` a `falcon://app`. **No se puede quitar**, porque las páginas (origen `falcon://app`) cargan texturas, modelos y fuentes de `falcon://fs/` (otro origen), y `TextureLoader` y `GLTFLoader` piden CORS. Se comprobó en Electron que siguen cargando.
+- **Queda:** el host `fs` sigue sirviendo cualquier ruta absoluta. Para limitarlo al proyecto abierto en cada ventana hace falta que el proceso principal sepa qué proyecto tiene cada ventana, que es el mismo cambio que A1 (raíces permitidas). Tampoco se usa `realpath`, así que un enlace simbólico dentro de la app no se detecta. La carpeta de la app no la controla un proyecto. `jugador.js` (el juego exportado) ya estaba bien con `dentro()` y no se tocó.
+
 ### M1 · Media: renderers sin sandbox y sin gestor de permisos
 
 **Dónde.** `main.js:98` y `jugador.js:171` tienen `sandbox: false`. No hay ninguna llamada a `session.setPermissionRequestHandler` en `src/principal` (grep). Por defecto, Electron concede los permisos: micrófono, cámara, geolocalización y notificaciones.
@@ -106,6 +123,8 @@ Resultado: ejecución de código como el usuario, solo con abrir el proyecto y s
 **Escenario.** Es lo que convierte la inyección HTML de C1 en ejecución de script.
 
 **Corrección.** Quitar `'unsafe-inline'` de `script-src` (mover el import map a un archivo o usar un hash) y añadir `object-src 'none'; base-uri 'none'; frame-src 'none'`. `'wasm-unsafe-eval'` sí hace falta para Ara.
+
+**Estado: casi todo corregido en `5f79601`.** `script-src` ya no lleva `'unsafe-inline'`. El import map en línea se autoriza con su hash (`'sha256-…'`, el mismo en las tres páginas), y se añaden `object-src 'none'` y `base-uri 'none'`. Si alguien cambia el import map, `pruebas/seguridad.test.js` falla y dice qué hash poner. **Queda:** `frame-src` (lo cubre `default-src 'self' falcon:`, y no hay iframes), `style-src 'unsafe-inline'` (la interfaz usa `style=` en todas partes, y una inyección de CSS no ejecuta script) y la CSP en cabeceras de `protocol.handle`.
 
 ### M3 · Media: las actualizaciones no tienen firma de código efectiva
 
@@ -196,9 +215,9 @@ La integridad depende **solo** del `sha512` de `latest.yml`, que se sirve desde 
 
 ## Prioridad de corrección
 
-1. C1: escapar los siete sumideros y validar tipos al cargar. Es un parche pequeño y corta la cadena.
-2. A1 y A2: rutas permitidas en el IPC y en `falcon://`, y `abrirUrl` solo con `https:`.
-3. M1 y M2: `sandbox: true`, gestor de permisos y CSP sin `'unsafe-inline'`.
+1. ~~C1: escapar los siete sumideros y validar tipos al cargar.~~ Hecho en `5f79601`.
+2. A1 y lo que queda de A2: rutas permitidas en el IPC y en `falcon://fs`, y `abrirUrl` solo con `https:`. (`falcon://app` ya está corregido.)
+3. M1: `sandbox: true` y gestor de permisos. (La parte de CSP de M2 ya está hecha.)
 4. M4: subir Electron. M3: firma de código.
 5. Los hallazgos B.
 

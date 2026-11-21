@@ -9,6 +9,7 @@ import { Entrada } from './entrada.js';
 import { Audio } from './audio.js';
 import { EQUIPO_CQB } from './tactico3d.js';
 import { ProgramaAra, InstanciaAra, claseDe, errorDeCompilacion } from '../ara/puente.js';
+import { nucleoAra } from './nucleo-ara.js';
 
 // Los nombres se comparan sin tildes ni mayúsculas. Se normalizan muchas veces por fotograma (`nodo("Jugador")`,
 // `hijo("Destino")`) y casi siempre los mismos: se guardan (con un tope, por si un juego crea nombres sin fin).
@@ -296,6 +297,7 @@ export class Mundo {
     this.colaEliminar = [];
     this.temporizadores = [];
     this.pares = new Map();
+    this.nucleo = null; // núcleo de Ara (src/motor/nucleo-ara.js); sin él, la física va en JS
     this.indice = new Map();
     this.indiceSucio = true;
     this.camara = { x: 0, y: 0, zoom: 1, temblor: 0, tiempoTemblor: 0, dx: 0, dy: 0 };
@@ -413,7 +415,11 @@ export class Mundo {
     await Promise.all(this.archivos.filter(a => /\.(agl|ara|bp|fscn)$/i.test(a)).map(async (a) => {
       try { this.textos.set(a, await this.proyecto.leer(a)); } catch {}
     }));
-    await this.compilarAra();
+    // El núcleo de Ara (física) se carga a la vez; si no se puede, el mundo usa la versión en JS.
+    [this.nucleo] = await Promise.all([
+      nucleoAra().catch((e) => { console.warn('Núcleo de Ara no disponible, se usa JS:', e); return null; }),
+      this.compilarAra(),
+    ]);
     this.audio.precargar();
     const imgs = this.archivos.filter(a => tipoRecurso(a) === 'imagen');
     await this.imagenes.precargar(imgs);
@@ -510,6 +516,7 @@ export class Mundo {
     this.tiempo = 0;
     this.estado = 'jugando';
     this.pares = new Map();
+    this.nucleo = null; // núcleo de Ara (src/motor/nucleo-ara.js); sin él, la física va en JS
     this.temporizadores = [];
     this.puntosIniciales = this.interp.globales.vars.get('puntos') || 0;
     if (this.tipoEscena === '3D') {
@@ -811,6 +818,14 @@ export class Mundo {
     this.mosaicosSolidos = nodos.filter(n => n.tipo === 'Mosaicos' && n.props.solido);
     const g = this.interp.globales.vars.get('gravedad');
     const escalaG = (this.proyecto.datos.gravedad || 1200) ? g / (this.proyecto.datos.gravedad || 1200) : 1;
+    // Mientras dure la migración, la versión en JS queda de respaldo (sin núcleo de Ara cargado).
+    if (this.nucleo) {
+      this.fisica2dAra(this.nucleo.fisica2d, dt, nodos, solidos, escalaG);
+      // No debería pasar: si el núcleo falla, se avisa y se sigue con JS.
+      const e = this.nucleo.error();
+      if (e) { console.error('Núcleo de Ara (física 2D):', e.mensaje); this.nucleo = null; }
+      return;
+    }
     const choques = (x0, y0, x1, y1) => {
       const r = [];
       for (const s of solidos) if (x1 > s.x0 && x0 < s.x1 && y1 > s.y0 && y0 < s.y1) r.push(s);
@@ -869,13 +884,58 @@ export class Mundo {
         contactos.add(s.n);
       }
       if (!n.props.usa_gravedad) n.enSuelo = true;
-      // Aplicar desplazamiento a la posición local.
-      const p = n.props.posicion;
-      const m = this.matrizPadre(n);
-      const sx = Math.abs(m.a) || 1, sy = Math.abs(m.d) || 1;
-      p[0] += (cx - cx0) / sx; p[1] += (cy - cy0) / sy;
-      n.mueveX = 0; n.mueveY = 0;
-      n._contactosSolidos = contactos;
+      this.aplicarMovimiento2d(n, cx - cx0, cy - cy0, contactos);
+    }
+  }
+
+  /** Lleva lo que se movió un personaje (en coordenadas de mundo) a su posición local y cierra su paso de física. */
+  aplicarMovimiento2d(n, dx, dy, contactos) {
+    const p = n.props.posicion;
+    const m = this.matrizPadre(n);
+    const sx = Math.abs(m.a) || 1, sy = Math.abs(m.d) || 1;
+    p[0] += dx / sx; p[1] += dy / sy;
+    n.mueveX = 0; n.mueveY = 0;
+    n._contactosSolidos = contactos;
+  }
+
+  /**
+   * `fisica2d` con el núcleo de Ara (src/motor/ara/fisica2d.ara): la misma cuenta, con el mismo resultado bit a bit.
+   * Los nodos viajan como índices de `lista`, que vale solo para este fotograma.
+   */
+  fisica2dAra(F, dt, nodos, solidos, escalaG) {
+    const lista = [], indices = new Map();
+    const indice = (n) => {
+      let i = indices.get(n);
+      if (i === undefined) { i = lista.length; lista.push(n); indices.set(n, i); }
+      return i;
+    };
+    F.vaciar();
+    for (const s of solidos) F.solido(s.x0, s.y0, s.x1, s.y1, s.unaCara, indice(s.n));
+    for (const n of this.mosaicosSolidos) {
+      const m = this.matrizPadre(n).multiply(matrizLocal(n));
+      F.mosaico(m.e, m.f, n.props.tam_celda, indice(n));
+      for (const k in n.props.celdas) {
+        // Solo las claves que `${c},${f}` puede formar con c y f enteros.
+        // shortcut: |c|, |f| < 2^21 (clave de fisica2d.ara); más lejos se ignoran.
+        const coma = k.indexOf(','), c = +k.slice(0, coma), f = +k.slice(coma + 1);
+        if (`${c},${f}` === k && Number.isInteger(c) && Number.isInteger(f) && Math.abs(c) < 2097152 && Math.abs(f) < 2097152) F.celda(c, f);
+      }
+    }
+    const amort = Math.pow(0.02, dt);
+    for (const n of nodos) {
+      if (n.tipo !== 'Personaje2D') continue;
+      const [cx0, cy0, w, h] = this.caja(n);
+      // Plataforma móvil: arrastra al personaje que está encima.
+      const delta = n.enSuelo && n._nodoSuelo && n._nodoSuelo._delta;
+      const gravedad = !!n.props.usa_gravedad;
+      F.mover(cx0, cy0, w, h, n.mueveX, n.mueveY, n.empX, n.empY, n.vy, gravedad, (n.props.gravedad ?? 1200) * escalaG, dt, amort, delta ? delta[0] : 0, delta ? delta[1] : 0);
+      n.empX = F.empX(); n.empY = F.empY(); n.vy = F.vy();
+      n.enSuelo = !!F.suelo(); n.enPared = !!F.pared(); n.enTecho = !!F.techo();
+      const suelo = F.nodoSuelo();
+      n._nodoSuelo = suelo < 0 ? null : lista[suelo];
+      const contactos = new Set();
+      for (let i = 0, k = F.contactos(); i < k; i++) contactos.add(lista[F.contacto(i)]);
+      this.aplicarMovimiento2d(n, F.cx() - cx0, F.cy() - cy0, contactos);
     }
   }
 

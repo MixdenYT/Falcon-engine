@@ -13,7 +13,7 @@ import { tipo as tipoNodo } from '../motor/tipos.js';
 export { HAY_JSPI };
 
 /** Lee un archivo que va junto a este (en Electron, por el protocolo falcon://; en Node, del disco). */
-async function leerPropio(nombre, comoTexto) {
+export async function leerPropio(nombre, comoTexto) {
   const url = new URL(nombre, import.meta.url);
   if (url.protocol === 'file:') {
     const { readFile } = await import('node:fs/promises');
@@ -31,7 +31,7 @@ let motor = null;
 // Lo ya compilado a código máquina en esta sesión: el runtime (siempre los mismos bytes) y los últimos programas
 // (pulsar «Jugar» otra vez sin cambiar ningún script no vuelve a compilar nada).
 const modulosCompilados = new WeakMap(); // bytes → Promise<WebAssembly.Module>
-const compilado = (bytes) => {
+export const compilado = (bytes) => {
   let m = modulosCompilados.get(bytes);
   if (!m) {
     m = WebAssembly.compile(bytes);
@@ -43,7 +43,7 @@ const compilado = (bytes) => {
 // El runtime de Ara es la versión ligera para la web (herramientas/runtime-web.sh del repositorio de Ara: 96 KB en vez
 // de 226 KB); el mismo en el editor y en los juegos exportados. Se lee una vez.
 let runtimePropio = null;
-const runtimeAra = () => (runtimePropio ||= leerPropio('./ara_runtime.wasm', false).catch((e) => { runtimePropio = null; throw e; }));
+export const runtimeAra = () => (runtimePropio ||= leerPropio('./ara_runtime.wasm', false).catch((e) => { runtimePropio = null; throw e; }));
 const PROGRAMAS_GUARDADOS = 4;
 const programas = new Map(); // textos de los scripts → { modulo: Promise<WebAssembly.Module>, archivos }
 

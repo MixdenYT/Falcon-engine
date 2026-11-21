@@ -1,0 +1,227 @@
+# Física 2D de Falcon Engine, escrita en Ara (vía B de PLAN_MOTOR_ARA.md).
+#
+# Es la misma cuenta que `Mundo.fisica2d` y `Mundo.celdasSolidas` de src/motor/mundo.js, operación por
+# operación, para que el resultado sea idéntico bit a bit. JS (src/motor/nucleo-ara.js) le pasa cada fotograma
+# los sólidos y los mosaicos, y luego mueve cada personaje con `mover`. Los resultados se leen con `r_*` y
+# `contacto(i)`. Los nodos viajan como índices (los da JS): Ara no toca el árbol de escena.
+
+externa tipo Nucleo
+
+const SIN_NODO = -1
+# Una celda (c, f) de un mosaico se guarda como un solo entero: c y f caben de sobra en 2^21.
+const DESPLAZA = 4194304
+const MITAD = 2097152
+
+clase Fisica2D extiende Nucleo:
+    # Sólidos sueltos (plataformas): caja, si solo bloquea por arriba y su nodo.
+    sx0: lista[decimal] = []
+    sy0: lista[decimal] = []
+    sx1: lista[decimal] = []
+    sy1: lista[decimal] = []
+    suna: lista[booleano] = []
+    snodo: lista[entero] = []
+    # Mosaicos sólidos: origen, tamaño de celda, nodo y sus celdas ocupadas.
+    mox: lista[decimal] = []
+    moy: lista[decimal] = []
+    mtam: lista[decimal] = []
+    mnodo: lista[entero] = []
+    celdas: diccionario[entero, booleano] = {}
+    # Los sólidos que toca la caja que se está probando (en el orden de JS: primero sueltos, luego celdas): los `nh`
+    # primeros. Las listas se reutilizan entre llamadas (crearlas en cada `choques` costaba más que la cuenta).
+    nh = 0
+    hx0: lista[decimal] = []
+    hy0: lista[decimal] = []
+    hx1: lista[decimal] = []
+    hy1: lista[decimal] = []
+    huna: lista[booleano] = []
+    hnodo: lista[entero] = []
+    # Resultado del último `mover`.
+    cx = 0.0
+    cy = 0.0
+    emp_x = 0.0
+    emp_y = 0.0
+    vy = 0.0
+    en_suelo = falso
+    en_pared = falso
+    en_techo = falso
+    nodo_suelo = -1
+    contactos: lista[entero] = []  # los `nc` primeros (se reutiliza, como las de `choques`)
+    nc = 0
+
+    func vaciar():
+        sx0 = []
+        sy0 = []
+        sx1 = []
+        sy1 = []
+        suna = []
+        snodo = []
+        mox = []
+        moy = []
+        mtam = []
+        mnodo = []
+        celdas = {}
+
+    func solido(x0: decimal, y0: decimal, x1: decimal, y1: decimal, una_cara: booleano, nodo: entero):
+        agregar(sx0, x0)
+        agregar(sy0, y0)
+        agregar(sx1, x1)
+        agregar(sy1, y1)
+        agregar(suna, una_cara)
+        agregar(snodo, nodo)
+
+    func mosaico(ox: decimal, oy: decimal, tam: decimal, nodo: entero):
+        agregar(mox, ox)
+        agregar(moy, oy)
+        agregar(mtam, tam)
+        agregar(mnodo, nodo)
+
+    func celda(c: entero, f: entero):
+        celdas[clave(largo(mox) - 1, c, f)] = verdadero
+
+    func clave(m: entero, c: entero, f: entero) -> entero:
+        devolver (m * DESPLAZA + c + MITAD) * DESPLAZA + f + MITAD
+
+    func tocar(x0: decimal, y0: decimal, x1: decimal, y1: decimal, una: booleano, nodo: entero):
+        si nh < largo(hx0):
+            hx0[nh] = x0
+            hy0[nh] = y0
+            hx1[nh] = x1
+            hy1[nh] = y1
+            huna[nh] = una
+            hnodo[nh] = nodo
+        sino:
+            agregar(hx0, x0)
+            agregar(hy0, y0)
+            agregar(hx1, x1)
+            agregar(hy1, y1)
+            agregar(huna, una)
+            agregar(hnodo, nodo)
+        nh += 1
+
+    # Lo que choca con la caja (x0, y0)-(x1, y1): `choques` de mundo.js.
+    func choques(x0: decimal, y0: decimal, x1: decimal, y1: decimal):
+        nh = 0
+        para i en rango(largo(sx0)):
+            si x1 > sx0[i] y x0 < sx1[i] y y1 > sy0[i] y y0 < sy1[i]:
+                tocar(sx0[i], sy0[i], sx1[i], sy1[i], suna[i], snodo[i])
+        para m en rango(largo(mox)):
+            t = mtam[m]
+            ox = mox[m]
+            oy = moy[m]
+            c0 = piso((x0 - ox) / t)
+            c1 = piso((x1 - ox - 0.0001) / t)
+            f0 = piso((y0 - oy) / t)
+            f1 = piso((y1 - oy - 0.0001) / t)
+            para c en rango(c0, c1 + 1):
+                para f en rango(f0, f1 + 1):
+                    si tiene(celdas, clave(m, c, f)):
+                        tocar(ox + decimal(c) * t, oy + decimal(f) * t, ox + decimal(c + 1) * t, oy + decimal(f + 1) * t, falso, mnodo[m])
+
+    func anotar(nodo: entero):
+        para i en rango(nc):
+            si contactos[i] == nodo:
+                devolver
+        si nc < largo(contactos):
+            contactos[nc] = nodo
+        sino:
+            agregar(contactos, nodo)
+        nc += 1
+
+    # Mueve un Personaje2D un paso. `amort` es 0.02^dt (lo calcula JS con Math.pow, para no depender de dos
+    # implementaciones de la potencia). `gravedad` ya viene escalada; `arrastre_*` es lo que se movió el suelo.
+    func mover(cx0: decimal, cy0: decimal, w: decimal, h: decimal, mueve_x: decimal, mueve_y: decimal, e_x: decimal, e_y: decimal, v_y: decimal, usa_gravedad: booleano, gravedad: decimal, dt: decimal, amort: decimal, arrastre_x: decimal, arrastre_y: decimal):
+        cx = cx0 + arrastre_x
+        cy = cy0 + arrastre_y
+        emp_x = e_x
+        emp_y = e_y
+        vy = v_y
+        en_pared = falso
+        en_techo = falso
+        nc = 0
+        # Horizontal
+        emp_x *= amort
+        si abs(emp_x) < 1.0:
+            emp_x = 0.0
+        dx = (mueve_x + emp_x) * dt
+        si dx != 0.0 y dx == dx:  # como `if (dx)` de JS: NaN no mueve
+            cx += dx
+            choques(cx - w / 2.0, cy - h / 2.0 + 0.5, cx + w / 2.0, cy + h / 2.0 - 0.5)
+            para i en rango(nh):
+                si huna[i]:
+                    continuar
+                si dx > 0.0:
+                    cx = minimo(cx, hx0[i] - w / 2.0)
+                sino:
+                    cx = maximo(cx, hx1[i] + w / 2.0)
+                en_pared = verdadero
+                emp_x = 0.0
+                anotar(hnodo[i])
+        # Vertical
+        vy_total = 0.0
+        si usa_gravedad:
+            vy += gravedad * dt
+            vy = minimo(vy, 2400.0)
+            vy_total = vy
+        sino:
+            emp_y *= amort
+            si abs(emp_y) < 1.0:
+                emp_y = 0.0
+            vy_total = mueve_y + emp_y
+        dy = vy_total * dt
+        fondo_antes = cy + h / 2.0
+        cy += dy
+        en_suelo = falso
+        nodo_suelo = SIN_NODO
+        choques(cx - w / 2.0 + 0.5, cy - h / 2.0, cx + w / 2.0 - 0.5, cy + h / 2.0)
+        para i en rango(nh):
+            si dy >= 0.0:
+                si huna[i] y fondo_antes > hy0[i] + 0.5:
+                    continuar
+                cy = minimo(cy, hy0[i] - h / 2.0)
+                si usa_gravedad:
+                    vy = 0.0
+                en_suelo = verdadero
+                nodo_suelo = hnodo[i]
+            sino:
+                si huna[i]:
+                    continuar
+                cy = maximo(cy, hy1[i] + h / 2.0)
+                si usa_gravedad:
+                    vy = maximo(0.0, vy)
+                en_techo = verdadero
+            anotar(hnodo[i])
+        si no usa_gravedad:
+            en_suelo = verdadero
+
+    func r_cx() -> decimal:
+        devolver cx
+
+    func r_cy() -> decimal:
+        devolver cy
+
+    func r_emp_x() -> decimal:
+        devolver emp_x
+
+    func r_emp_y() -> decimal:
+        devolver emp_y
+
+    func r_vy() -> decimal:
+        devolver vy
+
+    func r_suelo() -> booleano:
+        devolver en_suelo
+
+    func r_pared() -> booleano:
+        devolver en_pared
+
+    func r_techo() -> booleano:
+        devolver en_techo
+
+    func r_nodo_suelo() -> entero:
+        devolver nodo_suelo
+
+    func r_contactos() -> entero:
+        devolver nc
+
+    func contacto(i: entero) -> entero:
+        devolver contactos[i]

@@ -13,7 +13,8 @@ const destino = carpeta + 'blueprints.wasm';
 export async function compilarBlueprintsAra() {
   const { compilador } = await compiladorAra();
   const nombres = (await readdir(carpeta)).filter((n) => n.endsWith('.ara')).sort();
-  const archivos = await Promise.all(nombres.map(async (n) => [n, await readFile(carpeta + n, 'utf8')]));
+  // Sin CR: el .wasm no depende de cómo saque git los finales de línea (CRLF en Windows).
+  const archivos = await Promise.all(nombres.map(async (n) => [n, (await readFile(carpeta + n, 'utf8')).replace(/\r\n/g, '\n')]));
   const r = compilador.compilar(archivos);
   if (!r.ok) {
     const e = r.errores[0];

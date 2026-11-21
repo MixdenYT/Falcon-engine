@@ -101,6 +101,8 @@ function rutaDeUrl(texto, raizApp, windows = WIN) {
   let url, p;
   try { url = new URL(texto); p = decodeURIComponent(url.pathname); } catch { return null; }
   if (url.host === 'app') {
+    // Ningún archivo de la app lleva `\`: se rechaza en todos los sistemas (en Windows es un separador).
+    if (p.includes('\\')) return null;
     const r = path.resolve(raizApp, '.' + p);
     return dentroDe(raizApp, r, windows) ? r : null;
   }

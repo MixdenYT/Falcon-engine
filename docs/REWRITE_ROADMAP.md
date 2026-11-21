@@ -199,7 +199,7 @@ Reglas de la frontera:
   - **Prueba** `pruebas/nativo-2d.test.js`. Falcon (wasm, con los Blueprints y scripts reales) y el `.exe`, bit a bit en cada paso: personajes, pares que se tocan, puntos, estado y nodos.
     - Guion de 1000 pasos: recoge monedas, muere en los pinchos (empujón, `esperar(0.4)` y reinicio) y gana en la meta en el paso 928 con 4 puntos.
     - Segundo caso: el enemigo patrullando, 300 pasos.
-    - Lo que se vio al probar: en la plantilla, la caja del enemigo entra 4 px en el suelo, y el primer paso lo empuja al hueco de las columnas 44-45. Pasa igual en Falcon (con el núcleo y con JS) y en el `.exe`. La prueba lo apoya en el suelo para ver la patrulla. Está en `plantillas.js`, que no toca este corte.
+    - Lo que se vio al probar: en la plantilla, la caja del enemigo entra 4 px en el suelo, y el primer paso lo empuja al hueco de las columnas 44-45. Pasa igual en Falcon (con el núcleo y con JS) y en el `.exe`. La prueba lo apoya en el suelo para ver la patrulla. Corregido en la revisión cruzada: el enemigo empieza en y = 572 y su script se gira antes de moverse (antes vibraba contra la roca). El guion de la prueba ahora le cae encima.
   - **Cifras** (este equipo, `.exe` x64 emulado): paso del nivel con scripts, `.exe` 0,017 ms y Falcon (wasm + JS) 0,060 ms.
   - **Captura:** `docs/img/nativo-2d.png` (paso 560 del guion de la prueba).
   - `npm test`: 91/91, salida 0.

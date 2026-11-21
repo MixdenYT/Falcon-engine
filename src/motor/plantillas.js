@@ -54,9 +54,10 @@ clase Enemigo extiende Personaje2D:
     direccion = -1.0
 
     cuando se_actualiza(delta):
-        mover(direccion * velocidad)
+        # Primero se gira (en_pared es del paso anterior) y luego se mueve, para no volver a chocar.
         si en_pared():
             direccion = -direccion
+        mover(direccion * velocidad)
         hijo("Sprite").voltear_h = direccion > 0.0
 
     cuando toca(otro):
@@ -413,7 +414,7 @@ export function nivelPlataformas() {
       N('Sprite', 'Sprite', { forma: 'triangulo', color: '#C2414F', ancho: 52, alto: 28 }),
       N('Colision', 'Colisión', { ancho: 40, alto: 20, posicion: [0, 4] }),
     ], { script: 'scripts/peligro.ara', grupos: ['peligros'] }),
-    N('Personaje2D', 'Enemigo', { posicion: [1700, 578], velocidad: 90 }, [
+    N('Personaje2D', 'Enemigo', { posicion: [1700, 572], velocidad: 90 }, [
       N('Sprite', 'Sprite', { imagen: 'sprites/personajes/enemigo.png', ancho: 54, alto: 54, forma: 'enemigo', color: '#B04A6A', animando: true, fps: 8 }),
       N('Colision', 'Colisión', { ancho: 44, alto: 40, posicion: [0, 6] }),
     ], { script: 'scripts/enemigo.ara', grupos: ['enemigos'] }),

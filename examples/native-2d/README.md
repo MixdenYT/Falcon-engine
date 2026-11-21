@@ -63,7 +63,7 @@ La captura de arriba sale de `FALCON_CAPTURA` con el guion de la prueba (`GUION`
 
 Son dos casos:
 1. **La plantilla tal cual**, 1000 pasos. El guion, buscado con el propio Falcon, recoge monedas, muere en los pinchos (empujón, `esperar(0.4)` y reinicio del nivel, con los puntos y los nodos de vuelta) y en la segunda vida llega a la meta: gana en el paso 928 con 4 puntos.
-2. **El enemigo patrullando**, 300 pasos. En la plantilla, la caja del enemigo entra 4 px en el suelo y el primer paso lo saca hacia el hueco de las columnas 44-45, donde cae: pasa igual en Falcon (con el núcleo de Ara y con la física en JS) y en el `.exe`. Para ver la patrulla, la prueba lo apoya en el suelo (`y = 572`). Anda a la izquierda hasta la roca y allí se da la vuelta en cada paso, porque su script mira `en_pared()` del paso anterior después de `mover`. También igual en los dos.
+2. **El enemigo patrullando**, 300 pasos: anda a la izquierda hasta la roca, se da la vuelta una vez y vuelve, sin caerse ni vibrar. Igual en Falcon y en el `.exe`.
 
 Sin Windows o sin el compilador de Ara, la prueba se salta con un aviso.
 

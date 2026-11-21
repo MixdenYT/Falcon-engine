@@ -41,7 +41,7 @@ export const expandirGuion = (tramos) => tramos.split(' ').map((t) => t[0].repea
  * hueco, muere en los pinchos (que empujan, esperan 0,4 s y reinician el nivel), y en la segunda vida salta pinchos,
  * rocas y huecos hasta la meta (gana con 4 puntos en el paso 928).
  */
-export const GUION = expandirGuion('b164 f b267 f b67 f b61 f b128 f b237 b71');
+export const GUION = expandirGuion('b164 f b267 f b67 f b61 f b66 f b61 f b237 b71');
 
 /** Las acciones del guion, en el orden en que se avisan `se_pulsa` y `se_suelta` (el .exe usa el mismo). */
 export const ACCIONES = ['izquierda', 'derecha', 'saltar'];

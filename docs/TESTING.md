@@ -25,34 +25,12 @@ Estado comprobado el 21-11-2026 en la rama `motor-ara` (`db8923f`), con Windows 
 
 ### Resultado real hoy
 
-- `npm test` termina con **código de salida 1**:
-  - `node:test` da 50 aprobadas y 0 fallidas; Águila, 31 correctas; Huecos, 3 correctas.
-  - El fallo es un `uncaughtException`: `Cannot find module 'js-yaml'`, desde `herramientas/verificar-release.cjs`, que importa `pruebas/release.test.js`.
-- **Ese fallo esconde 7 pruebas.**
-  - `ejecutar.js` hace `await import(...)` en bucle y no captura errores.
-  - Al fallar el import de `release.test.js`, el bucle se corta. No llegan a ejecutarse:
-    - `release.test.js` (2)
-    - `sombras.test.js` (3)
-    - `texturas.test.js` (2)
-  - Por separado, `node pruebas/sombras.test.js` y `node pruebas/texturas.test.js` pasan (3/3 y 2/2).
-  - Las «50 pruebas que pasan» de `REWRITE_ROADMAP.md` son las de `node:test` sin `release`.
+- `npm test` termina con **código de salida 0**: `node:test` 79 de 79; Águila 31, Huecos 3, Sombras 3 y Texturas 2 correctas.
 - `npm run test:actualizaciones`: 10/10.
 
-**Causa del `js-yaml`:**
-- `node_modules/` está versionado en git (3.383 archivos de una instantánea antigua), aunque `.gitignore` lo excluye. Esa instantánea es anterior a `electron-builder` y `electron-updater`.
-- En este equipo no se ha ejecutado `npm ci`. Por eso `npm ls` da `UNMET DEPENDENCY electron-builder@^26.15.3` y `electron-updater@^6.8.9`.
-- `js-yaml` (4.3.2 en el lockfile) solo llega como dependencia transitiva de `app-builder-lib`, `builder-util`, `dmg-builder` y `electron-updater`.
-- Aun así, `verificar-release.cjs` hace `require('js-yaml')` directamente, sin declararlo.
-- En CI pasa porque `npm ci` instala el árbol completo y `js-yaml` queda en la raíz de `node_modules`.
-
-**Arreglo propuesto. No se ha aplicado.**
-1. Declarar la dependencia que se usa: `"js-yaml": "^4.1.0"` en `devDependencies`.
-   - El lockfile ya resuelve `node_modules/js-yaml` a 4.3.2; solo cambiaría la entrada raíz `packages[""]`.
-   - Orden: `npm install -D js-yaml@^4.1.0`.
-2. En local, `npm ci` completa `node_modules`.
-   - Ojo: reescribe la instantánea versionada y el diff en git es enorme.
-   - Conviene decidir antes si se deja de versionar: `git rm -r --cached node_modules`.
-3. `pruebas/ejecutar.js` debe capturar el error de cada archivo, marcar `process.exitCode = 1` y seguir con el siguiente. Así un import roto no oculta las pruebas posteriores.
+**Historia del fallo de `js-yaml` (resuelto):**
+- `pruebas/ejecutar.js` cortaba el bucle en el primer archivo que no cargaba, así que el fallo de `release.test.js` (falta `js-yaml`) escondía `release`, `sombras` y `texturas` (7 pruebas). Ahora cada archivo que no carga se informa, se pone `process.exitCode = 1` y se sigue (`86b418e`).
+- `node_modules/` estaba versionado en git y desfasado; se sacó de git y `js-yaml` se declaró en `devDependencies` (`6ca1704`).
 
 ### Qué cubre cada archivo
 
@@ -67,9 +45,12 @@ Estado comprobado el 21-11-2026 en la rama `motor-ara` (`db8923f`), con Windows 
 | `cqb.test.js` | 8 | CQB en `Mundo3D`: grafos que compilan, munición, rayos, recarga, IA y cobertura, puertas, A* con radio, muros entre cámara y boca, a quemarropa. |
 | `ejemplos.test.js` | 8 | Plantillas y Academia: cada bloque real en un grafo ejecutable, todas las plantillas compilan su Ara, puzle de cajas en Ara que se gana, combate e IA con scripts, rayos y cobertura, crear proyectos (WAV y metadatos). |
 | `huecos.test.js` | 3 (caseras) | `huecos.js` y `escena3d.js`: CSG del muro con puerta, colisión partida en cajas. |
-| `release.test.js` | 2 | `verificar-release.cjs`: tres plataformas completas, `SHA256SUMS.txt`, rechazo de binarios alterados, de plataformas incompletas y de versiones distintas. **Hoy no se ejecuta** (ver arriba). |
-| `sombras.test.js` | 3 (caseras) | `lumbre-parche.js`: sesgo de las sombras del sol, de las bombillas y de los focos. **No se ejecuta con `npm test`.** |
-| `texturas.test.js` | 2 (caseras) | `escena3d.js`: UV por cara y recálculo al escalar. **No se ejecuta con `npm test`.** |
+| `fisica2d-ara.test.js` | 10 | Núcleo de física 2D en Ara (`src/motor/ara/fisica2d.ara`) frente a la ruta JS, paso a paso; `cargarEscena` conserva el núcleo; `nucleo.wasm` al día. |
+| `seguridad.test.js` | — | `normalizarNodo`/`normalizarEscena` con valores maliciosos, contención de rutas de `falcon://`, CSP sin `unsafe-inline`, autorización del IPC (`src/principal/rutas.js`) y preload reducido del juego. |
+| `carpetas-omitidas.test.js` | — | `Mundo.iniciar` no recoge scripts de `exportado/` y demás carpetas ajenas; la lista coincide con la de `exportar.js`. |
+| `release.test.js` | 2 | `verificar-release.cjs`: tres plataformas completas, `SHA256SUMS.txt`, rechazo de binarios alterados, de plataformas incompletas y de versiones distintas. |
+| `sombras.test.js` | 3 (caseras) | `lumbre-parche.js`: sesgo de las sombras del sol, de las bombillas y de los focos. |
+| `texturas.test.js` | 2 (caseras) | `escena3d.js`: UV por cara y recálculo al escalar. |
 | `actualizaciones.test.cjs` | 10 | `actualizaciones.js` y `notas-release.js`: SemVer, notas de versión hostiles, repositorio válido, paginación, 404, IPC solo desde el gestor, canales, metadatos y suma de verificación antes de instalar. |
 
 ### Huecos de cobertura por subsistema
@@ -82,7 +63,7 @@ Archivos de `src/` que ninguna prueba importa, directa o indirectamente:
 | Render 3D y Lumbre | `lumbre.js` (1.632), `lumbre-proxy.js`, `materiales.js`, `graficos.js` | Solo el cálculo del sesgo de las sombras (`lumbre-parche.js`) y las UV y CSG de `escena3d.js`. Ni WebGL2, ni sondas, GTAO o bloom, ni comparación de imágenes. |
 | Audio | `audio.js`, `sonidos-cqb.js` | **Ninguna.** Las pruebas lo sustituyen por un objeto vacío. |
 | Entrada | `entrada.js` | **Ninguna.** Las pruebas emiten los eventos directamente (`emitirNodo(j, 'se_pulsa', …)`). |
-| Física 2D | `mundo.js` (`fisica2d`, `contactos2d`) | Solo indirecta (el puzle de cajas). Otro agente está escribiendo una prueba propia. `src/motor/ara/fisica2d.ara` no tiene ninguna prueba todavía. |
+| Física 2D | `mundo.js` (`fisica2d`, `contactos2d`) | `pruebas/fisica2d-ara.test.js` (10): estado JS y Ara idéntico paso a paso en escenas 2D variadas, pares de `contactos2d`, y `nucleo.wasm` al día. Más el puzle de cajas. |
 | Controles 3D | `control3d.js` | Indirecta, vía CQB y `Mundo3D`. |
 | Editor, UI y gestor | `src/editor/`, `src/ui/`, `src/gestor/` (unas 8.500 líneas) | Solo las ayudas de Ara para el editor. No se prueba nada del DOM: paneles, visores, grafo, gestor, comunidad. |
 | Exportación | `exportar.js` (363) | Solo `compilarAra`. No se prueba la exportación de un juego: descarga de Electron, copia, icono con `resedit`, `.tar.gz` con permisos, `LÉEME.txt`. |

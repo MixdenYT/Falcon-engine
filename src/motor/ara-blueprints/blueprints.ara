@@ -1,7 +1,7 @@
 # Compilador de Blueprints (grafo → validación → código Ara), escrito en Ara (fase 2, bloque 5).
 #
-# Es la traducción de `compilarBlueprint` (src/motor/blueprints.js) y da el mismo texto y los mismos errores
-# (pruebas/blueprints-ara.test.js). JS solo aplana (src/motor/blueprints-ara.js): una vez, el catálogo de bloques
+# Es el único compilador de Blueprints. Nació como traducción del de JS (retirado) y da su mismo texto y errores
+# (referencia en pruebas/blueprints-esperado.json). JS solo aplana (src/motor/blueprints-ara.js): una vez, el catálogo de bloques
 # (`NODOS`) y la API del motor (`API_MOTOR`) con llamadas escalares; por cada compilación, el `.bp` ya leído en un
 # solo texto plano (`leer_bp`). Aquí se valida, se tipa cada cable y se genera el código. El resultado vuelve por las
 # externas `bp_*`.
@@ -22,7 +22,7 @@ const NUM = 3
 const TXT = 4
 const OTRO = 5
 
-# Precedencias (P de blueprints.js).
+# Precedencias, para poner paréntesis solo donde hace falta.
 const ATOMO = 10
 const MUL = 6
 const SUMA = 5

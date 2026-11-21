@@ -159,7 +159,7 @@
 
 ## Compilador de Blueprints en Ara (fase 2, bloque 5)
 
-`src/motor/ara-blueprints/blueprints.ara` (vía `src/motor/blueprints-ara.js`) contra `compilarBlueprint` de `src/motor/blueprints.js`. Los dos dan el mismo resultado: mismo texto, errores, avisos y líneas (`pruebas/blueprints-ara.test.js`).
+`src/motor/ara-blueprints/blueprints.ara` (vía `src/motor/blueprints-ara.js`) contra el `compilarBlueprint` de JS que había en `src/motor/blueprints.js` (retirado después: hoy el de Ara es el único). Los dos daban el mismo resultado: mismo texto, errores, avisos y líneas (`pruebas/blueprints-ara.test.js`).
 
 ### Metodología
 

@@ -1,0 +1,4422 @@
+{
+ "corpus": [
+  [
+   "blueprints/receptor.bp",
+   {
+    "codigo": "# Generado desde blueprints/receptor.bp · no editar a mano\nclase ReceptorBp extiende Nodo2D:\n\n    cuando recibe(\"abrir\", datos):\n        nodo(\"Resultado\").texto = \"Señal abrir recibida\"\n",
+    "clase": "ReceptorBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n0": 4,
+     "n1": 5
+    }
+   }
+  ],
+  [
+   "blueprints/ev_empieza.bp",
+   {
+    "codigo": "# Generado desde blueprints/ev_empieza.bp · no editar a mano\nclase EvEmpiezaBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando empieza():\n        nodo(\"Resultado\").texto = \"Ejecutado: Al empezar\"\n",
+    "clase": "EvEmpiezaBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n0": 5,
+     "n1": 6
+    }
+   }
+  ],
+  [
+   "blueprints/ev_actualizar.bp",
+   {
+    "codigo": "# Generado desde blueprints/ev_actualizar.bp · no editar a mano\nclase EvActualizarBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_actualiza(delta):\n        nodo(\"Resultado\").texto = texto(delta)\n",
+    "clase": "EvActualizarBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n0": 5,
+     "n1": 6
+    }
+   }
+  ],
+  [
+   "blueprints/ev_tocar.bp",
+   {
+    "codigo": "# Generado desde blueprints/ev_tocar.bp · no editar a mano\nclase EvTocarBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando toca(otro):\n        nodo(\"Resultado\").texto = otro.nombre\n",
+    "clase": "EvTocarBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n0": 5,
+     "n1": 6
+    }
+   }
+  ],
+  [
+   "blueprints/ev_dejar.bp",
+   {
+    "codigo": "# Generado desde blueprints/ev_dejar.bp · no editar a mano\nclase EvDejarBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando deja_de_tocar(otro):\n        nodo(\"Resultado\").texto = otro.nombre\n",
+    "clase": "EvDejarBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n0": 5,
+     "n1": 6
+    }
+   }
+  ],
+  [
+   "blueprints/ev_pulsar.bp",
+   {
+    "codigo": "# Generado desde blueprints/ev_pulsar.bp · no editar a mano\nclase EvPulsarBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        nodo(\"Resultado\").texto = \"Ejecutado: Cuando se pulsa\"\n",
+    "clase": "EvPulsarBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n0": 5,
+     "n1": 6
+    }
+   }
+  ],
+  [
+   "blueprints/ev_soltar.bp",
+   {
+    "codigo": "# Generado desde blueprints/ev_soltar.bp · no editar a mano\nclase EvSoltarBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_suelta(\"accion\"):\n        nodo(\"Resultado\").texto = \"Ejecutado: Cuando se suelta\"\n",
+    "clase": "EvSoltarBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n0": 5,
+     "n1": 6
+    }
+   }
+  ],
+  [
+   "blueprints/ev_recibir.bp",
+   {
+    "codigo": "# Generado desde blueprints/ev_recibir.bp · no editar a mano\nclase EvRecibirBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando recibe(\"abrir\", datos):\n        nodo(\"Resultado\").texto = datos\n",
+    "clase": "EvRecibirBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n0": 5,
+     "n1": 6
+    }
+   }
+  ],
+  [
+   "blueprints/ev_clic.bp",
+   {
+    "codigo": "# Generado desde blueprints/ev_clic.bp · no editar a mano\nclase EvClicBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando hace_clic():\n        nodo(\"Resultado\").texto = \"Ejecutado: Al hacer clic\"\n",
+    "clase": "EvClicBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n0": 5,
+     "n1": 6
+    }
+   }
+  ],
+  [
+   "blueprints/ev_termina.bp",
+   {
+    "codigo": "# Generado desde blueprints/ev_termina.bp · no editar a mano\nclase EvTerminaBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando termina():\n        nodo(\"Resultado\").texto = \"Ejecutado: Al terminar\"\n",
+    "clase": "EvTerminaBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n0": 5,
+     "n1": 6
+    }
+   }
+  ],
+  [
+   "blueprints/fn_entrada.bp",
+   {
+    "codigo": "# Generado desde blueprints/fn_entrada.bp · no editar a mano\nclase FnEntradaBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        saludar(7)\n\n    func saludar(cantidad: entero):\n        nodo(\"Resultado\").texto = texto(cantidad)\n        devolver\n",
+    "clase": "FnEntradaBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n0": 5,
+     "n1": 6,
+     "n2": 8,
+     "n3": 9,
+     "n4": 10
+    }
+   }
+  ],
+  [
+   "blueprints/in_pulsada.bp",
+   {
+    "codigo": "# Generado desde blueprints/in_pulsada.bp · no editar a mano\nclase InPulsadaBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        nodo(\"Resultado\").texto = texto(se_pulsa(\"accion\"))\n",
+    "clase": "InPulsadaBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n2": 5,
+     "n1": 6
+    }
+   }
+  ],
+  [
+   "blueprints/in_mantenida.bp",
+   {
+    "codigo": "# Generado desde blueprints/in_mantenida.bp · no editar a mano\nclase InMantenidaBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        nodo(\"Resultado\").texto = texto(se_mantiene(\"correr\"))\n",
+    "clase": "InMantenidaBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n2": 5,
+     "n1": 6
+    }
+   }
+  ],
+  [
+   "blueprints/in_eje.bp",
+   {
+    "codigo": "# Generado desde blueprints/in_eje.bp · no editar a mano\nclase InEjeBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        nodo(\"Resultado\").texto = texto(eje(\"izquierda\", \"derecha\"))\n",
+    "clase": "InEjeBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n2": 5,
+     "n1": 6
+    }
+   }
+  ],
+  [
+   "blueprints/in_raton.bp",
+   {
+    "codigo": "# Generado desde blueprints/in_raton.bp · no editar a mano\nclase InRatonBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        nodo(\"Resultado\").texto = \"X: \" + texto(raton_x()) + \" · Y: \" + texto(raton_y())\n",
+    "clase": "InRatonBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n2": 5,
+     "n1": 6
+    }
+   }
+  ],
+  [
+   "blueprints/in_clic.bp",
+   {
+    "codigo": "# Generado desde blueprints/in_clic.bp · no editar a mano\nclase InClicBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        nodo(\"Resultado\").texto = texto(raton_pulsado())\n",
+    "clase": "InClicBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n2": 5,
+     "n1": 6
+    }
+   }
+  ],
+  [
+   "blueprints/mv_mover.bp",
+   {
+    "codigo": "# Generado desde blueprints/mv_mover.bp · no editar a mano\nclase MvMoverBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_actualiza(delta):\n        si se_mantiene(\"accion\"):\n            mover(180.0)\n            nodo(\"Resultado\").texto = \"Ejecutado: Mover\"\n",
+    "clase": "MvMoverBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n2": 5,
+     "n3": 6,
+     "n0": 7,
+     "n1": 8
+    }
+   }
+  ],
+  [
+   "blueprints/mv_saltar.bp",
+   {
+    "codigo": "# Generado desde blueprints/mv_saltar.bp · no editar a mano\nclase MvSaltarBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        saltar(420.0)\n        nodo(\"Resultado\").texto = \"Ejecutado: Saltar\"\n",
+    "clase": "MvSaltarBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n2": 5,
+     "n0": 6,
+     "n1": 7
+    }
+   }
+  ],
+  [
+   "blueprints/mv_suelo.bp",
+   {
+    "codigo": "# Generado desde blueprints/mv_suelo.bp · no editar a mano\nclase MvSueloBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        nodo(\"Resultado\").texto = texto(en_el_suelo())\n",
+    "clase": "MvSueloBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n2": 5,
+     "n1": 6
+    }
+   }
+  ],
+  [
+   "blueprints/mv_posicion.bp",
+   {
+    "codigo": "# Generado desde blueprints/mv_posicion.bp · no editar a mano\nclase MvPosicionBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        nodo(\"Resultado\").texto = \"X: \" + texto(yo.x) + \" · Y: \" + texto(yo.y)\n",
+    "clase": "MvPosicionBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n2": 5,
+     "n1": 6
+    }
+   }
+  ],
+  [
+   "blueprints/mv_fijar.bp",
+   {
+    "codigo": "# Generado desde blueprints/mv_fijar.bp · no editar a mano\nclase MvFijarBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        mover_a(700.0, 480.0)\n        nodo(\"Resultado\").texto = \"Ejecutado: Colocar en\"\n",
+    "clase": "MvFijarBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n2": 5,
+     "n0": 6,
+     "n1": 7
+    }
+   }
+  ],
+  [
+   "blueprints/mv_desplazar.bp",
+   {
+    "codigo": "# Generado desde blueprints/mv_desplazar.bp · no editar a mano\nclase MvDesplazarBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        desplazar(60.0, 0.0)\n        nodo(\"Resultado\").texto = \"Ejecutado: Desplazar\"\n",
+    "clase": "MvDesplazarBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n2": 5,
+     "n0": 6,
+     "n1": 7
+    }
+   }
+  ],
+  [
+   "blueprints/mv_empujar.bp",
+   {
+    "codigo": "# Generado desde blueprints/mv_empujar.bp · no editar a mano\nclase MvEmpujarBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        empujar(180.0, -300.0)\n        nodo(\"Resultado\").texto = \"Ejecutado: Empujar\"\n",
+    "clase": "MvEmpujarBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n2": 5,
+     "n0": 6,
+     "n1": 7
+    }
+   }
+  ],
+  [
+   "blueprints/lg_si.bp",
+   {
+    "codigo": "# Generado desde blueprints/lg_si.bp · no editar a mano\nclase LgSiBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        si 10.0 >= 5.0:\n            nodo(\"Resultado\").texto = \"Ejecutado: Si\"\n        sino:\n            nodo(\"Resultado\").texto = \"Rama falsa\"\n",
+    "clase": "LgSiBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n2": 5,
+     "n0": 6,
+     "n1": 7,
+     "n4": 9
+    }
+   }
+  ],
+  [
+   "blueprints/lg_y.bp",
+   {
+    "codigo": "# Generado desde blueprints/lg_y.bp · no editar a mano\nclase LgYBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        nodo(\"Resultado\").texto = texto(verdadero y falso)\n",
+    "clase": "LgYBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n2": 5,
+     "n1": 6
+    }
+   }
+  ],
+  [
+   "blueprints/lg_o.bp",
+   {
+    "codigo": "# Generado desde blueprints/lg_o.bp · no editar a mano\nclase LgOBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        nodo(\"Resultado\").texto = texto(verdadero o falso)\n",
+    "clase": "LgOBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n2": 5,
+     "n1": 6
+    }
+   }
+  ],
+  [
+   "blueprints/lg_no.bp",
+   {
+    "codigo": "# Generado desde blueprints/lg_no.bp · no editar a mano\nclase LgNoBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        nodo(\"Resultado\").texto = texto(no falso)\n",
+    "clase": "LgNoBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n2": 5,
+     "n1": 6
+    }
+   }
+  ],
+  [
+   "blueprints/lg_comparar.bp",
+   {
+    "codigo": "# Generado desde blueprints/lg_comparar.bp · no editar a mano\nclase LgCompararBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        nodo(\"Resultado\").texto = texto(10.0 >= 5.0)\n",
+    "clase": "LgCompararBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n2": 5,
+     "n1": 6
+    }
+   }
+  ],
+  [
+   "blueprints/lg_es.bp",
+   {
+    "codigo": "# Generado desde blueprints/lg_es.bp · no editar a mano\nclase LgEsBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        nodo(\"Resultado\").texto = texto(nodo(\"Baliza\").es(\"objetivos\"))\n",
+    "clase": "LgEsBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n2": 5,
+     "n1": 6
+    }
+   }
+  ],
+  [
+   "blueprints/lg_secuencia.bp",
+   {
+    "codigo": "# Generado desde blueprints/lg_secuencia.bp · no editar a mano\nclase LgSecuenciaBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        imprimir(\"Primero\")\n        imprimir(\"Después\")\n        nodo(\"Resultado\").texto = \"Ejecutado: Secuencia\"\n",
+    "clase": "LgSecuenciaBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n2": 5,
+     "n3": 6,
+     "n4": 7,
+     "n1": 8
+    }
+   }
+  ],
+  [
+   "blueprints/lg_repetir.bp",
+   {
+    "codigo": "# Generado desde blueprints/lg_repetir.bp · no editar a mano\nclase LgRepetirBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        para vuelta en rango(3):\n            imprimir(vuelta)\n        nodo(\"Resultado\").texto = \"Ejecutado: Repetir\"\n",
+    "clase": "LgRepetirBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n2": 5,
+     "n0": 6,
+     "n3": 7,
+     "n1": 8
+    }
+   }
+  ],
+  [
+   "blueprints/lg_mientras.bp",
+   {
+    "codigo": "# Generado desde blueprints/lg_mientras.bp · no editar a mano\nclase LgMientrasBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        mientras contador > 0.0:\n            imprimir(contador)\n            contador += -1\n        nodo(\"Resultado\").texto = \"Ejecutado: Mientras\"\n",
+    "clase": "LgMientrasBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n2": 5,
+     "n0": 6,
+     "n3": 7,
+     "n6": 8,
+     "n1": 9
+    }
+   }
+  ],
+  [
+   "blueprints/lg_esperar.bp",
+   {
+    "codigo": "# Generado desde blueprints/lg_esperar.bp · no editar a mano\nclase LgEsperarBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        esperar(1.0)\n        nodo(\"Resultado\").texto = \"Ejecutado: Esperar\"\n",
+    "clase": "LgEsperarBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n2": 5,
+     "n0": 6,
+     "n1": 7
+    }
+   }
+  ],
+  [
+   "blueprints/mt_numero.bp",
+   {
+    "codigo": "# Generado desde blueprints/mt_numero.bp · no editar a mano\nclase MtNumeroBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        nodo(\"Resultado\").texto = texto(12.0)\n",
+    "clase": "MtNumeroBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n2": 5,
+     "n1": 6
+    }
+   }
+  ],
+  [
+   "blueprints/mt_sumar.bp",
+   {
+    "codigo": "# Generado desde blueprints/mt_sumar.bp · no editar a mano\nclase MtSumarBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        nodo(\"Resultado\").texto = texto(12.0 + 3.0)\n",
+    "clase": "MtSumarBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n2": 5,
+     "n1": 6
+    }
+   }
+  ],
+  [
+   "blueprints/mt_restar.bp",
+   {
+    "codigo": "# Generado desde blueprints/mt_restar.bp · no editar a mano\nclase MtRestarBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        nodo(\"Resultado\").texto = texto(12.0 - 3.0)\n",
+    "clase": "MtRestarBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n2": 5,
+     "n1": 6
+    }
+   }
+  ],
+  [
+   "blueprints/mt_multiplicar.bp",
+   {
+    "codigo": "# Generado desde blueprints/mt_multiplicar.bp · no editar a mano\nclase MtMultiplicarBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        nodo(\"Resultado\").texto = texto(12.0 * 3.0)\n",
+    "clase": "MtMultiplicarBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n2": 5,
+     "n1": 6
+    }
+   }
+  ],
+  [
+   "blueprints/mt_dividir.bp",
+   {
+    "codigo": "# Generado desde blueprints/mt_dividir.bp · no editar a mano\nclase MtDividirBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        nodo(\"Resultado\").texto = texto(12.0 / 3.0)\n",
+    "clase": "MtDividirBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n2": 5,
+     "n1": 6
+    }
+   }
+  ],
+  [
+   "blueprints/mt_aleatorio.bp",
+   {
+    "codigo": "# Generado desde blueprints/mt_aleatorio.bp · no editar a mano\nclase MtAleatorioBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        nodo(\"Resultado\").texto = texto(1.0 + aleatorio() * (6.0 - 1.0))\n",
+    "clase": "MtAleatorioBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n2": 5,
+     "n1": 6
+    }
+   }
+  ],
+  [
+   "blueprints/mt_limitar.bp",
+   {
+    "codigo": "# Generado desde blueprints/mt_limitar.bp · no editar a mano\nclase MtLimitarBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        nodo(\"Resultado\").texto = texto(limitar(150.0, 0.0, 100.0))\n",
+    "clase": "MtLimitarBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n2": 5,
+     "n1": 6
+    }
+   }
+  ],
+  [
+   "blueprints/mt_distancia.bp",
+   {
+    "codigo": "# Generado desde blueprints/mt_distancia.bp · no editar a mano\nclase MtDistanciaBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        nodo(\"Resultado\").texto = texto(distancia(yo, nodo(\"Baliza\")))\n",
+    "clase": "MtDistanciaBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n2": 5,
+     "n1": 6
+    }
+   }
+  ],
+  [
+   "blueprints/var_obtener.bp",
+   {
+    "codigo": "# Generado desde blueprints/var_obtener.bp · no editar a mano\nclase VarObtenerBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        nodo(\"Resultado\").texto = texto(contador)\n",
+    "clase": "VarObtenerBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n2": 5,
+     "n1": 6
+    }
+   }
+  ],
+  [
+   "blueprints/var_fijar.bp",
+   {
+    "codigo": "# Generado desde blueprints/var_fijar.bp · no editar a mano\nclase VarFijarBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        contador = 20\n        nodo(\"Resultado\").texto = texto(contador)\n",
+    "clase": "VarFijarBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n2": 5,
+     "n0": 6,
+     "n1": 7
+    }
+   }
+  ],
+  [
+   "blueprints/var_sumar.bp",
+   {
+    "codigo": "# Generado desde blueprints/var_sumar.bp · no editar a mano\nclase VarSumarBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        contador += 1\n        nodo(\"Resultado\").texto = texto(contador)\n",
+    "clase": "VarSumarBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n2": 5,
+     "n0": 6,
+     "n1": 7
+    }
+   }
+  ],
+  [
+   "blueprints/fn_llamar.bp",
+   {
+    "codigo": "# Generado desde blueprints/fn_llamar.bp · no editar a mano\nclase FnLlamarBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        saludar(7)\n\n    func saludar(cantidad: entero):\n        nodo(\"Resultado\").texto = texto(cantidad)\n        devolver\n",
+    "clase": "FnLlamarBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n0": 5,
+     "n1": 6,
+     "n2": 8,
+     "n3": 9,
+     "n4": 10
+    }
+   }
+  ],
+  [
+   "blueprints/fn_devolver.bp",
+   {
+    "codigo": "# Generado desde blueprints/fn_devolver.bp · no editar a mano\nclase FnDevolverBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        saludar(7)\n\n    func saludar(cantidad: entero):\n        nodo(\"Resultado\").texto = texto(cantidad)\n        devolver\n",
+    "clase": "FnDevolverBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n0": 5,
+     "n1": 6,
+     "n2": 8,
+     "n3": 9,
+     "n4": 10
+    }
+   }
+  ],
+  [
+   "blueprints/ob_leer.bp",
+   {
+    "codigo": "# Generado desde blueprints/ob_leer.bp · no editar a mano\nclase ObLeerBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        nodo(\"Resultado\").texto = texto(yo.x)\n",
+    "clase": "ObLeerBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n2": 5,
+     "n1": 6
+    }
+   }
+  ],
+  [
+   "blueprints/ob_fijar.bp",
+   {
+    "codigo": "# Generado desde blueprints/ob_fijar.bp · no editar a mano\nclase ObFijarBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        nodo(\"Baliza\").visible = falso\n        nodo(\"Resultado\").texto = \"Ejecutado: Cambiar propiedad\"\n",
+    "clase": "ObFijarBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n2": 5,
+     "n0": 6,
+     "n1": 7
+    }
+   }
+  ],
+  [
+   "blueprints/ob_consultar.bp",
+   {
+    "codigo": "# Generado desde blueprints/ob_consultar.bp · no editar a mano\nclase ObConsultarBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        nodo(\"Resultado\").texto = texto(en_el_suelo())\n",
+    "clase": "ObConsultarBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n2": 5,
+     "n1": 6
+    }
+   }
+  ],
+  [
+   "blueprints/ob_llamar.bp",
+   {
+    "codigo": "# Generado desde blueprints/ob_llamar.bp · no editar a mano\nclase ObLlamarBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        saltar(420.0)\n        nodo(\"Resultado\").texto = \"Ejecutado: Ejecutar método\"\n",
+    "clase": "ObLlamarBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n2": 5,
+     "n0": 6,
+     "n1": 7
+    }
+   }
+  ],
+  [
+   "blueprints/es_yo.bp",
+   {
+    "codigo": "# Generado desde blueprints/es_yo.bp · no editar a mano\nclase EsYoBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        nodo(\"Resultado\").texto = yo.nombre\n",
+    "clase": "EsYoBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n2": 5,
+     "n1": 6
+    }
+   }
+  ],
+  [
+   "blueprints/es_nodo.bp",
+   {
+    "codigo": "# Generado desde blueprints/es_nodo.bp · no editar a mano\nclase EsNodoBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        nodo(\"Resultado\").texto = nodo(\"Baliza\").nombre\n",
+    "clase": "EsNodoBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n2": 5,
+     "n1": 6
+    }
+   }
+  ],
+  [
+   "blueprints/es_mostrar.bp",
+   {
+    "codigo": "# Generado desde blueprints/es_mostrar.bp · no editar a mano\nclase EsMostrarBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        imprimir(\"¡Hola!\")\n        nodo(\"Resultado\").texto = \"Ejecutado: Mostrar\"\n",
+    "clase": "EsMostrarBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n2": 5,
+     "n0": 6,
+     "n1": 7
+    }
+   }
+  ],
+  [
+   "blueprints/es_eliminar.bp",
+   {
+    "codigo": "# Generado desde blueprints/es_eliminar.bp · no editar a mano\nclase EsEliminarBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        nodo(\"Baliza\").eliminar()\n        nodo(\"Resultado\").texto = \"Ejecutado: Eliminar\"\n",
+    "clase": "EsEliminarBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n2": 5,
+     "n0": 6,
+     "n1": 7
+    }
+   }
+  ],
+  [
+   "blueprints/es_crear.bp",
+   {
+    "codigo": "# Generado desde blueprints/es_crear.bp · no editar a mano\nclase EsCrearBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        crear(\"Plantilla\", 800.0, 490.0)\n        nodo(\"Resultado\").texto = \"Ejecutado: Crear copia\"\n",
+    "clase": "EsCrearBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n2": 5,
+     "n0": 6,
+     "n1": 7
+    }
+   }
+  ],
+  [
+   "blueprints/es_ganar.bp",
+   {
+    "codigo": "# Generado desde blueprints/es_ganar.bp · no editar a mano\nclase EsGanarBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        ganar_partida()\n",
+    "clase": "EsGanarBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n1": 5,
+     "n0": 6
+    }
+   }
+  ],
+  [
+   "blueprints/es_perder.bp",
+   {
+    "codigo": "# Generado desde blueprints/es_perder.bp · no editar a mano\nclase EsPerderBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        perder_partida()\n",
+    "clase": "EsPerderBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n1": 5,
+     "n0": 6
+    }
+   }
+  ],
+  [
+   "blueprints/es_reiniciar.bp",
+   {
+    "codigo": "# Generado desde blueprints/es_reiniciar.bp · no editar a mano\nclase EsReiniciarBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        reiniciar_nivel()\n",
+    "clase": "EsReiniciarBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n1": 5,
+     "n0": 6
+    }
+   }
+  ],
+  [
+   "blueprints/es_puntos.bp",
+   {
+    "codigo": "# Generado desde blueprints/es_puntos.bp · no editar a mano\nclase EsPuntosBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        ganar_puntos(10)\n        nodo(\"Resultado\").texto = \"Ejecutado: Ganar puntos\"\n",
+    "clase": "EsPuntosBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n2": 5,
+     "n0": 6,
+     "n1": 7
+    }
+   }
+  ],
+  [
+   "blueprints/es_emitir.bp",
+   {
+    "codigo": "# Generado desde blueprints/es_emitir.bp · no editar a mano\nclase EsEmitirBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        emitir(\"abrir\")\n        nodo(\"Resultado\").texto = \"Ejecutado: Emitir señal\"\n",
+    "clase": "EsEmitirBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n2": 5,
+     "n0": 6,
+     "n1": 7
+    }
+   }
+  ],
+  [
+   "blueprints/es_escena.bp",
+   {
+    "codigo": "# Generado desde blueprints/es_escena.bp · no editar a mano\nclase EsEscenaBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        cambiar_escena(\"escenas/llegada.fscn\")\n",
+    "clase": "EsEscenaBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n1": 5,
+     "n0": 6
+    }
+   }
+  ],
+  [
+   "blueprints/es_temblar.bp",
+   {
+    "codigo": "# Generado desde blueprints/es_temblar.bp · no editar a mano\nclase EsTemblarBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        temblar_camara(8.0, 0.3)\n        nodo(\"Resultado\").texto = \"Ejecutado: Temblar cámara\"\n",
+    "clase": "EsTemblarBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n2": 5,
+     "n0": 6,
+     "n1": 7
+    }
+   }
+  ],
+  [
+   "blueprints/tx_texto.bp",
+   {
+    "codigo": "# Generado desde blueprints/tx_texto.bp · no editar a mano\nclase TxTextoBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        nodo(\"Resultado\").texto = \"Hola, Falcon.\"\n",
+    "clase": "TxTextoBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n2": 5,
+     "n1": 6
+    }
+   }
+  ],
+  [
+   "blueprints/tx_unir.bp",
+   {
+    "codigo": "# Generado desde blueprints/tx_unir.bp · no editar a mano\nclase TxUnirBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        nodo(\"Resultado\").texto = \"Vida: \" + \"75\"\n",
+    "clase": "TxUnirBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n2": 5,
+     "n1": 6
+    }
+   }
+  ],
+  [
+   "blueprints/tx_fijar.bp",
+   {
+    "codigo": "# Generado desde blueprints/tx_fijar.bp · no editar a mano\nclase TxFijarBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        nodo(\"Resultado\").texto = \"¡Texto actualizado!\"\n",
+    "clase": "TxFijarBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n1": 5,
+     "n0": 6
+    }
+   }
+  ],
+  [
+   "blueprints/au_sonar.bp",
+   {
+    "codigo": "# Generado desde blueprints/au_sonar.bp · no editar a mano\nclase AuSonarBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        sonar(\"golpe.wav\", 0.5)\n        nodo(\"Resultado\").texto = \"Ejecutado: Reproducir sonido\"\n",
+    "clase": "AuSonarBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n2": 5,
+     "n0": 6,
+     "n1": 7
+    }
+   }
+  ],
+  [
+   "blueprints/au_musica.bp",
+   {
+    "codigo": "# Generado desde blueprints/au_musica.bp · no editar a mano\nclase AuMusicaBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        musica(\"tema.wav\")\n        nodo(\"Resultado\").texto = \"Ejecutado: Poner música\"\n",
+    "clase": "AuMusicaBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n2": 5,
+     "n0": 6,
+     "n1": 7
+    }
+   }
+  ],
+  [
+   "blueprints/au_parar.bp",
+   {
+    "codigo": "# Generado desde blueprints/au_parar.bp · no editar a mano\nclase AuPararBp extiende Personaje2D:\n    exportar contador: entero = 3\n\n    cuando se_pulsa(\"accion\"):\n        parar_musica()\n        nodo(\"Resultado\").texto = \"Ejecutado: Parar música\"\n",
+    "clase": "AuPararBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n2": 5,
+     "n0": 6,
+     "n1": 7
+    }
+   }
+  ],
+  [
+   "blueprints/operador.bp",
+   {
+    "codigo": "# Generado desde blueprints/operador.bp · no editar a mano\nclase OperadorBp extiende Personaje3D:\n    vida: decimal = 100.0\n    municion: decimal = 24.0\n    reserva: decimal = 96.0\n    cargador_0: decimal = 24.0\n    cargador_1: decimal = 12.0\n    reserva_0: decimal = 96.0\n    reserva_1: decimal = 48.0\n    arma: decimal = 0.0\n    capacidad: decimal = 24.0\n    recargando: booleano = falso\n    recarga: decimal = 0.0\n    enfriamiento: decimal = 0.0\n    transferencia: decimal = 0.0\n    bajas: decimal = 0.0\n    ayuda: booleano = falso\n    ingles: booleano = falso\n\n    cuando empieza():\n        equipar_arma(0)\n\n    cuando se_pulsa(\"disparar\"):\n        si vida > 0.0 y (no recargando y (enfriamiento <= 0.0 y arma_libre())):\n            si municion > 0.0:\n                municion += -1.0\n                enfriamiento = arma_dato(\"intervalo\", entero(arma))\n                disparar_arma(arma_dato(\"dano\", entero(arma)), arma_dato(\"alcance\", entero(arma)))\n\n    cuando se_pulsa(\"recargar\"):\n        si no recargando y (municion < capacidad y reserva > 0.0):\n            recargando = verdadero\n            recarga = arma_dato(\"recarga\", entero(arma))\n            animar_3d(\"reload\", arma_dato(\"recarga\", entero(arma)))\n\n    cuando se_actualiza(delta):\n        enfriamiento = limitar(enfriamiento - delta, 0.0, 10.0)\n        si recargando:\n            recarga = recarga - delta\n            si recarga <= 0.0:\n                transferencia = limitar(capacidad - municion, 0.0, reserva)\n                municion += transferencia\n                reserva += 0.0 - transferencia\n                recargando = falso\n\n    cuando se_pulsa(\"arma_1\"):\n        seleccionar(0.0)\n\n    cuando se_pulsa(\"arma_2\"):\n        seleccionar(1.0)\n\n    cuando se_pulsa(\"cambiar_arma\"):\n        seleccionar(1.0 - arma)\n\n    cuando se_pulsa(\"interactuar\"):\n        interactuar()\n\n    cuando se_pulsa(\"ayuda\"):\n        ayuda = no ayuda\n\n    cuando se_pulsa(\"idioma\"):\n        ingles = no ingles\n\n    cuando recibe(\"enemigo_cqb_eliminado\", datos):\n        bajas += 1.0\n        ganar_puntos(100)\n\n    func seleccionar(nueva: decimal):\n        si arma != nueva:\n            si arma == 0.0:\n                cargador_0 = municion\n                reserva_0 = reserva\n            sino:\n                cargador_1 = municion\n                reserva_1 = reserva\n            arma = nueva\n            recargando = falso\n            recarga = 0.0\n            enfriamiento = 0.4\n            si arma == 0.0:\n                municion = cargador_0\n                reserva = reserva_0\n            sino:\n                municion = cargador_1\n                reserva = reserva_1\n            capacidad = arma_dato(\"capacidad\", entero(arma))\n            equipar_arma(entero(arma))\n\n    func recibir_dano(cantidad: decimal):\n        si vida > 0.0:\n            vida = limitar(vida - cantidad, 0.0, 100.0)\n            animar_3d(\"hit\", 0.25)\n            si vida <= 0.0:\n                animar_3d(\"death\", 5.0)\n                perder_partida()\n\n    func reabastecer():\n        reserva_0 = 96.0\n        reserva_1 = 48.0\n        reserva = arma_dato(\"reserva\", entero(arma))\n",
+    "clase": "OperadorBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n0": 20,
+     "n1": 21,
+     "n2": 23,
+     "n27": 24,
+     "n24": 25,
+     "n15": 26,
+     "n18": 27,
+     "n23": 28,
+     "n28": 30,
+     "n45": 31,
+     "n38": 32,
+     "n41": 33,
+     "n44": 34,
+     "n48": 36,
+     "n52": 37,
+     "n75": 38,
+     "n56": 39,
+     "n71": 40,
+     "n64": 41,
+     "n66": 42,
+     "n69": 43,
+     "n70": 44,
+     "n78": 46,
+     "n79": 47,
+     "n80": 49,
+     "n81": 50,
+     "n82": 52,
+     "n85": 53,
+     "n86": 55,
+     "n87": 56,
+     "n88": 58,
+     "n91": 59,
+     "n92": 61,
+     "n95": 62,
+     "n96": 64,
+     "n97": 65,
+     "n98": 66,
+     "n100": 68,
+     "n138": 69,
+     "n113": 70,
+     "n106": 71,
+     "n108": 72,
+     "n110": 74,
+     "n112": 75,
+     "n116": 76,
+     "n117": 77,
+     "n118": 78,
+     "n119": 79,
+     "n130": 80,
+     "n123": 81,
+     "n125": 82,
+     "n127": 84,
+     "n129": 85,
+     "n135": 86,
+     "n137": 87,
+     "n146": 89,
+     "n160": 90,
+     "n152": 91,
+     "n153": 92,
+     "n158": 93,
+     "n156": 94,
+     "n157": 95,
+     "n163": 97,
+     "n164": 98,
+     "n165": 99,
+     "n168": 100
+    }
+   }
+  ],
+  [
+   "blueprints/enemigo_cqb.bp",
+   {
+    "codigo": "# Generado desde blueprints/enemigo_cqb.bp · no editar a mano\nclase EnemigoCqbBp extiende Personaje3D:\n    vida: decimal = 100.0\n    muerto: booleano = falso\n    alerta: booleano = falso\n    ataque: decimal = 1.15\n    memoria: decimal = 0.0\n    retirada: decimal = 0.0\n    municion: decimal = 6.0\n    recargando: booleano = falso\n    recarga: decimal = 0.0\n    estado: texto = \"PATRULLA\"\n\n    cuando empieza():\n        apuntar_a(nodo(\"Jugador\"))\n\n    cuando se_actualiza(delta):\n        si muerto o nodo(\"Jugador\").leer_numero(\"vida\") <= 0.0:\n            devolver\n        si recargando:\n            estado = \"RECARGANDO\"\n            recarga = recarga - delta\n            si recarga <= 0.0:\n                municion = 6.0\n                recargando = falso\n                ataque = 0.45\n            devolver\n        ataque = limitar(ataque - delta, 0.0, 10.0)\n        memoria = limitar(memoria - delta, 0.0, 6.0)\n        retirada = limitar(retirada - delta, 0.0, 4.0)\n        si oir_disparo(nodo(\"Jugador\"), 13.0):\n            memoria = 6.0\n            recordar_objetivo(nodo(\"Jugador\"))\n        si detectar(nodo(\"Jugador\"), 18.0, 105.0) o alerta y ve_a(nodo(\"Jugador\"), 18.0):\n            si no alerta:\n                ataque = 1.15\n            alerta = verdadero\n            memoria = 6.0\n            estado = \"CONTACTO\"\n            recordar_objetivo(nodo(\"Jugador\"))\n            apuntar_a(nodo(\"Jugador\"))\n            si retirada > 0.0:\n                estado = \"COBERTURA\"\n                buscar_cobertura(nodo(\"Jugador\"), 1.6)\n            sino:\n                si ataque <= 0.0 y arma_libre():\n                    disparar_arma(8.0, 20.0)\n                    municion += -1.0\n                    ataque = 1.15\n                    si municion <= 0.0:\n                        recargando = verdadero\n                        recarga = 2.6\n                        animar_3d(\"reload\", 2.6)\n        sino:\n            si memoria > 0.0:\n                estado = \"BUSCANDO\"\n                si retirada > 0.0:\n                    buscar_cobertura(nodo(\"Jugador\"), 1.5)\n                sino:\n                    investigar(1.25)\n            sino:\n                alerta = falso\n                estado = \"PATRULLA\"\n                patrullar(0.85)\n\n    func recibir_dano(cantidad: decimal):\n        si no muerto:\n            vida = vida - cantidad\n            alerta = verdadero\n            memoria = 6.0\n            retirada = 3.2\n            recordar_objetivo(nodo(\"Jugador\"))\n            animar_3d(\"hit\", 0.27)\n            si vida <= 0.0:\n                muerto = verdadero\n                estado = \"NEUTRALIZADO\"\n                animar_3d(\"death\", 5.0)\n                emitir(\"enemigo_cqb_eliminado\")\n",
+    "clase": "EnemigoCqbBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n0": 14,
+     "n2": 15,
+     "n3": 17,
+     "n10": 18,
+     "n9": 19,
+     "n25": 20,
+     "n12": 21,
+     "n15": 22,
+     "n21": 23,
+     "n18": 24,
+     "n19": 25,
+     "n20": 26,
+     "n24": 27,
+     "n32": 28,
+     "n36": 29,
+     "n40": 30,
+     "n46": 31,
+     "n43": 32,
+     "n45": 33,
+     "n108": 34,
+     "n58": 35,
+     "n57": 36,
+     "n59": 37,
+     "n60": 38,
+     "n61": 39,
+     "n63": 40,
+     "n65": 41,
+     "n90": 42,
+     "n68": 43,
+     "n70": 44,
+     "n86": 46,
+     "n75": 47,
+     "n76": 48,
+     "n77": 49,
+     "n83": 50,
+     "n80": 51,
+     "n81": 52,
+     "n82": 53,
+     "n104": 55,
+     "n94": 56,
+     "n100": 57,
+     "n98": 58,
+     "n99": 60,
+     "n101": 62,
+     "n102": 63,
+     "n103": 64,
+     "n121": 66,
+     "n143": 67,
+     "n126": 68,
+     "n127": 69,
+     "n128": 70,
+     "n129": 71,
+     "n131": 72,
+     "n132": 73,
+     "n139": 74,
+     "n135": 75,
+     "n136": 76,
+     "n137": 77,
+     "n138": 78
+    }
+   }
+  ],
+  [
+   "blueprints/puerta_cqb.bp",
+   {
+    "codigo": "# Generado desde blueprints/puerta_cqb.bp · no editar a mano\nclase PuertaCqbBp extiende Nodo3D:\n    abierta: booleano = falso\n\n    cuando se_actualiza(delta):\n        mover_puerta(abierta, delta)\n\n    func usar():\n        abierta = no abierta\n",
+    "clase": "PuertaCqbBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n0": 5,
+     "n2": 6,
+     "n3": 8,
+     "n6": 9
+    }
+   }
+  ],
+  [
+   "blueprints/terminal_cqb.bp",
+   {
+    "codigo": "# Generado desde blueprints/terminal_cqb.bp · no editar a mano\nclase TerminalCqbBp extiende Malla3D:\n\n    func usar():\n        si nodo(\"Jugador\").leer_numero(\"bajas\") >= 3.0:\n            ganar_partida()\n",
+    "clase": "TerminalCqbBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n0": 4,
+     "n5": 5,
+     "n4": 6
+    }
+   }
+  ],
+  [
+   "blueprints/suministros_cqb.bp",
+   {
+    "codigo": "# Generado desde blueprints/suministros_cqb.bp · no editar a mano\nclase SuministrosCqbBp extiende Malla3D:\n\n    func usar():\n        nodo(\"Jugador\").llamar(\"reabastecer\")\n",
+    "clase": "SuministrosCqbBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n0": 4,
+     "n2": 5
+    }
+   }
+  ],
+  [
+   "blueprints/jugador.bp",
+   {
+    "codigo": "# Generado desde blueprints/jugador.bp · no editar a mano\nclase JugadorBp extiende Personaje2D:\n    exportar velocidad: decimal = 220.0\n    exportar salto: decimal = 620.0\n    monedas: entero = 0\n\n    cuando se_actualiza(delta):\n        mover(eje(\"izquierda\", \"derecha\") * velocidad)\n        si se_pulsa(\"saltar\") y en_el_suelo():\n            saltar(salto)\n            sonar(\"salto.wav\", 0.6)\n\n    func recoger_moneda():\n        monedas += 1\n",
+    "clase": "JugadorBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n0": 7,
+     "n4": 8,
+     "n5": 9,
+     "n10": 10,
+     "n11": 11,
+     "n12": 13,
+     "n13": 14
+    }
+   }
+  ],
+  [
+   "blueprints/monedas.bp",
+   {
+    "codigo": "# Generado desde blueprints/monedas.bp · no editar a mano\nclase MonedasBp extiende Area2D:\n\n    cuando toca(otro):\n        si otro.es(\"Jugador\"):\n            ganar_puntos(1)\n            eliminar()\n",
+    "clase": "MonedasBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n0": 4,
+     "n2": 5,
+     "n3": 6,
+     "n4": 7
+    }
+   }
+  ],
+  [
+   "blueprints/cofre.bp",
+   {
+    "codigo": "# Generado desde blueprints/cofre.bp · no editar a mano\nclase CofreBp extiende Malla3D:\n    abierto: booleano = falso\n\n    cuando toca(otro):\n        si otro.es(\"Jugador\"):\n            imprimir(\"¡Has abierto el cofre!\")\n            sonar(\"ganar.wav\", 1.0)\n            ganar_puntos(100)\n            ganar_partida()\n",
+    "clase": "CofreBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {
+     "n0": 5,
+     "n2": 6,
+     "n3": 7,
+     "n4": 8,
+     "n5": 9,
+     "n6": 10
+    }
+   }
+  ]
+ ],
+ "limites": [
+  [
+   "blueprints/x.bp",
+   {
+    "codigo": "# Generado desde blueprints/x.bp · no editar a mano\nclase XBp extiende Personaje2D:\n    pasar\n",
+    "clase": "XBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {}
+   }
+  ],
+  [
+   "blueprints/x.bp",
+   {
+    "codigo": "# Generado desde blueprints/x.bp · no editar a mano\nclase XBp extiende Nodo:\n    pasar\n",
+    "clase": "XBp",
+    "errores": [
+     {
+      "mensaje": "«Nada» no es un tipo de nodo.",
+      "nodo": null
+     }
+    ],
+    "avisos": [],
+    "lineas": {}
+   }
+  ],
+  [
+   "blueprints/x.bp",
+   {
+    "codigo": "# Generado desde blueprints/x.bp · no editar a mano\nclase XBp extiende Nodo:\n    pasar\n",
+    "clase": "XBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {}
+   }
+  ],
+  [
+   "blueprints/x.bp",
+   {
+    "codigo": "# Generado desde blueprints/x.bp · no editar a mano\nclase XBp extiende Personaje2D:\n    pasar\n",
+    "clase": "XBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {}
+   }
+  ],
+  [
+   "blueprints/x.bp",
+   {
+    "codigo": "# Generado desde blueprints/x.bp · no editar a mano\nclase XBp extiende Personaje2D:\n    ñu: Nodo = nodo(\"Jugador\")\n    exportar l: lista[Nodo] = []\n",
+    "clase": "XBp",
+    "errores": [
+     {
+      "mensaje": "La variable «si» no puede llamarse así: es una palabra de Ara. Cámbiale el nombre.",
+      "nodo": null
+     },
+     {
+      "mensaje": "«1x» no es un nombre válido para una variable.",
+      "nodo": null
+     },
+     {
+      "mensaje": "«undefined» no es un nombre válido para una variable.",
+      "nodo": null
+     },
+     {
+      "mensaje": "«l» no se puede exportar: el Inspector solo cambia números, textos y sí / no.",
+      "nodo": null
+     }
+    ],
+    "avisos": [],
+    "lineas": {}
+   }
+  ],
+  [
+   "blueprints/x.bp",
+   {
+    "codigo": "# Generado desde blueprints/x.bp · no editar a mano\nclase XBp extiende Personaje2D:\n    v0: decimal = 1e+21.0\n    v1: entero = 0\n    v2: decimal = 0.00000015\n    v3: entero = 0\n    v4: decimal = 10000000000000000.0\n    v5: entero = 0\n    v6: decimal = 0.30000000000000004\n    v7: entero = 123456789\n    v8: decimal = 1.5e+3\n    v9: entero = -2\n    v10: decimal = 7.0\n    v11: entero = 4\n    v12: decimal = 0.0\n",
+    "clase": "XBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {}
+   }
+  ],
+  [
+   "blueprints/x.bp",
+   {
+    "codigo": "# Generado desde blueprints/x.bp · no editar a mano\nclase XBp extiende Personaje2D:\n    t0: texto = \"{{a}}\\\"\\n\\t\\\\\"\n    t1: texto = \"\"\n    t2: texto = \"\"\n    t3: texto = \"true\"\n    t4: texto = \"ñandú 𐐨\"\n",
+    "clase": "XBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {}
+   }
+  ],
+  [
+   "blueprints/x.bp",
+   {
+    "codigo": "# Generado desde blueprints/x.bp · no editar a mano\nclase XBp extiende Personaje2D:\n    c: texto = \"\"\n",
+    "clase": "XBp",
+    "errores": [
+     {
+      "mensaje": "«a\u001fb\u001b0» no es un nombre válido para una variable.",
+      "nodo": null
+     }
+    ],
+    "avisos": [],
+    "lineas": {}
+   }
+  ],
+  [
+   "blueprints/x.bp",
+   {
+    "codigo": "# Generado desde blueprints/x.bp · no editar a mano\nclase XBp extiende Personaje2D:\n\n    func f(a: decimal, si: decimal):\n        pasar\n",
+    "clase": "XBp",
+    "errores": [
+     {
+      "mensaje": "«si» no es un nombre válido para un parámetro de «f».",
+      "nodo": null
+     },
+     {
+      "mensaje": "«yo» no es un nombre válido para una función.",
+      "nodo": null
+     }
+    ],
+    "avisos": [],
+    "lineas": {}
+   }
+  ],
+  [
+   "blueprints/x.bp",
+   {
+    "codigo": "# Generado desde blueprints/x.bp · no editar a mano\nclase XBp extiende Personaje2D:\n\n    cuando empieza():\n        pasar\n\n    cuando se_pulsa(\"a\\\"b{{\"):\n        pasar\n\n    cuando empieza():\n        pasar\n",
+    "clase": "XBp",
+    "errores": [],
+    "avisos": [
+     {
+      "mensaje": "«Al empezar» no tiene nada conectado todavía.",
+      "nodo": "g"
+     },
+     {
+      "mensaje": "«Cuando se pulsa» no tiene nada conectado todavía.",
+      "nodo": "e"
+     },
+     {
+      "mensaje": "«Al empezar» no tiene nada conectado todavía.",
+      "nodo": "f"
+     }
+    ],
+    "lineas": {
+     "g": 4,
+     "e": 7,
+     "f": 10
+    }
+   }
+  ],
+  [
+   "blueprints/a b.bp",
+   {
+    "codigo": "# Generado desde blueprints/a b.bp · no editar a mano\nclase ABBp extiende Personaje2D:\n    pasar\n",
+    "clase": "ABBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {}
+   }
+  ],
+  [
+   "b\\c.BP",
+   {
+    "codigo": "# Generado desde b\\c.BP · no editar a mano\nclase BCBp extiende Personaje2D:\n    pasar\n",
+    "clase": "BCBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {}
+   }
+  ],
+  [
+   "",
+   {
+    "codigo": "# Generado desde  · no editar a mano\nclase BlueprintBp extiende Personaje2D:\n    pasar\n",
+    "clase": "BlueprintBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {}
+   }
+  ],
+  [
+   "9.bp",
+   {
+    "codigo": "# Generado desde 9.bp · no editar a mano\nclase B9Bp extiende Personaje2D:\n    pasar\n",
+    "clase": "B9Bp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {}
+   }
+  ],
+  [
+   "blueprints/𐐨x.bp",
+   {
+    "codigo": "# Generado desde blueprints/𐐨x.bp · no editar a mano\nclase 𐐨xBp extiende Personaje2D:\n    pasar\n",
+    "clase": "𐐨xBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {}
+   }
+  ],
+  [
+   "ßeta.bp",
+   {
+    "codigo": "# Generado desde ßeta.bp · no editar a mano\nclase SSetaBp extiende Personaje2D:\n    pasar\n",
+    "clase": "SSetaBp",
+    "errores": [],
+    "avisos": [],
+    "lineas": {}
+   }
+  ]
+ ],
+ "variaciones": [
+  [
+   "blueprints/receptor.bp, ronda 0",
+   0,
+   "cb2f2ea35af4c72d"
+  ],
+  [
+   "blueprints/ev_empieza.bp, ronda 0",
+   1,
+   "6ade378ba9c61dd6"
+  ],
+  [
+   "blueprints/ev_actualizar.bp, ronda 0",
+   0,
+   "3da21dfa57102dca"
+  ],
+  [
+   "blueprints/ev_tocar.bp, ronda 0",
+   0,
+   "908e1025e90e5096"
+  ],
+  [
+   "blueprints/ev_dejar.bp, ronda 0",
+   0,
+   "8b15c74e03b7c0cf"
+  ],
+  [
+   "blueprints/ev_pulsar.bp, ronda 0",
+   1,
+   "78d369d76d87e470"
+  ],
+  [
+   "blueprints/ev_soltar.bp, ronda 0",
+   0,
+   "b9c0e8e83e185c5b"
+  ],
+  [
+   "blueprints/ev_recibir.bp, ronda 0",
+   1,
+   "7e35b29382a118db"
+  ],
+  [
+   "blueprints/ev_clic.bp, ronda 0",
+   0,
+   "c8b5d7f6d499ddaa"
+  ],
+  [
+   "blueprints/ev_termina.bp, ronda 0",
+   1,
+   "a5798681e85380df"
+  ],
+  [
+   "blueprints/fn_entrada.bp, ronda 0",
+   0,
+   "9773c320966d2658"
+  ],
+  [
+   "blueprints/in_pulsada.bp, ronda 0",
+   0,
+   "88dfb2c75d4228de"
+  ],
+  [
+   "blueprints/in_mantenida.bp, ronda 0",
+   0,
+   "52bf8f9132b6fd6a"
+  ],
+  [
+   "blueprints/in_eje.bp, ronda 0",
+   2,
+   "8ba475e47d92beaa"
+  ],
+  [
+   "blueprints/in_raton.bp, ronda 0",
+   0,
+   "aa2d5a94ef295fde"
+  ],
+  [
+   "blueprints/in_clic.bp, ronda 0",
+   1,
+   "37d17fd7a8152b87"
+  ],
+  [
+   "blueprints/mv_mover.bp, ronda 0",
+   1,
+   "80d4d3b0c81c9d98"
+  ],
+  [
+   "blueprints/mv_saltar.bp, ronda 0",
+   0,
+   "8eed18f6f3eb842f"
+  ],
+  [
+   "blueprints/mv_suelo.bp, ronda 0",
+   0,
+   "fce28c2950164c9d"
+  ],
+  [
+   "blueprints/mv_posicion.bp, ronda 0",
+   0,
+   "0eb51e1aeabdf476"
+  ],
+  [
+   "blueprints/mv_fijar.bp, ronda 0",
+   0,
+   "c89a5f10a2e83efa"
+  ],
+  [
+   "blueprints/mv_desplazar.bp, ronda 0",
+   0,
+   "c0cfbe146f90ffb5"
+  ],
+  [
+   "blueprints/mv_empujar.bp, ronda 0",
+   0,
+   "d8d910fe0c85f49d"
+  ],
+  [
+   "blueprints/lg_si.bp, ronda 0",
+   0,
+   "ee2c57d9a3da59f1"
+  ],
+  [
+   "blueprints/lg_y.bp, ronda 0",
+   0,
+   "bcd43d8ecaf88c0a"
+  ],
+  [
+   "blueprints/lg_o.bp, ronda 0",
+   0,
+   "acac0b2916de2ac9"
+  ],
+  [
+   "blueprints/lg_no.bp, ronda 0",
+   0,
+   "b997fdd550f56ef6"
+  ],
+  [
+   "blueprints/lg_comparar.bp, ronda 0",
+   0,
+   "7852c3180cdab3d9"
+  ],
+  [
+   "blueprints/lg_es.bp, ronda 0",
+   1,
+   "c850cb3882f990e6"
+  ],
+  [
+   "blueprints/lg_secuencia.bp, ronda 0",
+   1,
+   "e3691e8a5ae9f503"
+  ],
+  [
+   "blueprints/lg_repetir.bp, ronda 0",
+   0,
+   "a0d5ed9a19463dd5"
+  ],
+  [
+   "blueprints/lg_mientras.bp, ronda 0",
+   0,
+   "53138ee84863a0d1"
+  ],
+  [
+   "blueprints/lg_esperar.bp, ronda 0",
+   1,
+   "63b2dd65a356161a"
+  ],
+  [
+   "blueprints/mt_numero.bp, ronda 0",
+   0,
+   "6cc907f6d2787f38"
+  ],
+  [
+   "blueprints/mt_sumar.bp, ronda 0",
+   0,
+   "ed8f03da971e9b33"
+  ],
+  [
+   "blueprints/mt_restar.bp, ronda 0",
+   0,
+   "d266627775922018"
+  ],
+  [
+   "blueprints/mt_multiplicar.bp, ronda 0",
+   2,
+   "dde98ab1305439d6"
+  ],
+  [
+   "blueprints/mt_dividir.bp, ronda 0",
+   0,
+   "b731ec4fda54f449"
+  ],
+  [
+   "blueprints/mt_aleatorio.bp, ronda 0",
+   0,
+   "e9b609b4f3a9f301"
+  ],
+  [
+   "blueprints/mt_limitar.bp, ronda 0",
+   0,
+   "1450acf5ddad2d22"
+  ],
+  [
+   "blueprints/mt_distancia.bp, ronda 0",
+   0,
+   "96c93afd3185f625"
+  ],
+  [
+   "blueprints/var_obtener.bp, ronda 0",
+   2,
+   "91033f8edc21732a"
+  ],
+  [
+   "blueprints/var_fijar.bp, ronda 0",
+   0,
+   "db72a9526c4d27f7"
+  ],
+  [
+   "blueprints/var_sumar.bp, ronda 0",
+   0,
+   "27be48df99eb4c8d"
+  ],
+  [
+   "blueprints/fn_llamar.bp, ronda 0",
+   1,
+   "bdd5dc091c0e34a7"
+  ],
+  [
+   "blueprints/fn_devolver.bp, ronda 0",
+   0,
+   "11848648240966b7"
+  ],
+  [
+   "blueprints/ob_leer.bp, ronda 0",
+   0,
+   "eaa706933c75ae28"
+  ],
+  [
+   "blueprints/ob_fijar.bp, ronda 0",
+   0,
+   "20b3dd276ae6f562"
+  ],
+  [
+   "blueprints/ob_consultar.bp, ronda 0",
+   0,
+   "4adf40ea30eada06"
+  ],
+  [
+   "blueprints/ob_llamar.bp, ronda 0",
+   0,
+   "e9ddef29914ed7f3"
+  ],
+  [
+   "blueprints/es_yo.bp, ronda 0",
+   1,
+   "781b57c97e212128"
+  ],
+  [
+   "blueprints/es_nodo.bp, ronda 0",
+   0,
+   "db7f4bde2a052951"
+  ],
+  [
+   "blueprints/es_mostrar.bp, ronda 0",
+   0,
+   "487b5d8dd14fd3d7"
+  ],
+  [
+   "blueprints/es_eliminar.bp, ronda 0",
+   0,
+   "5bbe126499d8a0c1"
+  ],
+  [
+   "blueprints/es_crear.bp, ronda 0",
+   1,
+   "7030bdf658791c2f"
+  ],
+  [
+   "blueprints/es_ganar.bp, ronda 0",
+   0,
+   "86a1e9781de19195"
+  ],
+  [
+   "blueprints/es_perder.bp, ronda 0",
+   0,
+   "e0fd4089cee8a4f5"
+  ],
+  [
+   "blueprints/es_reiniciar.bp, ronda 0",
+   0,
+   "68eae490160b262e"
+  ],
+  [
+   "blueprints/es_puntos.bp, ronda 0",
+   0,
+   "3439f18968c18714"
+  ],
+  [
+   "blueprints/es_emitir.bp, ronda 0",
+   0,
+   "cc9273bf7851a652"
+  ],
+  [
+   "blueprints/es_escena.bp, ronda 0",
+   0,
+   "a50b5d7d59b7ccca"
+  ],
+  [
+   "blueprints/es_temblar.bp, ronda 0",
+   0,
+   "90f72a1fd609a01e"
+  ],
+  [
+   "blueprints/tx_texto.bp, ronda 0",
+   0,
+   "cf6c5236658b8c0b"
+  ],
+  [
+   "blueprints/tx_unir.bp, ronda 0",
+   0,
+   "9f9ff551567024f9"
+  ],
+  [
+   "blueprints/tx_fijar.bp, ronda 0",
+   0,
+   "db7414d4597d5f18"
+  ],
+  [
+   "blueprints/au_sonar.bp, ronda 0",
+   0,
+   "7ccc80559d7598fb"
+  ],
+  [
+   "blueprints/au_musica.bp, ronda 0",
+   1,
+   "5d65d73fe432097c"
+  ],
+  [
+   "blueprints/au_parar.bp, ronda 0",
+   0,
+   "5035737c13a795f7"
+  ],
+  [
+   "blueprints/operador.bp, ronda 0",
+   1,
+   "1721884a79713573"
+  ],
+  [
+   "blueprints/enemigo_cqb.bp, ronda 0",
+   1,
+   "3532186c7c1e564a"
+  ],
+  [
+   "blueprints/puerta_cqb.bp, ronda 0",
+   0,
+   "b0013dc2bfb22e6b"
+  ],
+  [
+   "blueprints/terminal_cqb.bp, ronda 0",
+   0,
+   "02d44ca02c2299db"
+  ],
+  [
+   "blueprints/suministros_cqb.bp, ronda 0",
+   0,
+   "9d95958c82864bf6"
+  ],
+  [
+   "blueprints/jugador.bp, ronda 0",
+   0,
+   "aceef2936dde610b"
+  ],
+  [
+   "blueprints/monedas.bp, ronda 0",
+   0,
+   "07ab63fddc6519b8"
+  ],
+  [
+   "blueprints/cofre.bp, ronda 0",
+   0,
+   "444bdc14677dbf98"
+  ],
+  [
+   "blueprints/receptor.bp, ronda 1",
+   0,
+   "277f7f55736202e8"
+  ],
+  [
+   "blueprints/ev_empieza.bp, ronda 1",
+   0,
+   "ee0f913ffa256318"
+  ],
+  [
+   "blueprints/ev_actualizar.bp, ronda 1",
+   0,
+   "cb7f7834aee036e8"
+  ],
+  [
+   "blueprints/ev_tocar.bp, ronda 1",
+   0,
+   "52cdb3faf8d57be0"
+  ],
+  [
+   "blueprints/ev_dejar.bp, ronda 1",
+   0,
+   "120319c2da8edcbf"
+  ],
+  [
+   "blueprints/ev_pulsar.bp, ronda 1",
+   0,
+   "96d97716302285b3"
+  ],
+  [
+   "blueprints/ev_soltar.bp, ronda 1",
+   1,
+   "01d88f0e8fbff2a9"
+  ],
+  [
+   "blueprints/ev_recibir.bp, ronda 1",
+   1,
+   "a3e4ddae170ae1a0"
+  ],
+  [
+   "blueprints/ev_clic.bp, ronda 1",
+   0,
+   "2e7aa481d4ebd5ef"
+  ],
+  [
+   "blueprints/ev_termina.bp, ronda 1",
+   0,
+   "fdd1a0e38adfdc8b"
+  ],
+  [
+   "blueprints/fn_entrada.bp, ronda 1",
+   0,
+   "db817803e17cfd8c"
+  ],
+  [
+   "blueprints/in_pulsada.bp, ronda 1",
+   1,
+   "8657fe3f4a62a143"
+  ],
+  [
+   "blueprints/in_mantenida.bp, ronda 1",
+   0,
+   "972f2ab5ec2a377a"
+  ],
+  [
+   "blueprints/in_eje.bp, ronda 1",
+   0,
+   "bfe1fab9f0491e7a"
+  ],
+  [
+   "blueprints/in_raton.bp, ronda 1",
+   0,
+   "0038908362d4a59e"
+  ],
+  [
+   "blueprints/in_clic.bp, ronda 1",
+   1,
+   "6d1800d32c46739b"
+  ],
+  [
+   "blueprints/mv_mover.bp, ronda 1",
+   0,
+   "716ab537f804ed0c"
+  ],
+  [
+   "blueprints/mv_saltar.bp, ronda 1",
+   0,
+   "08dee73df428a936"
+  ],
+  [
+   "blueprints/mv_suelo.bp, ronda 1",
+   0,
+   "3217457fa9af7f6d"
+  ],
+  [
+   "blueprints/mv_posicion.bp, ronda 1",
+   0,
+   "b856cfda328de4b6"
+  ],
+  [
+   "blueprints/mv_fijar.bp, ronda 1",
+   0,
+   "1a4078c96e8c1a31"
+  ],
+  [
+   "blueprints/mv_desplazar.bp, ronda 1",
+   0,
+   "85a733685a89d8ea"
+  ],
+  [
+   "blueprints/mv_empujar.bp, ronda 1",
+   1,
+   "1673201518b90324"
+  ],
+  [
+   "blueprints/lg_si.bp, ronda 1",
+   0,
+   "6ada5d60339b2340"
+  ],
+  [
+   "blueprints/lg_y.bp, ronda 1",
+   0,
+   "e724d97004d90f54"
+  ],
+  [
+   "blueprints/lg_o.bp, ronda 1",
+   0,
+   "18e112ba08172ef1"
+  ],
+  [
+   "blueprints/lg_no.bp, ronda 1",
+   1,
+   "d263b75b391a16a7"
+  ],
+  [
+   "blueprints/lg_comparar.bp, ronda 1",
+   0,
+   "feb6b2aa23f46f5e"
+  ],
+  [
+   "blueprints/lg_es.bp, ronda 1",
+   0,
+   "5ce9dc917ab76a6e"
+  ],
+  [
+   "blueprints/lg_secuencia.bp, ronda 1",
+   0,
+   "234c73fbda5c83aa"
+  ],
+  [
+   "blueprints/lg_repetir.bp, ronda 1",
+   0,
+   "595926ed402a56ed"
+  ],
+  [
+   "blueprints/lg_mientras.bp, ronda 1",
+   0,
+   "4182e848cda28927"
+  ],
+  [
+   "blueprints/lg_esperar.bp, ronda 1",
+   0,
+   "3968321c65c20b29"
+  ],
+  [
+   "blueprints/mt_numero.bp, ronda 1",
+   0,
+   "4ffcf8ede6111b0c"
+  ],
+  [
+   "blueprints/mt_sumar.bp, ronda 1",
+   0,
+   "e09b066e65ed41b5"
+  ],
+  [
+   "blueprints/mt_restar.bp, ronda 1",
+   0,
+   "9f88045e7d15b13e"
+  ],
+  [
+   "blueprints/mt_multiplicar.bp, ronda 1",
+   0,
+   "9de23be01e74025b"
+  ],
+  [
+   "blueprints/mt_dividir.bp, ronda 1",
+   1,
+   "a1c030a05aaaa82c"
+  ],
+  [
+   "blueprints/mt_aleatorio.bp, ronda 1",
+   0,
+   "1c4c926af6b3fee7"
+  ],
+  [
+   "blueprints/mt_limitar.bp, ronda 1",
+   0,
+   "1450acf5ddad2d22"
+  ],
+  [
+   "blueprints/mt_distancia.bp, ronda 1",
+   0,
+   "e9c316a3fcac05d2"
+  ],
+  [
+   "blueprints/var_obtener.bp, ronda 1",
+   0,
+   "0b3f2c632bd5c001"
+  ],
+  [
+   "blueprints/var_fijar.bp, ronda 1",
+   0,
+   "0f71e0c3c6bf3a12"
+  ],
+  [
+   "blueprints/var_sumar.bp, ronda 1",
+   3,
+   "eb47037c14e7c12f"
+  ],
+  [
+   "blueprints/fn_llamar.bp, ronda 1",
+   0,
+   "38c092695d4425b6"
+  ],
+  [
+   "blueprints/fn_devolver.bp, ronda 1",
+   0,
+   "a1d096aabd16dde6"
+  ],
+  [
+   "blueprints/ob_leer.bp, ronda 1",
+   0,
+   "b23f106f28042193"
+  ],
+  [
+   "blueprints/ob_fijar.bp, ronda 1",
+   0,
+   "5ff5bbaa9d01548f"
+  ],
+  [
+   "blueprints/ob_consultar.bp, ronda 1",
+   0,
+   "70874b9a7cef4855"
+  ],
+  [
+   "blueprints/ob_llamar.bp, ronda 1",
+   1,
+   "b1abfae4e0a8ba55"
+  ],
+  [
+   "blueprints/es_yo.bp, ronda 1",
+   0,
+   "c4777af59a7202d8"
+  ],
+  [
+   "blueprints/es_nodo.bp, ronda 1",
+   0,
+   "db7f4bde2a052951"
+  ],
+  [
+   "blueprints/es_mostrar.bp, ronda 1",
+   1,
+   "5c2fee59fe396adf"
+  ],
+  [
+   "blueprints/es_eliminar.bp, ronda 1",
+   0,
+   "c077b3a7834b3703"
+  ],
+  [
+   "blueprints/es_crear.bp, ronda 1",
+   0,
+   "97c53ecd366b363e"
+  ],
+  [
+   "blueprints/es_ganar.bp, ronda 1",
+   1,
+   "8a8e69d91827c144"
+  ],
+  [
+   "blueprints/es_perder.bp, ronda 1",
+   0,
+   "2a8d60e397513d68"
+  ],
+  [
+   "blueprints/es_reiniciar.bp, ronda 1",
+   0,
+   "0b8a17b9195dd94c"
+  ],
+  [
+   "blueprints/es_puntos.bp, ronda 1",
+   0,
+   "83393ea1d4289db5"
+  ],
+  [
+   "blueprints/es_emitir.bp, ronda 1",
+   1,
+   "68cf2d9142b7d6b2"
+  ],
+  [
+   "blueprints/es_escena.bp, ronda 1",
+   0,
+   "7bfccd7056c30daa"
+  ],
+  [
+   "blueprints/es_temblar.bp, ronda 1",
+   1,
+   "05d9e6b31fe3070e"
+  ],
+  [
+   "blueprints/tx_texto.bp, ronda 1",
+   0,
+   "5a494b2d91c8afef"
+  ],
+  [
+   "blueprints/tx_unir.bp, ronda 1",
+   0,
+   "ad7b77b4c9dff538"
+  ],
+  [
+   "blueprints/tx_fijar.bp, ronda 1",
+   0,
+   "5db162d8ae1fc3ef"
+  ],
+  [
+   "blueprints/au_sonar.bp, ronda 1",
+   0,
+   "8c50dc54950d7469"
+  ],
+  [
+   "blueprints/au_musica.bp, ronda 1",
+   1,
+   "f47db1f804359372"
+  ],
+  [
+   "blueprints/au_parar.bp, ronda 1",
+   0,
+   "14d258a78934e9dc"
+  ],
+  [
+   "blueprints/operador.bp, ronda 1",
+   1,
+   "7cab8923acc20746"
+  ],
+  [
+   "blueprints/enemigo_cqb.bp, ronda 1",
+   1,
+   "436e608f5f0e7175"
+  ],
+  [
+   "blueprints/puerta_cqb.bp, ronda 1",
+   1,
+   "8cdf42318b8cab18"
+  ],
+  [
+   "blueprints/terminal_cqb.bp, ronda 1",
+   0,
+   "9949eac3768f0c9b"
+  ],
+  [
+   "blueprints/suministros_cqb.bp, ronda 1",
+   1,
+   "4efc7bafd1a98c48"
+  ],
+  [
+   "blueprints/jugador.bp, ronda 1",
+   0,
+   "ee095cf66b70de43"
+  ],
+  [
+   "blueprints/monedas.bp, ronda 1",
+   0,
+   "d53aab3da589bd11"
+  ],
+  [
+   "blueprints/cofre.bp, ronda 1",
+   0,
+   "9fb4cb5bd68b54ad"
+  ],
+  [
+   "blueprints/receptor.bp, ronda 2",
+   0,
+   "b40a4663c01f7a5d"
+  ],
+  [
+   "blueprints/ev_empieza.bp, ronda 2",
+   1,
+   "0ddc0fb34956a5b2"
+  ],
+  [
+   "blueprints/ev_actualizar.bp, ronda 2",
+   0,
+   "326d75b5afb16cdd"
+  ],
+  [
+   "blueprints/ev_tocar.bp, ronda 2",
+   0,
+   "a5fe937fe57a87ff"
+  ],
+  [
+   "blueprints/ev_dejar.bp, ronda 2",
+   0,
+   "3368dabfa22d20ab"
+  ],
+  [
+   "blueprints/ev_pulsar.bp, ronda 2",
+   1,
+   "516b8c7358fe692a"
+  ],
+  [
+   "blueprints/ev_soltar.bp, ronda 2",
+   0,
+   "658e0bf476d9e63a"
+  ],
+  [
+   "blueprints/ev_recibir.bp, ronda 2",
+   0,
+   "ef7ca60946fce661"
+  ],
+  [
+   "blueprints/ev_clic.bp, ronda 2",
+   0,
+   "4125a759eef61481"
+  ],
+  [
+   "blueprints/ev_termina.bp, ronda 2",
+   0,
+   "ce4819719d1ae5aa"
+  ],
+  [
+   "blueprints/fn_entrada.bp, ronda 2",
+   0,
+   "10b8d092482b86fd"
+  ],
+  [
+   "blueprints/in_pulsada.bp, ronda 2",
+   0,
+   "d2d889752ff1401f"
+  ],
+  [
+   "blueprints/in_mantenida.bp, ronda 2",
+   0,
+   "5903e8bb5a6114dc"
+  ],
+  [
+   "blueprints/in_eje.bp, ronda 2",
+   0,
+   "e73a7083b84fef17"
+  ],
+  [
+   "blueprints/in_raton.bp, ronda 2",
+   0,
+   "457a40bf11adb6a9"
+  ],
+  [
+   "blueprints/in_clic.bp, ronda 2",
+   0,
+   "2ea10ec1fc53ebad"
+  ],
+  [
+   "blueprints/mv_mover.bp, ronda 2",
+   0,
+   "e5bb2d8149c0ea90"
+  ],
+  [
+   "blueprints/mv_saltar.bp, ronda 2",
+   0,
+   "32be64bce0bc3196"
+  ],
+  [
+   "blueprints/mv_suelo.bp, ronda 2",
+   1,
+   "0f87372c69e1e57e"
+  ],
+  [
+   "blueprints/mv_posicion.bp, ronda 2",
+   0,
+   "3fbd4b4d4e7f2338"
+  ],
+  [
+   "blueprints/mv_fijar.bp, ronda 2",
+   0,
+   "f66320d22fae54d1"
+  ],
+  [
+   "blueprints/mv_desplazar.bp, ronda 2",
+   0,
+   "94912c8ebb8ec077"
+  ],
+  [
+   "blueprints/mv_empujar.bp, ronda 2",
+   0,
+   "61b8f5ab08fd2265"
+  ],
+  [
+   "blueprints/lg_si.bp, ronda 2",
+   0,
+   "3084199c8e1b8423"
+  ],
+  [
+   "blueprints/lg_y.bp, ronda 2",
+   1,
+   "3ede354c3305c700"
+  ],
+  [
+   "blueprints/lg_o.bp, ronda 2",
+   1,
+   "f8f97cb9a790f54f"
+  ],
+  [
+   "blueprints/lg_no.bp, ronda 2",
+   0,
+   "31367361b4bff0ef"
+  ],
+  [
+   "blueprints/lg_comparar.bp, ronda 2",
+   0,
+   "89eb7fa6efa70389"
+  ],
+  [
+   "blueprints/lg_es.bp, ronda 2",
+   0,
+   "ad2af0a391e25906"
+  ],
+  [
+   "blueprints/lg_secuencia.bp, ronda 2",
+   0,
+   "253257fb3bf8b00c"
+  ],
+  [
+   "blueprints/lg_repetir.bp, ronda 2",
+   0,
+   "aa443e9cc2544543"
+  ],
+  [
+   "blueprints/lg_mientras.bp, ronda 2",
+   1,
+   "7b5938ae4aa0c2ef"
+  ],
+  [
+   "blueprints/lg_esperar.bp, ronda 2",
+   0,
+   "728927af88f73b72"
+  ],
+  [
+   "blueprints/mt_numero.bp, ronda 2",
+   0,
+   "4feeb357e4123a4f"
+  ],
+  [
+   "blueprints/mt_sumar.bp, ronda 2",
+   0,
+   "0312c745f32d3604"
+  ],
+  [
+   "blueprints/mt_restar.bp, ronda 2",
+   0,
+   "26dd68cf8a5d910b"
+  ],
+  [
+   "blueprints/mt_multiplicar.bp, ronda 2",
+   0,
+   "bf77d33ce335010f"
+  ],
+  [
+   "blueprints/mt_dividir.bp, ronda 2",
+   2,
+   "01c3732ae72c845a"
+  ],
+  [
+   "blueprints/mt_aleatorio.bp, ronda 2",
+   0,
+   "08fb1c2a235abf6b"
+  ],
+  [
+   "blueprints/mt_limitar.bp, ronda 2",
+   1,
+   "ec1b871bd08b6c43"
+  ],
+  [
+   "blueprints/mt_distancia.bp, ronda 2",
+   1,
+   "68824eb5621586ab"
+  ],
+  [
+   "blueprints/var_obtener.bp, ronda 2",
+   1,
+   "6f4cb8bf05516535"
+  ],
+  [
+   "blueprints/var_fijar.bp, ronda 2",
+   0,
+   "4ecdbde9a7cca7c6"
+  ],
+  [
+   "blueprints/var_sumar.bp, ronda 2",
+   0,
+   "27be48df99eb4c8d"
+  ],
+  [
+   "blueprints/fn_llamar.bp, ronda 2",
+   0,
+   "4b7e43ab5f4199ba"
+  ],
+  [
+   "blueprints/fn_devolver.bp, ronda 2",
+   0,
+   "3a421d7de482c258"
+  ],
+  [
+   "blueprints/ob_leer.bp, ronda 2",
+   0,
+   "ee79f9e4f2240b54"
+  ],
+  [
+   "blueprints/ob_fijar.bp, ronda 2",
+   0,
+   "a1d3be9f59297d3f"
+  ],
+  [
+   "blueprints/ob_consultar.bp, ronda 2",
+   0,
+   "026534760b0eea94"
+  ],
+  [
+   "blueprints/ob_llamar.bp, ronda 2",
+   1,
+   "9b2ee4ad5159286f"
+  ],
+  [
+   "blueprints/es_yo.bp, ronda 2",
+   0,
+   "c4777af59a7202d8"
+  ],
+  [
+   "blueprints/es_nodo.bp, ronda 2",
+   0,
+   "452a0ac8be5408a5"
+  ],
+  [
+   "blueprints/es_mostrar.bp, ronda 2",
+   1,
+   "d2b23f2d946b6aaa"
+  ],
+  [
+   "blueprints/es_eliminar.bp, ronda 2",
+   0,
+   "1d2f294b5811e309"
+  ],
+  [
+   "blueprints/es_crear.bp, ronda 2",
+   0,
+   "97c53ecd366b363e"
+  ],
+  [
+   "blueprints/es_ganar.bp, ronda 2",
+   0,
+   "966ba40d1457bf4f"
+  ],
+  [
+   "blueprints/es_perder.bp, ronda 2",
+   0,
+   "95cc230a44d273bf"
+  ],
+  [
+   "blueprints/es_reiniciar.bp, ronda 2",
+   0,
+   "ecbaa07fcbe45f2f"
+  ],
+  [
+   "blueprints/es_puntos.bp, ronda 2",
+   0,
+   "029a55d08e7412e0"
+  ],
+  [
+   "blueprints/es_emitir.bp, ronda 2",
+   0,
+   "d7e50058da95a018"
+  ],
+  [
+   "blueprints/es_escena.bp, ronda 2",
+   0,
+   "a50b5d7d59b7ccca"
+  ],
+  [
+   "blueprints/es_temblar.bp, ronda 2",
+   0,
+   "abc80aa9f2aa4777"
+  ],
+  [
+   "blueprints/tx_texto.bp, ronda 2",
+   0,
+   "b2055be4f8b63c69"
+  ],
+  [
+   "blueprints/tx_unir.bp, ronda 2",
+   0,
+   "9e4f573f6e74d6e0"
+  ],
+  [
+   "blueprints/tx_fijar.bp, ronda 2",
+   0,
+   "ff83f5c33ba9278c"
+  ],
+  [
+   "blueprints/au_sonar.bp, ronda 2",
+   1,
+   "edd5588fa65da5e3"
+  ],
+  [
+   "blueprints/au_musica.bp, ronda 2",
+   0,
+   "420a41652c3de3c6"
+  ],
+  [
+   "blueprints/au_parar.bp, ronda 2",
+   1,
+   "1ff75c0c63a3249d"
+  ],
+  [
+   "blueprints/operador.bp, ronda 2",
+   3,
+   "1ce399b12bd2e5f1"
+  ],
+  [
+   "blueprints/enemigo_cqb.bp, ronda 2",
+   0,
+   "6abab4eb232ea9a3"
+  ],
+  [
+   "blueprints/puerta_cqb.bp, ronda 2",
+   0,
+   "f267a3beffb04f07"
+  ],
+  [
+   "blueprints/terminal_cqb.bp, ronda 2",
+   1,
+   "0ec22a95fe0b9ee8"
+  ],
+  [
+   "blueprints/suministros_cqb.bp, ronda 2",
+   0,
+   "3dd7b2babb988961"
+  ],
+  [
+   "blueprints/jugador.bp, ronda 2",
+   1,
+   "1cc8cc431bc2a3aa"
+  ],
+  [
+   "blueprints/monedas.bp, ronda 2",
+   0,
+   "9c6ed8743ebc39ad"
+  ],
+  [
+   "blueprints/cofre.bp, ronda 2",
+   0,
+   "15d9eacbddf92f35"
+  ],
+  [
+   "blueprints/receptor.bp, ronda 3",
+   0,
+   "e5962a86e6b72901"
+  ],
+  [
+   "blueprints/ev_empieza.bp, ronda 3",
+   0,
+   "29b9bbd52f722818"
+  ],
+  [
+   "blueprints/ev_actualizar.bp, ronda 3",
+   0,
+   "71d19fa31e311744"
+  ],
+  [
+   "blueprints/ev_tocar.bp, ronda 3",
+   1,
+   "f695c8bf83af5d5b"
+  ],
+  [
+   "blueprints/ev_dejar.bp, ronda 3",
+   0,
+   "fcd8cd4ad62bf695"
+  ],
+  [
+   "blueprints/ev_pulsar.bp, ronda 3",
+   0,
+   "96d97716302285b3"
+  ],
+  [
+   "blueprints/ev_soltar.bp, ronda 3",
+   0,
+   "cad908e3cb969c28"
+  ],
+  [
+   "blueprints/ev_recibir.bp, ronda 3",
+   0,
+   "59491e659f0f39e5"
+  ],
+  [
+   "blueprints/ev_clic.bp, ronda 3",
+   0,
+   "fd378fcd3b2860e9"
+  ],
+  [
+   "blueprints/ev_termina.bp, ronda 3",
+   0,
+   "c6a0c59ed9799de9"
+  ],
+  [
+   "blueprints/fn_entrada.bp, ronda 3",
+   0,
+   "64f7e26755bc1590"
+  ],
+  [
+   "blueprints/in_pulsada.bp, ronda 3",
+   0,
+   "af0c069add8fab76"
+  ],
+  [
+   "blueprints/in_mantenida.bp, ronda 3",
+   0,
+   "9549006363acee39"
+  ],
+  [
+   "blueprints/in_eje.bp, ronda 3",
+   0,
+   "fff95c7d170f1bc8"
+  ],
+  [
+   "blueprints/in_raton.bp, ronda 3",
+   0,
+   "9b7408841b817c41"
+  ],
+  [
+   "blueprints/in_clic.bp, ronda 3",
+   0,
+   "0662196908f7249f"
+  ],
+  [
+   "blueprints/mv_mover.bp, ronda 3",
+   2,
+   "abbe4a8222ce19b7"
+  ],
+  [
+   "blueprints/mv_saltar.bp, ronda 3",
+   0,
+   "59d0ca594259df17"
+  ],
+  [
+   "blueprints/mv_suelo.bp, ronda 3",
+   0,
+   "65963624200977d8"
+  ],
+  [
+   "blueprints/mv_posicion.bp, ronda 3",
+   0,
+   "1105f028a48284c9"
+  ],
+  [
+   "blueprints/mv_fijar.bp, ronda 3",
+   1,
+   "7b5095883a09dbcb"
+  ],
+  [
+   "blueprints/mv_desplazar.bp, ronda 3",
+   1,
+   "da7da5237d632c23"
+  ],
+  [
+   "blueprints/mv_empujar.bp, ronda 3",
+   0,
+   "3445f66853a8c981"
+  ],
+  [
+   "blueprints/lg_si.bp, ronda 3",
+   0,
+   "9865fdefb7dc10e0"
+  ],
+  [
+   "blueprints/lg_y.bp, ronda 3",
+   1,
+   "3ede354c3305c700"
+  ],
+  [
+   "blueprints/lg_o.bp, ronda 3",
+   0,
+   "2b47b872754ad78d"
+  ],
+  [
+   "blueprints/lg_no.bp, ronda 3",
+   0,
+   "8b5a83f223f2eaf7"
+  ],
+  [
+   "blueprints/lg_comparar.bp, ronda 3",
+   0,
+   "6dda79b598b02f98"
+  ],
+  [
+   "blueprints/lg_es.bp, ronda 3",
+   0,
+   "b2e3fc3bcd10d0ab"
+  ],
+  [
+   "blueprints/lg_secuencia.bp, ronda 3",
+   1,
+   "c7f42fde182db09a"
+  ],
+  [
+   "blueprints/lg_repetir.bp, ronda 3",
+   1,
+   "65fc53c7d02a1e92"
+  ],
+  [
+   "blueprints/lg_mientras.bp, ronda 3",
+   0,
+   "cbcbf1d2cf794250"
+  ],
+  [
+   "blueprints/lg_esperar.bp, ronda 3",
+   1,
+   "1c90c685c38053f7"
+  ],
+  [
+   "blueprints/mt_numero.bp, ronda 3",
+   0,
+   "d5682199af04eff2"
+  ],
+  [
+   "blueprints/mt_sumar.bp, ronda 3",
+   0,
+   "cfdab94e7990f7d3"
+  ],
+  [
+   "blueprints/mt_restar.bp, ronda 3",
+   0,
+   "39f570b04bd5fe4e"
+  ],
+  [
+   "blueprints/mt_multiplicar.bp, ronda 3",
+   0,
+   "89f690d57e07e1ba"
+  ],
+  [
+   "blueprints/mt_dividir.bp, ronda 3",
+   0,
+   "94a1d2f92c656ba8"
+  ],
+  [
+   "blueprints/mt_aleatorio.bp, ronda 3",
+   0,
+   "1c4c926af6b3fee7"
+  ],
+  [
+   "blueprints/mt_limitar.bp, ronda 3",
+   0,
+   "f4868cd7b14e303f"
+  ],
+  [
+   "blueprints/mt_distancia.bp, ronda 3",
+   0,
+   "25b72468f966f797"
+  ],
+  [
+   "blueprints/var_obtener.bp, ronda 3",
+   0,
+   "86beca30d118ed66"
+  ],
+  [
+   "blueprints/var_fijar.bp, ronda 3",
+   0,
+   "0cab2f509eddd0e9"
+  ],
+  [
+   "blueprints/var_sumar.bp, ronda 3",
+   0,
+   "73e0c188a038518c"
+  ],
+  [
+   "blueprints/fn_llamar.bp, ronda 3",
+   0,
+   "3e17996985b855cc"
+  ],
+  [
+   "blueprints/fn_devolver.bp, ronda 3",
+   0,
+   "78c8a820b1e8d1da"
+  ],
+  [
+   "blueprints/ob_leer.bp, ronda 3",
+   0,
+   "b56bb886736f1d4e"
+  ],
+  [
+   "blueprints/ob_fijar.bp, ronda 3",
+   0,
+   "c6b8f1bf5dfdfb7e"
+  ],
+  [
+   "blueprints/ob_consultar.bp, ronda 3",
+   0,
+   "4f286451758f16a5"
+  ],
+  [
+   "blueprints/ob_llamar.bp, ronda 3",
+   0,
+   "50b58bb9c2903b4d"
+  ],
+  [
+   "blueprints/es_yo.bp, ronda 3",
+   0,
+   "5dd6fcdcd9bdbc69"
+  ],
+  [
+   "blueprints/es_nodo.bp, ronda 3",
+   2,
+   "cea9b5cbabb04615"
+  ],
+  [
+   "blueprints/es_mostrar.bp, ronda 3",
+   0,
+   "f4017d10e7321ec8"
+  ],
+  [
+   "blueprints/es_eliminar.bp, ronda 3",
+   1,
+   "d4ed87b1d2692975"
+  ],
+  [
+   "blueprints/es_crear.bp, ronda 3",
+   0,
+   "385b8e0cd0b2476e"
+  ],
+  [
+   "blueprints/es_ganar.bp, ronda 3",
+   0,
+   "9479b1201cb21d3c"
+  ],
+  [
+   "blueprints/es_perder.bp, ronda 3",
+   0,
+   "1e163dde33f896bd"
+  ],
+  [
+   "blueprints/es_reiniciar.bp, ronda 3",
+   1,
+   "7a5df8b31f4cc4ef"
+  ],
+  [
+   "blueprints/es_puntos.bp, ronda 3",
+   0,
+   "3439f18968c18714"
+  ],
+  [
+   "blueprints/es_emitir.bp, ronda 3",
+   0,
+   "70940b9b2adfcd68"
+  ],
+  [
+   "blueprints/es_escena.bp, ronda 3",
+   0,
+   "a3c5c1088997a926"
+  ],
+  [
+   "blueprints/es_temblar.bp, ronda 3",
+   0,
+   "59fa3908ac53ecc5"
+  ],
+  [
+   "blueprints/tx_texto.bp, ronda 3",
+   0,
+   "efdb0bcc353142a5"
+  ],
+  [
+   "blueprints/tx_unir.bp, ronda 3",
+   0,
+   "49e8a25388628e23"
+  ],
+  [
+   "blueprints/tx_fijar.bp, ronda 3",
+   0,
+   "9c1a7505c0ba2cdf"
+  ],
+  [
+   "blueprints/au_sonar.bp, ronda 3",
+   1,
+   "2a29b94e57ba3caa"
+  ],
+  [
+   "blueprints/au_musica.bp, ronda 3",
+   0,
+   "6373f163f84e3b15"
+  ],
+  [
+   "blueprints/au_parar.bp, ronda 3",
+   0,
+   "5035737c13a795f7"
+  ],
+  [
+   "blueprints/operador.bp, ronda 3",
+   0,
+   "c75b5437a8d18af8"
+  ],
+  [
+   "blueprints/enemigo_cqb.bp, ronda 3",
+   1,
+   "cc99c1bfe36fef5a"
+  ],
+  [
+   "blueprints/puerta_cqb.bp, ronda 3",
+   0,
+   "b0013dc2bfb22e6b"
+  ],
+  [
+   "blueprints/terminal_cqb.bp, ronda 3",
+   0,
+   "eb5d0bec9e815052"
+  ],
+  [
+   "blueprints/suministros_cqb.bp, ronda 3",
+   0,
+   "903566f3d013b189"
+  ],
+  [
+   "blueprints/jugador.bp, ronda 3",
+   0,
+   "05b6f569e7ced5db"
+  ],
+  [
+   "blueprints/monedas.bp, ronda 3",
+   1,
+   "5c942f21f016be43"
+  ],
+  [
+   "blueprints/cofre.bp, ronda 3",
+   1,
+   "6e43c95dc574c05f"
+  ],
+  [
+   "blueprints/receptor.bp, ronda 4",
+   0,
+   "78558c2e748d9743"
+  ],
+  [
+   "blueprints/ev_empieza.bp, ronda 4",
+   0,
+   "85f2f17d59b8b6cd"
+  ],
+  [
+   "blueprints/ev_actualizar.bp, ronda 4",
+   1,
+   "e13bf1fe23ccaaaf"
+  ],
+  [
+   "blueprints/ev_tocar.bp, ronda 4",
+   1,
+   "5ee6fe30ed37b1bf"
+  ],
+  [
+   "blueprints/ev_dejar.bp, ronda 4",
+   2,
+   "704aa891c4025d8f"
+  ],
+  [
+   "blueprints/ev_pulsar.bp, ronda 4",
+   1,
+   "ada1d4b2a12f9add"
+  ],
+  [
+   "blueprints/ev_soltar.bp, ronda 4",
+   0,
+   "5a53d1515bb51e31"
+  ],
+  [
+   "blueprints/ev_recibir.bp, ronda 4",
+   0,
+   "cc725bf7ecc81250"
+  ],
+  [
+   "blueprints/ev_clic.bp, ronda 4",
+   1,
+   "b0244411328ee529"
+  ],
+  [
+   "blueprints/ev_termina.bp, ronda 4",
+   0,
+   "fdd1a0e38adfdc8b"
+  ],
+  [
+   "blueprints/fn_entrada.bp, ronda 4",
+   1,
+   "20bdf54916473e09"
+  ],
+  [
+   "blueprints/in_pulsada.bp, ronda 4",
+   0,
+   "f3ecd550830ee987"
+  ],
+  [
+   "blueprints/in_mantenida.bp, ronda 4",
+   0,
+   "d902830093a3d471"
+  ],
+  [
+   "blueprints/in_eje.bp, ronda 4",
+   0,
+   "43ae5166cc441dc2"
+  ],
+  [
+   "blueprints/in_raton.bp, ronda 4",
+   1,
+   "d9ba3a0c5491cadd"
+  ],
+  [
+   "blueprints/in_clic.bp, ronda 4",
+   0,
+   "d828936c4d4f7597"
+  ],
+  [
+   "blueprints/mv_mover.bp, ronda 4",
+   1,
+   "d50b7494d9f17f71"
+  ],
+  [
+   "blueprints/mv_saltar.bp, ronda 4",
+   0,
+   "59d0ca594259df17"
+  ],
+  [
+   "blueprints/mv_suelo.bp, ronda 4",
+   0,
+   "c8647d5782d1fc37"
+  ],
+  [
+   "blueprints/mv_posicion.bp, ronda 4",
+   0,
+   "ae9b4c09556a2a9b"
+  ],
+  [
+   "blueprints/mv_fijar.bp, ronda 4",
+   0,
+   "b3fd009e27f0ae1e"
+  ],
+  [
+   "blueprints/mv_desplazar.bp, ronda 4",
+   0,
+   "ee520be43684ea2e"
+  ],
+  [
+   "blueprints/mv_empujar.bp, ronda 4",
+   0,
+   "9394319a79bd6df9"
+  ],
+  [
+   "blueprints/lg_si.bp, ronda 4",
+   0,
+   "475f3b9b331325f5"
+  ],
+  [
+   "blueprints/lg_y.bp, ronda 4",
+   0,
+   "f591f875c7f5b87a"
+  ],
+  [
+   "blueprints/lg_o.bp, ronda 4",
+   0,
+   "8db06e8f0f6cd6f4"
+  ],
+  [
+   "blueprints/lg_no.bp, ronda 4",
+   0,
+   "991c1ac816568d68"
+  ],
+  [
+   "blueprints/lg_comparar.bp, ronda 4",
+   1,
+   "9b9cd03f2212b41e"
+  ],
+  [
+   "blueprints/lg_es.bp, ronda 4",
+   0,
+   "7c36f518e22b6148"
+  ],
+  [
+   "blueprints/lg_secuencia.bp, ronda 4",
+   0,
+   "b5bc10bf036bdccd"
+  ],
+  [
+   "blueprints/lg_repetir.bp, ronda 4",
+   0,
+   "aa443e9cc2544543"
+  ],
+  [
+   "blueprints/lg_mientras.bp, ronda 4",
+   0,
+   "a55861845b09da43"
+  ],
+  [
+   "blueprints/lg_esperar.bp, ronda 4",
+   0,
+   "965b6240cc6d7904"
+  ],
+  [
+   "blueprints/mt_numero.bp, ronda 4",
+   0,
+   "d60773e658d68299"
+  ],
+  [
+   "blueprints/mt_sumar.bp, ronda 4",
+   1,
+   "34c687192ebfa2d7"
+  ],
+  [
+   "blueprints/mt_restar.bp, ronda 4",
+   0,
+   "4bd7401ed24ddcaa"
+  ],
+  [
+   "blueprints/mt_multiplicar.bp, ronda 4",
+   0,
+   "b1c4743566b4229e"
+  ],
+  [
+   "blueprints/mt_dividir.bp, ronda 4",
+   0,
+   "e8b22356e064c4d8"
+  ],
+  [
+   "blueprints/mt_aleatorio.bp, ronda 4",
+   0,
+   "63905fe447803941"
+  ],
+  [
+   "blueprints/mt_limitar.bp, ronda 4",
+   0,
+   "da702cfd6a3ccf24"
+  ],
+  [
+   "blueprints/mt_distancia.bp, ronda 4",
+   1,
+   "1927ba2e43a6e10a"
+  ],
+  [
+   "blueprints/var_obtener.bp, ronda 4",
+   1,
+   "1beb723440f8416c"
+  ],
+  [
+   "blueprints/var_fijar.bp, ronda 4",
+   1,
+   "5628ec1f8c7ac154"
+  ],
+  [
+   "blueprints/var_sumar.bp, ronda 4",
+   3,
+   "269845ff7c6e9d09"
+  ],
+  [
+   "blueprints/fn_llamar.bp, ronda 4",
+   0,
+   "e1555d79e0d08e8d"
+  ],
+  [
+   "blueprints/fn_devolver.bp, ronda 4",
+   0,
+   "d1fe887ceb3fb995"
+  ],
+  [
+   "blueprints/ob_leer.bp, ronda 4",
+   0,
+   "c14975b2d01521e7"
+  ],
+  [
+   "blueprints/ob_fijar.bp, ronda 4",
+   0,
+   "871b94e81471cbf3"
+  ],
+  [
+   "blueprints/ob_consultar.bp, ronda 4",
+   0,
+   "45581fb76c2d2752"
+  ],
+  [
+   "blueprints/ob_llamar.bp, ronda 4",
+   0,
+   "f6fca8b2b5b565f9"
+  ],
+  [
+   "blueprints/es_yo.bp, ronda 4",
+   0,
+   "c4777af59a7202d8"
+  ],
+  [
+   "blueprints/es_nodo.bp, ronda 4",
+   0,
+   "db7f4bde2a052951"
+  ],
+  [
+   "blueprints/es_mostrar.bp, ronda 4",
+   0,
+   "4027abc1a3854832"
+  ],
+  [
+   "blueprints/es_eliminar.bp, ronda 4",
+   0,
+   "5bbe126499d8a0c1"
+  ],
+  [
+   "blueprints/es_crear.bp, ronda 4",
+   0,
+   "b8f8c365f65b3580"
+  ],
+  [
+   "blueprints/es_ganar.bp, ronda 4",
+   0,
+   "8d959362e088e486"
+  ],
+  [
+   "blueprints/es_perder.bp, ronda 4",
+   0,
+   "f09c32f8deb1fa03"
+  ],
+  [
+   "blueprints/es_reiniciar.bp, ronda 4",
+   0,
+   "3c7765869d2bede1"
+  ],
+  [
+   "blueprints/es_puntos.bp, ronda 4",
+   0,
+   "a80e5b2dfb4dd01f"
+  ],
+  [
+   "blueprints/es_emitir.bp, ronda 4",
+   0,
+   "e108859282e0da17"
+  ],
+  [
+   "blueprints/es_escena.bp, ronda 4",
+   0,
+   "22df2e05a30c5267"
+  ],
+  [
+   "blueprints/es_temblar.bp, ronda 4",
+   0,
+   "2d0b69150797a026"
+  ],
+  [
+   "blueprints/tx_texto.bp, ronda 4",
+   0,
+   "1fd1eb1d58bc414a"
+  ],
+  [
+   "blueprints/tx_unir.bp, ronda 4",
+   0,
+   "a37fbc21ef24c8b6"
+  ],
+  [
+   "blueprints/tx_fijar.bp, ronda 4",
+   1,
+   "10e09d54980c089d"
+  ],
+  [
+   "blueprints/au_sonar.bp, ronda 4",
+   1,
+   "7fdaa9dbc24ffd2a"
+  ],
+  [
+   "blueprints/au_musica.bp, ronda 4",
+   0,
+   "c1bfc9fb603b4020"
+  ],
+  [
+   "blueprints/au_parar.bp, ronda 4",
+   1,
+   "0bef5d9a9a030515"
+  ],
+  [
+   "blueprints/operador.bp, ronda 4",
+   3,
+   "e495f8e49c3d6025"
+  ],
+  [
+   "blueprints/enemigo_cqb.bp, ronda 4",
+   0,
+   "1dc8bcdde348074e"
+  ],
+  [
+   "blueprints/puerta_cqb.bp, ronda 4",
+   1,
+   "5ef2523784185467"
+  ],
+  [
+   "blueprints/terminal_cqb.bp, ronda 4",
+   0,
+   "f8011f62bd677930"
+  ],
+  [
+   "blueprints/suministros_cqb.bp, ronda 4",
+   0,
+   "63efe7f45ea3f297"
+  ],
+  [
+   "blueprints/jugador.bp, ronda 4",
+   0,
+   "9957fc48ee01c174"
+  ],
+  [
+   "blueprints/monedas.bp, ronda 4",
+   1,
+   "27e632c7885eccac"
+  ],
+  [
+   "blueprints/cofre.bp, ronda 4",
+   0,
+   "d46dca76164e57e3"
+  ],
+  [
+   "blueprints/receptor.bp, ronda 5",
+   0,
+   "01001e47743e284f"
+  ],
+  [
+   "blueprints/ev_empieza.bp, ronda 5",
+   0,
+   "ee0f913ffa256318"
+  ],
+  [
+   "blueprints/ev_actualizar.bp, ronda 5",
+   0,
+   "3814612cc6f1c282"
+  ],
+  [
+   "blueprints/ev_tocar.bp, ronda 5",
+   0,
+   "69911c009ef5ed68"
+  ],
+  [
+   "blueprints/ev_dejar.bp, ronda 5",
+   0,
+   "3cde1d9d3957b836"
+  ],
+  [
+   "blueprints/ev_pulsar.bp, ronda 5",
+   0,
+   "8803715786747e9c"
+  ],
+  [
+   "blueprints/ev_soltar.bp, ronda 5",
+   1,
+   "441225cff9f021dc"
+  ],
+  [
+   "blueprints/ev_recibir.bp, ronda 5",
+   1,
+   "d07e43c5fa4259ce"
+  ],
+  [
+   "blueprints/ev_clic.bp, ronda 5",
+   1,
+   "ae958f04c104b579"
+  ],
+  [
+   "blueprints/ev_termina.bp, ronda 5",
+   0,
+   "36972691b1a891af"
+  ],
+  [
+   "blueprints/fn_entrada.bp, ronda 5",
+   1,
+   "0efef0660601262a"
+  ],
+  [
+   "blueprints/in_pulsada.bp, ronda 5",
+   1,
+   "76eede70d6f85902"
+  ],
+  [
+   "blueprints/in_mantenida.bp, ronda 5",
+   1,
+   "ae7edcb0b6448480"
+  ],
+  [
+   "blueprints/in_eje.bp, ronda 5",
+   0,
+   "b14d5ddf5cfe9392"
+  ],
+  [
+   "blueprints/in_raton.bp, ronda 5",
+   0,
+   "42fc1e29e03c1376"
+  ],
+  [
+   "blueprints/in_clic.bp, ronda 5",
+   1,
+   "e7411703673f85f0"
+  ],
+  [
+   "blueprints/mv_mover.bp, ronda 5",
+   0,
+   "94882e6229470cba"
+  ],
+  [
+   "blueprints/mv_saltar.bp, ronda 5",
+   0,
+   "1954ef2183dda66e"
+  ],
+  [
+   "blueprints/mv_suelo.bp, ronda 5",
+   1,
+   "3b6dcf885ac9bd89"
+  ],
+  [
+   "blueprints/mv_posicion.bp, ronda 5",
+   2,
+   "62e929160d1d00cf"
+  ],
+  [
+   "blueprints/mv_fijar.bp, ronda 5",
+   0,
+   "c9959999d5dbc340"
+  ],
+  [
+   "blueprints/mv_desplazar.bp, ronda 5",
+   0,
+   "e40b061f873befa8"
+  ],
+  [
+   "blueprints/mv_empujar.bp, ronda 5",
+   0,
+   "2ffdafc36a0a0e30"
+  ],
+  [
+   "blueprints/lg_si.bp, ronda 5",
+   0,
+   "85d8014742e1b644"
+  ],
+  [
+   "blueprints/lg_y.bp, ronda 5",
+   1,
+   "d3d1d00d88e40666"
+  ],
+  [
+   "blueprints/lg_o.bp, ronda 5",
+   0,
+   "18e112ba08172ef1"
+  ],
+  [
+   "blueprints/lg_no.bp, ronda 5",
+   0,
+   "24ae8c8ab203442d"
+  ],
+  [
+   "blueprints/lg_comparar.bp, ronda 5",
+   1,
+   "5550b48cba23ea1a"
+  ],
+  [
+   "blueprints/lg_es.bp, ronda 5",
+   0,
+   "5c0d081e5d3390de"
+  ],
+  [
+   "blueprints/lg_secuencia.bp, ronda 5",
+   0,
+   "8cb3efdfe1e13148"
+  ],
+  [
+   "blueprints/lg_repetir.bp, ronda 5",
+   0,
+   "e29cf1ec714f7a19"
+  ],
+  [
+   "blueprints/lg_mientras.bp, ronda 5",
+   0,
+   "4182e848cda28927"
+  ],
+  [
+   "blueprints/lg_esperar.bp, ronda 5",
+   1,
+   "48b67205d103ad00"
+  ],
+  [
+   "blueprints/mt_numero.bp, ronda 5",
+   0,
+   "3a9c5cf414b22bb0"
+  ],
+  [
+   "blueprints/mt_sumar.bp, ronda 5",
+   1,
+   "7cf1c7e7c17b9441"
+  ],
+  [
+   "blueprints/mt_restar.bp, ronda 5",
+   0,
+   "fabe829c5fd2f2a0"
+  ],
+  [
+   "blueprints/mt_multiplicar.bp, ronda 5",
+   1,
+   "d8b9e8420ba2b88e"
+  ],
+  [
+   "blueprints/mt_dividir.bp, ronda 5",
+   1,
+   "ab14b653e9f5504f"
+  ],
+  [
+   "blueprints/mt_aleatorio.bp, ronda 5",
+   0,
+   "875d9dea486b2aa4"
+  ],
+  [
+   "blueprints/mt_limitar.bp, ronda 5",
+   0,
+   "1d29a5c88ef5c480"
+  ],
+  [
+   "blueprints/mt_distancia.bp, ronda 5",
+   0,
+   "3604c7bbb98ee58f"
+  ],
+  [
+   "blueprints/var_obtener.bp, ronda 5",
+   0,
+   "f387415e8ccdd3b0"
+  ],
+  [
+   "blueprints/var_fijar.bp, ronda 5",
+   0,
+   "ffaeee901886f31f"
+  ],
+  [
+   "blueprints/var_sumar.bp, ronda 5",
+   0,
+   "d88877bba404c994"
+  ],
+  [
+   "blueprints/fn_llamar.bp, ronda 5",
+   0,
+   "a8d67c762330efb3"
+  ],
+  [
+   "blueprints/fn_devolver.bp, ronda 5",
+   0,
+   "584fc81e27463b87"
+  ],
+  [
+   "blueprints/ob_leer.bp, ronda 5",
+   1,
+   "f63efb84536645d3"
+  ],
+  [
+   "blueprints/ob_fijar.bp, ronda 5",
+   0,
+   "b36d4f6f770fbb95"
+  ],
+  [
+   "blueprints/ob_consultar.bp, ronda 5",
+   0,
+   "9ffe36799c5a01b5"
+  ],
+  [
+   "blueprints/ob_llamar.bp, ronda 5",
+   0,
+   "f1f471bbaf2c8b27"
+  ],
+  [
+   "blueprints/es_yo.bp, ronda 5",
+   0,
+   "0ae4fca1f37d00b9"
+  ],
+  [
+   "blueprints/es_nodo.bp, ronda 5",
+   0,
+   "fba051d965966e6d"
+  ],
+  [
+   "blueprints/es_mostrar.bp, ronda 5",
+   0,
+   "987d1f074bf7e117"
+  ],
+  [
+   "blueprints/es_eliminar.bp, ronda 5",
+   1,
+   "bb06ef1233cf8075"
+  ],
+  [
+   "blueprints/es_crear.bp, ronda 5",
+   1,
+   "e628f9855cddcd8f"
+  ],
+  [
+   "blueprints/es_ganar.bp, ronda 5",
+   0,
+   "e4d59d897f9ccdc5"
+  ],
+  [
+   "blueprints/es_perder.bp, ronda 5",
+   1,
+   "92c9b7acb77f5a14"
+  ],
+  [
+   "blueprints/es_reiniciar.bp, ronda 5",
+   0,
+   "e65c780371909b49"
+  ],
+  [
+   "blueprints/es_puntos.bp, ronda 5",
+   0,
+   "e582072feff659ce"
+  ],
+  [
+   "blueprints/es_emitir.bp, ronda 5",
+   0,
+   "70940b9b2adfcd68"
+  ],
+  [
+   "blueprints/es_escena.bp, ronda 5",
+   0,
+   "67e6d285a5de503a"
+  ],
+  [
+   "blueprints/es_temblar.bp, ronda 5",
+   0,
+   "abc80aa9f2aa4777"
+  ],
+  [
+   "blueprints/tx_texto.bp, ronda 5",
+   1,
+   "57ee98c59b754bbc"
+  ],
+  [
+   "blueprints/tx_unir.bp, ronda 5",
+   0,
+   "eb5c41d3f431807c"
+  ],
+  [
+   "blueprints/tx_fijar.bp, ronda 5",
+   0,
+   "8e4326969c1dcc6b"
+  ],
+  [
+   "blueprints/au_sonar.bp, ronda 5",
+   0,
+   "1526cdd520bdf1d4"
+  ],
+  [
+   "blueprints/au_musica.bp, ronda 5",
+   1,
+   "e7f52af23922af38"
+  ],
+  [
+   "blueprints/au_parar.bp, ronda 5",
+   0,
+   "33f1fbf8ec6d932a"
+  ],
+  [
+   "blueprints/operador.bp, ronda 5",
+   4,
+   "8a3aa678f042b3da"
+  ],
+  [
+   "blueprints/enemigo_cqb.bp, ronda 5",
+   0,
+   "08ff7525caedc738"
+  ],
+  [
+   "blueprints/puerta_cqb.bp, ronda 5",
+   1,
+   "1af3198168776a1c"
+  ],
+  [
+   "blueprints/terminal_cqb.bp, ronda 5",
+   0,
+   "6b2bb0dc96885ad3"
+  ],
+  [
+   "blueprints/suministros_cqb.bp, ronda 5",
+   0,
+   "a7044c3911bb5172"
+  ],
+  [
+   "blueprints/jugador.bp, ronda 5",
+   0,
+   "e1c80e96c5a52966"
+  ],
+  [
+   "blueprints/monedas.bp, ronda 5",
+   1,
+   "2e61972dbb5651e6"
+  ],
+  [
+   "blueprints/cofre.bp, ronda 5",
+   2,
+   "d877a127fbce5de2"
+  ],
+  [
+   "blueprints/receptor.bp, ronda 6",
+   0,
+   "806aa3adb25c5351"
+  ],
+  [
+   "blueprints/ev_empieza.bp, ronda 6",
+   0,
+   "3d372b551d145086"
+  ],
+  [
+   "blueprints/ev_actualizar.bp, ronda 6",
+   0,
+   "4dc5b7f108826041"
+  ],
+  [
+   "blueprints/ev_tocar.bp, ronda 6",
+   0,
+   "c3a9d83783411231"
+  ],
+  [
+   "blueprints/ev_dejar.bp, ronda 6",
+   0,
+   "8b15c74e03b7c0cf"
+  ],
+  [
+   "blueprints/ev_pulsar.bp, ronda 6",
+   0,
+   "234641a19280ecd6"
+  ],
+  [
+   "blueprints/ev_soltar.bp, ronda 6",
+   1,
+   "4d4a9c69f5bb748d"
+  ],
+  [
+   "blueprints/ev_recibir.bp, ronda 6",
+   0,
+   "0c3f3feaf204b3ee"
+  ],
+  [
+   "blueprints/ev_clic.bp, ronda 6",
+   0,
+   "a13fcb66fa326ca7"
+  ],
+  [
+   "blueprints/ev_termina.bp, ronda 6",
+   0,
+   "891b1a9f46457d03"
+  ],
+  [
+   "blueprints/fn_entrada.bp, ronda 6",
+   0,
+   "cb5d9aa6136710db"
+  ],
+  [
+   "blueprints/in_pulsada.bp, ronda 6",
+   0,
+   "1653e4188c4c536e"
+  ],
+  [
+   "blueprints/in_mantenida.bp, ronda 6",
+   0,
+   "e766cdfdc54641d7"
+  ],
+  [
+   "blueprints/in_eje.bp, ronda 6",
+   0,
+   "b564b10e0e53b90e"
+  ],
+  [
+   "blueprints/in_raton.bp, ronda 6",
+   0,
+   "daf023bea5b82a95"
+  ],
+  [
+   "blueprints/in_clic.bp, ronda 6",
+   1,
+   "33d8a5d5aeccc0c0"
+  ],
+  [
+   "blueprints/mv_mover.bp, ronda 6",
+   0,
+   "15ec9ec5f983f391"
+  ],
+  [
+   "blueprints/mv_saltar.bp, ronda 6",
+   0,
+   "0a3c8d7a9396faaf"
+  ],
+  [
+   "blueprints/mv_suelo.bp, ronda 6",
+   0,
+   "1ae8f8d905d35cae"
+  ],
+  [
+   "blueprints/mv_posicion.bp, ronda 6",
+   1,
+   "74291b1855d32c03"
+  ],
+  [
+   "blueprints/mv_fijar.bp, ronda 6",
+   0,
+   "034b5ccd4c94fb16"
+  ],
+  [
+   "blueprints/mv_desplazar.bp, ronda 6",
+   1,
+   "c18f5576bd1e1d9b"
+  ],
+  [
+   "blueprints/mv_empujar.bp, ronda 6",
+   0,
+   "fc3e5c1f5b8c00ae"
+  ],
+  [
+   "blueprints/lg_si.bp, ronda 6",
+   1,
+   "57bd07632ad55979"
+  ],
+  [
+   "blueprints/lg_y.bp, ronda 6",
+   0,
+   "b5ee98dabb9c31ff"
+  ],
+  [
+   "blueprints/lg_o.bp, ronda 6",
+   0,
+   "2b47b872754ad78d"
+  ],
+  [
+   "blueprints/lg_no.bp, ronda 6",
+   0,
+   "c26731a00f8f3872"
+  ],
+  [
+   "blueprints/lg_comparar.bp, ronda 6",
+   0,
+   "5da45b048f9819f8"
+  ],
+  [
+   "blueprints/lg_es.bp, ronda 6",
+   0,
+   "2fbce201834fb1bd"
+  ],
+  [
+   "blueprints/lg_secuencia.bp, ronda 6",
+   0,
+   "4dbbb962755de82d"
+  ],
+  [
+   "blueprints/lg_repetir.bp, ronda 6",
+   1,
+   "df12b18c89d9dbe1"
+  ],
+  [
+   "blueprints/lg_mientras.bp, ronda 6",
+   3,
+   "0b29f2f50b90def7"
+  ],
+  [
+   "blueprints/lg_esperar.bp, ronda 6",
+   1,
+   "5adac02c4f34565d"
+  ],
+  [
+   "blueprints/mt_numero.bp, ronda 6",
+   0,
+   "ab7ef42b4d440c20"
+  ],
+  [
+   "blueprints/mt_sumar.bp, ronda 6",
+   0,
+   "38bcf8d488332c16"
+  ],
+  [
+   "blueprints/mt_restar.bp, ronda 6",
+   0,
+   "07bddb483ef3f6a6"
+  ],
+  [
+   "blueprints/mt_multiplicar.bp, ronda 6",
+   0,
+   "f657106f43093ba2"
+  ],
+  [
+   "blueprints/mt_dividir.bp, ronda 6",
+   0,
+   "637adb26e57d3319"
+  ],
+  [
+   "blueprints/mt_aleatorio.bp, ronda 6",
+   0,
+   "1c4c926af6b3fee7"
+  ],
+  [
+   "blueprints/mt_limitar.bp, ronda 6",
+   1,
+   "96542db77a5401e5"
+  ],
+  [
+   "blueprints/mt_distancia.bp, ronda 6",
+   0,
+   "c3e76874e2e90182"
+  ],
+  [
+   "blueprints/var_obtener.bp, ronda 6",
+   0,
+   "a64fb33ceec6de1b"
+  ],
+  [
+   "blueprints/var_fijar.bp, ronda 6",
+   0,
+   "4ecdbde9a7cca7c6"
+  ],
+  [
+   "blueprints/var_sumar.bp, ronda 6",
+   0,
+   "27be48df99eb4c8d"
+  ],
+  [
+   "blueprints/fn_llamar.bp, ronda 6",
+   0,
+   "7f56a304f45398e3"
+  ],
+  [
+   "blueprints/fn_devolver.bp, ronda 6",
+   0,
+   "3fec32b1a788f0a6"
+  ],
+  [
+   "blueprints/ob_leer.bp, ronda 6",
+   0,
+   "eaa706933c75ae28"
+  ],
+  [
+   "blueprints/ob_fijar.bp, ronda 6",
+   1,
+   "710b9654b674f9c4"
+  ],
+  [
+   "blueprints/ob_consultar.bp, ronda 6",
+   0,
+   "45581fb76c2d2752"
+  ],
+  [
+   "blueprints/ob_llamar.bp, ronda 6",
+   0,
+   "f234a5cc889325cc"
+  ],
+  [
+   "blueprints/es_yo.bp, ronda 6",
+   0,
+   "e86d5cb8eefde473"
+  ],
+  [
+   "blueprints/es_nodo.bp, ronda 6",
+   1,
+   "fb646cd6319e52b3"
+  ],
+  [
+   "blueprints/es_mostrar.bp, ronda 6",
+   0,
+   "ab884560c5b46421"
+  ],
+  [
+   "blueprints/es_eliminar.bp, ronda 6",
+   0,
+   "d822bce33bcbc452"
+  ],
+  [
+   "blueprints/es_crear.bp, ronda 6",
+   0,
+   "01ceb704a0ef545e"
+  ],
+  [
+   "blueprints/es_ganar.bp, ronda 6",
+   0,
+   "54336bf60d8acc7f"
+  ],
+  [
+   "blueprints/es_perder.bp, ronda 6",
+   0,
+   "e0fd4089cee8a4f5"
+  ],
+  [
+   "blueprints/es_reiniciar.bp, ronda 6",
+   0,
+   "7f990c5a2b7ae48d"
+  ],
+  [
+   "blueprints/es_puntos.bp, ronda 6",
+   1,
+   "4cef61af934c8aeb"
+  ],
+  [
+   "blueprints/es_emitir.bp, ronda 6",
+   0,
+   "442072d1106c1f3b"
+  ],
+  [
+   "blueprints/es_escena.bp, ronda 6",
+   0,
+   "7bfccd7056c30daa"
+  ],
+  [
+   "blueprints/es_temblar.bp, ronda 6",
+   0,
+   "02104ee6bbb55a3e"
+  ],
+  [
+   "blueprints/tx_texto.bp, ronda 6",
+   0,
+   "389aaf6e156041f6"
+  ],
+  [
+   "blueprints/tx_unir.bp, ronda 6",
+   0,
+   "98bb390351ebe193"
+  ],
+  [
+   "blueprints/tx_fijar.bp, ronda 6",
+   0,
+   "db7414d4597d5f18"
+  ],
+  [
+   "blueprints/au_sonar.bp, ronda 6",
+   1,
+   "3ebc1517880c3d34"
+  ],
+  [
+   "blueprints/au_musica.bp, ronda 6",
+   0,
+   "c1bfc9fb603b4020"
+  ],
+  [
+   "blueprints/au_parar.bp, ronda 6",
+   0,
+   "a9cf541886c3061a"
+  ],
+  [
+   "blueprints/operador.bp, ronda 6",
+   2,
+   "b45d005796843109"
+  ],
+  [
+   "blueprints/enemigo_cqb.bp, ronda 6",
+   4,
+   "c87f5cfcf77db555"
+  ],
+  [
+   "blueprints/puerta_cqb.bp, ronda 6",
+   1,
+   "28cf2cd27acaad63"
+  ],
+  [
+   "blueprints/terminal_cqb.bp, ronda 6",
+   0,
+   "2d5af74e3cf9eb43"
+  ],
+  [
+   "blueprints/suministros_cqb.bp, ronda 6",
+   1,
+   "dcdb14a67165c224"
+  ],
+  [
+   "blueprints/jugador.bp, ronda 6",
+   0,
+   "a6c2153751c0d3fe"
+  ],
+  [
+   "blueprints/monedas.bp, ronda 6",
+   0,
+   "1824c47065b1f66e"
+  ],
+  [
+   "blueprints/cofre.bp, ronda 6",
+   0,
+   "8097c5cfdd313169"
+  ],
+  [
+   "blueprints/receptor.bp, ronda 7",
+   1,
+   "9720b94858968670"
+  ],
+  [
+   "blueprints/ev_empieza.bp, ronda 7",
+   1,
+   "9ff1b61a8ce7d396"
+  ],
+  [
+   "blueprints/ev_actualizar.bp, ronda 7",
+   0,
+   "1296b257b8f56ee8"
+  ],
+  [
+   "blueprints/ev_tocar.bp, ronda 7",
+   0,
+   "c3a9d83783411231"
+  ],
+  [
+   "blueprints/ev_dejar.bp, ronda 7",
+   0,
+   "8892b7800370c812"
+  ],
+  [
+   "blueprints/ev_pulsar.bp, ronda 7",
+   1,
+   "b02673656ca0ff0f"
+  ],
+  [
+   "blueprints/ev_soltar.bp, ronda 7",
+   0,
+   "3ec18fcfcf5747fa"
+  ],
+  [
+   "blueprints/ev_recibir.bp, ronda 7",
+   0,
+   "66ac6f049eb6de74"
+  ],
+  [
+   "blueprints/ev_clic.bp, ronda 7",
+   0,
+   "d1e4e156c919a531"
+  ],
+  [
+   "blueprints/ev_termina.bp, ronda 7",
+   2,
+   "3121aa05f7f4b5ab"
+  ],
+  [
+   "blueprints/fn_entrada.bp, ronda 7",
+   0,
+   "cc264bf1d457ad50"
+  ],
+  [
+   "blueprints/in_pulsada.bp, ronda 7",
+   1,
+   "81746b3b8812f3dd"
+  ],
+  [
+   "blueprints/in_mantenida.bp, ronda 7",
+   1,
+   "ae7edcb0b6448480"
+  ],
+  [
+   "blueprints/in_eje.bp, ronda 7",
+   0,
+   "128b6b9906a4f28a"
+  ],
+  [
+   "blueprints/in_raton.bp, ronda 7",
+   0,
+   "9d252da03749d700"
+  ],
+  [
+   "blueprints/in_clic.bp, ronda 7",
+   0,
+   "e47e45d6e349c1ce"
+  ],
+  [
+   "blueprints/mv_mover.bp, ronda 7",
+   0,
+   "9743e0ca2c01c71e"
+  ],
+  [
+   "blueprints/mv_saltar.bp, ronda 7",
+   2,
+   "054b3521afeb260e"
+  ],
+  [
+   "blueprints/mv_suelo.bp, ronda 7",
+   0,
+   "2f9433fca64b88a5"
+  ],
+  [
+   "blueprints/mv_posicion.bp, ronda 7",
+   2,
+   "e497df10f35a1a18"
+  ],
+  [
+   "blueprints/mv_fijar.bp, ronda 7",
+   1,
+   "f164b08e7e4e5414"
+  ],
+  [
+   "blueprints/mv_desplazar.bp, ronda 7",
+   0,
+   "065d48eebd40b555"
+  ],
+  [
+   "blueprints/mv_empujar.bp, ronda 7",
+   0,
+   "ac0e3fc57a3c9305"
+  ],
+  [
+   "blueprints/lg_si.bp, ronda 7",
+   0,
+   "ebc997db0d578063"
+  ],
+  [
+   "blueprints/lg_y.bp, ronda 7",
+   0,
+   "4946236f516bc4f5"
+  ],
+  [
+   "blueprints/lg_o.bp, ronda 7",
+   1,
+   "a9e27b1ad50dfffb"
+  ],
+  [
+   "blueprints/lg_no.bp, ronda 7",
+   0,
+   "1fa003b514723dbc"
+  ],
+  [
+   "blueprints/lg_comparar.bp, ronda 7",
+   0,
+   "d309a4f70dd4445f"
+  ],
+  [
+   "blueprints/lg_es.bp, ronda 7",
+   0,
+   "318004ea669cec68"
+  ],
+  [
+   "blueprints/lg_secuencia.bp, ronda 7",
+   0,
+   "b3aa094ad7ca470a"
+  ],
+  [
+   "blueprints/lg_repetir.bp, ronda 7",
+   0,
+   "5f6a8298a16d8064"
+  ],
+  [
+   "blueprints/lg_mientras.bp, ronda 7",
+   0,
+   "c2472047dfc2416e"
+  ],
+  [
+   "blueprints/lg_esperar.bp, ronda 7",
+   1,
+   "9af0a24ac99865c2"
+  ],
+  [
+   "blueprints/mt_numero.bp, ronda 7",
+   0,
+   "8421aae0e48b0b4c"
+  ],
+  [
+   "blueprints/mt_sumar.bp, ronda 7",
+   0,
+   "157467ca520297ed"
+  ],
+  [
+   "blueprints/mt_restar.bp, ronda 7",
+   1,
+   "f05cff52ba2177ba"
+  ],
+  [
+   "blueprints/mt_multiplicar.bp, ronda 7",
+   1,
+   "7a671c2700749a7b"
+  ],
+  [
+   "blueprints/mt_dividir.bp, ronda 7",
+   0,
+   "6160ae33c3136625"
+  ],
+  [
+   "blueprints/mt_aleatorio.bp, ronda 7",
+   0,
+   "acf18c9f1b21a764"
+  ],
+  [
+   "blueprints/mt_limitar.bp, ronda 7",
+   0,
+   "62391ca4a2b1122c"
+  ],
+  [
+   "blueprints/mt_distancia.bp, ronda 7",
+   0,
+   "92eef7ed4b1ab651"
+  ],
+  [
+   "blueprints/var_obtener.bp, ronda 7",
+   0,
+   "a085fbb4c7e052cb"
+  ],
+  [
+   "blueprints/var_fijar.bp, ronda 7",
+   1,
+   "2fcae57ffdeb00b0"
+  ],
+  [
+   "blueprints/var_sumar.bp, ronda 7",
+   0,
+   "27be48df99eb4c8d"
+  ],
+  [
+   "blueprints/fn_llamar.bp, ronda 7",
+   0,
+   "1b66da6675955869"
+  ],
+  [
+   "blueprints/fn_devolver.bp, ronda 7",
+   1,
+   "bb091bd87140bab8"
+  ],
+  [
+   "blueprints/ob_leer.bp, ronda 7",
+   1,
+   "2cda468fffb71d3b"
+  ],
+  [
+   "blueprints/ob_fijar.bp, ronda 7",
+   0,
+   "87008e385c01020e"
+  ],
+  [
+   "blueprints/ob_consultar.bp, ronda 7",
+   0,
+   "45581fb76c2d2752"
+  ],
+  [
+   "blueprints/ob_llamar.bp, ronda 7",
+   0,
+   "f234a5cc889325cc"
+  ],
+  [
+   "blueprints/es_yo.bp, ronda 7",
+   0,
+   "f36b8ed104177957"
+  ],
+  [
+   "blueprints/es_nodo.bp, ronda 7",
+   0,
+   "db7f4bde2a052951"
+  ],
+  [
+   "blueprints/es_mostrar.bp, ronda 7",
+   0,
+   "e59466e68879d94f"
+  ],
+  [
+   "blueprints/es_eliminar.bp, ronda 7",
+   0,
+   "b3b61fc0e9453199"
+  ],
+  [
+   "blueprints/es_crear.bp, ronda 7",
+   0,
+   "d78afcd7e4820b4a"
+  ],
+  [
+   "blueprints/es_ganar.bp, ronda 7",
+   0,
+   "86a1e9781de19195"
+  ],
+  [
+   "blueprints/es_perder.bp, ronda 7",
+   1,
+   "f999de3113086de0"
+  ],
+  [
+   "blueprints/es_reiniciar.bp, ronda 7",
+   0,
+   "fc0e01ee497a5f38"
+  ],
+  [
+   "blueprints/es_puntos.bp, ronda 7",
+   0,
+   "9b8c7508f8c78433"
+  ],
+  [
+   "blueprints/es_emitir.bp, ronda 7",
+   0,
+   "1720db381e2b9b38"
+  ],
+  [
+   "blueprints/es_escena.bp, ronda 7",
+   0,
+   "687270881b6108cf"
+  ],
+  [
+   "blueprints/es_temblar.bp, ronda 7",
+   0,
+   "abc80aa9f2aa4777"
+  ],
+  [
+   "blueprints/tx_texto.bp, ronda 7",
+   0,
+   "389aaf6e156041f6"
+  ],
+  [
+   "blueprints/tx_unir.bp, ronda 7",
+   0,
+   "21ff13b161f42b39"
+  ],
+  [
+   "blueprints/tx_fijar.bp, ronda 7",
+   0,
+   "0e67ad2e6a5d811f"
+  ],
+  [
+   "blueprints/au_sonar.bp, ronda 7",
+   1,
+   "9bc2ad9ed80a344a"
+  ],
+  [
+   "blueprints/au_musica.bp, ronda 7",
+   0,
+   "c1bfc9fb603b4020"
+  ],
+  [
+   "blueprints/au_parar.bp, ronda 7",
+   0,
+   "7d994a7064292398"
+  ],
+  [
+   "blueprints/operador.bp, ronda 7",
+   1,
+   "40aba3e5f513b495"
+  ],
+  [
+   "blueprints/enemigo_cqb.bp, ronda 7",
+   1,
+   "a80bd4e6e7c55922"
+  ],
+  [
+   "blueprints/puerta_cqb.bp, ronda 7",
+   1,
+   "b919ae5159dceb47"
+  ],
+  [
+   "blueprints/terminal_cqb.bp, ronda 7",
+   1,
+   "ddef44c747dabf9c"
+  ],
+  [
+   "blueprints/suministros_cqb.bp, ronda 7",
+   2,
+   "b6c434b75517c6a4"
+  ],
+  [
+   "blueprints/jugador.bp, ronda 7",
+   1,
+   "574fc0f6a77b3ab9"
+  ],
+  [
+   "blueprints/monedas.bp, ronda 7",
+   0,
+   "b462d2eb4a843c14"
+  ],
+  [
+   "blueprints/cofre.bp, ronda 7",
+   0,
+   "5a54fd36591c4c6e"
+  ]
+ ]
+}

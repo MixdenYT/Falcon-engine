@@ -10,7 +10,7 @@ Estado del 21-11-2026, rama `motor-ara` (`6117105`). Compatibilidad por platafor
 | `.talon` (Talon Engine) | — | Se abre sin convertir (`proyecto.js:129`, `editor.js:42`) |
 | Escenas `.fscn` | `formato: 'falcon-escena'`, `version: 1` | `normalizarEscena` (`proyecto.js:99`): el tipo de escena solo puede ser `2D` o `3D`; los nodos pasan por `normalizarNodo` |
 | Nodos | — | `normalizarNodo` (`tipos.js:452`). Desde `5f79601` descarta lo que no es del tipo de su valor por defecto (`delTipo`, `tipos.js:437`). Un número escrito como texto se convierte; uno no válido se cambia por el valor por defecto. Las propiedades desconocidas se conservan. `pruebas/ejemplos.test.js` comprueba que las plantillas no cambian |
-| Blueprints `.bp` | `formato: 'falcon-blueprint'`, `version: 1` (`blueprints.js:188`) | No se mira la versión. Se compila desde el `.bp` en cada ejecución; `generado/*.ara` es solo una copia para leer |
+| Blueprints `.bp` | `formato: 'falcon-blueprint'`, `version: 1` (`blueprints.js:182`) | No se mira la versión. Se compila desde el `.bp` en cada ejecución; `generado/*.ara` es solo una copia para leer |
 | Materiales `.mat`, `.malla`, `.falcon/importacion.json` | — | Ver `materiales.js` y `SECURITY.md` (C1) |
 | Juego exportado: `.falcon/ara.json` | `disposicion: 1` (`DISPOSICION_EXPORTADA`, `puente.js:86`) | Si no coincide, el juego no carga los scripts y pide volver a exportar (`puente.js:143`) |
 

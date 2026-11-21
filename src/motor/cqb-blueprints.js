@@ -1,6 +1,7 @@
 // Autoría de grafos, no código de gameplay inyectado: todo lo producido aquí es
 // editable en el editor y pasa por el compilador Blueprint → Ara habitual.
-import { blueprintVacio, compilarBlueprint, generadoDe, NODOS } from './blueprints.js';
+import { blueprintVacio, generadoDe, NODOS } from './blueprints.js';
+import { compilarBlueprint } from './blueprints-ara.js';
 
 function autor(nombre, base, variables) {
   const bp = blueprintVacio(nombre, base);

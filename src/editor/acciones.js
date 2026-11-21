@@ -3,7 +3,8 @@ import { est, bus, log, abrirDocumento, documento, activarDocumento, cerrarDocum
 import { claseParaArchivo } from './ara.js';
 import { crearNodo, buscarNodo, recorrer } from '../motor/tipos.js';
 import { escenaVacia, sinExtension, nombreBase, carpetaDe, nombreTecla, ACCIONES_POR_DEFECTO } from '../motor/proyecto.js';
-import { blueprintVacio, compilarBlueprint, generadoDe } from '../motor/blueprints.js';
+import { blueprintVacio, generadoDe } from '../motor/blueprints.js';
+import { compilarBlueprint } from '../motor/blueprints-ara.js';
 import { materialBasico } from '../motor/plantillas.js';
 import { dialogo, pedirTexto, confirmar, avisar, el, esc, $, $$, interruptor } from '../ui/componentes.js';
 import { icono } from '../ui/iconos.js';

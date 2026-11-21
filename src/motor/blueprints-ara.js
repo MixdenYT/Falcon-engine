@@ -1,33 +1,33 @@
-// El compilador de Blueprints escrito en Ara (src/motor/ara-blueprints/blueprints.ara), precompilado a
-// blueprints.wasm con herramientas/compilar-blueprints-ara.mjs. Da lo mismo que `compilarBlueprint` de blueprints.js
-// (que queda de respaldo): JS solo aplana el catálogo y la API (una vez, con llamadas escalares) y el `.bp` (un texto
-// plano por compilación); Ara valida, tipa y genera, y devuelve el resultado por cuatro externas.
+// El compilador de Blueprints: escrito en Ara (src/motor/ara-blueprints/blueprints.ara) y precompilado a
+// blueprints.wasm con herramientas/compilar-blueprints-ara.mjs. Es el único: no hay otro en JS. JS solo aplana el
+// catálogo y la API (una vez, con llamadas escalares) y el `.bp` (un texto plano por compilación); Ara valida, tipa y
+// genera, y devuelve el resultado por cuatro externas.
 
 import { cargar } from '../ara/ara.mjs';
 import { leerPropio, runtimeAra, compilado } from '../ara/puente.js';
 import { API_MOTOR } from '../ara/api-motor.js';
-import { NODOS, compilarBlueprint } from './blueprints.js';
+import { NODOS } from './blueprints.js';
 
-let promesa = null;
+let promesa = null, ara = null, fallo = null;
 
-/** El compilador de Blueprints de Ara, listo para usar (se carga la primera vez): `{ compilar(bp, archivo) }`. */
-export function compiladorBlueprintsAra() {
-  return (promesa ||= crear().catch((e) => { promesa = null; throw e; }));
+/** Carga blueprints.wasm (una vez). Hay que esperarla antes de usar `compilarBlueprint`. */
+export function cargarCompiladorBlueprints() {
+  return (promesa ||= crear().then((c) => { ara = c; fallo = null; }, (e) => {
+    promesa = null;
+    throw (fallo = new Error('No se pudo cargar el compilador de Blueprints (blueprints.wasm): ' + (e?.message || e)));
+  }));
 }
 
 /**
- * `compilarBlueprint` por la ruta de Ara; si blueprints.wasm no carga o falla, por la de JS (respaldo, como el núcleo).
- * @returns {Promise<(bp: object, archivo: string) => object>}
+ * Compila un Blueprint a Ara (síncrono, tras `await cargarCompiladorBlueprints()`).
+ * @param {object} bp  El Blueprint.
+ * @param {string} archivo  Su ruta en el proyecto (da el nombre de la clase, ver `claseBlueprint`).
+ * @returns {{ codigo: string, clase: string, errores: Array<{mensaje, nodo}>, avisos: Array<{mensaje, nodo}>, lineas: Object<string, number> }}
+ *   `lineas` da la línea del código de cada bloque.
  */
-export async function compiladorBlueprints() {
-  let ara = await compiladorBlueprintsAra().catch((e) => { console.warn('Compilador de Blueprints de Ara no disponible, se usa JS:', e); return null; });
-  return (bp, archivo) => {
-    if (ara) {
-      try { return ara.compilar(bp, archivo); }
-      catch (e) { console.error(e.message, '(se usa el de JS)'); ara = null; }
-    }
-    return compilarBlueprint(bp, archivo);
-  };
+export function compilarBlueprint(bp, archivo = 'blueprint.bp') {
+  if (!ara) throw fallo || new Error('El compilador de Blueprints no está cargado: falta esperar a cargarCompiladorBlueprints().');
+  return ara.compilar(bp, archivo);
 }
 
 async function crear() {
@@ -71,8 +71,7 @@ async function crear() {
   const v = (x) => `${x == null ? 1 : typeof x === 'boolean' ? 2 : typeof x === 'number' ? 3 : typeof x === 'string' ? 4 : 5}\x1f${t(x)}\x1f${Number(x)}`;
   const compilar = f('bp_compilar');
   return {
-    /** Como `compilarBlueprint(bp, archivo)`: `{ codigo, clase, errores, avisos, lineas }`. */
-    compilar(bp, archivo = 'blueprint.bp') {
+    compilar(bp, archivo) {
       r = { codigo: '', clase: '', errores: [], avisos: [], lineas: {}, ids: new Map() };
       const regs = [`E\x1f${v(archivo)}\x1f${v(bp.base)}`];
       for (const x of bp.variables || []) regs.push(`V\x1f${v(x.nombre)}\x1f${t(x.tipo ?? '')}\x1f${v(x.valor)}\x1f${x.exportar ? 1 : 0}`);

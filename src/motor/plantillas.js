@@ -1,7 +1,8 @@
 // Plantillas de proyecto. Cada una genera todos los archivos de un proyecto nuevo.
 import { crearNodo } from './tipos.js';
 import { datosProyecto, escenaVacia } from './proyecto.js';
-import { blueprintVacio, compilarBlueprint, generadoDe, idNodoBp } from './blueprints.js';
+import { blueprintVacio, generadoDe, idNodoBp } from './blueprints.js';
+import { compilarBlueprint, cargarCompiladorBlueprints } from './blueprints-ara.js';
 import * as gen from './generadores.js';
 import { plantillaAcademia } from './academia.js';
 import { plantillaShooter } from './shooters.js';
@@ -919,6 +920,7 @@ export async function crearProyecto(rutaCarpeta, nombre, idPlantilla, alProgreso
   const raiz = rutaCarpeta.replace(/\\/g, '/').replace(/\/$/, '');
   if (await fs.existe(raiz + '/proyecto.falcon')) throw new Error('Ya hay un proyecto en esa carpeta.');
   alProgreso('Preparando la plantilla…');
+  await cargarCompiladorBlueprints(); // las plantillas escriben el Ara de sus Blueprints en generado/
   const p = await CONSTRUCTORES[idPlantilla](nombre);
   await fs.crearCarpeta(raiz);
   for (const c of p.carpetas) await fs.crearCarpeta(raiz + '/' + c);

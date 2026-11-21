@@ -5,7 +5,7 @@ import { anadirNodo, cambiarNodo } from './operaciones.js';
 import { LECCIONES } from './lecciones.js';
 import { crearNodo, recorrer, buscarNodo } from '../motor/tipos.js';
 import { SCRIPTS } from '../motor/plantillas.js';
-import { blueprintVacio, idNodoBp, compilarBlueprint } from '../motor/blueprints.js';
+import { blueprintVacio, idNodoBp } from '../motor/blueprints.js';
 import { sinExtension } from '../motor/proyecto.js';
 
 // ---------- Catálogo de objetos ----------

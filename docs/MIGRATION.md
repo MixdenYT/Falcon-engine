@@ -7,13 +7,15 @@ Estado del 21-11-2026, rama `motor-ara` (`6117105`). Plan completo y estados en 
 | Qué | Commits | Estado | Prueba |
 |---|---|---|---|
 | Scripts de juego (`.ara` → wasm) | Antes de esta rama (fase 8 de Ara, ya en `main`) | Hecho | `pruebas/ara.test.js` |
-| Blueprints compilados a Ara | Antes de esta rama | Hecho; el compilador de grafos sigue en JS | `pruebas/blueprints.test.js` |
+| Blueprints compilados a Ara | Antes de esta rama | Hecho | `pruebas/blueprints.test.js` |
+| Compilador de Blueprints (grafo → Ara) en Ara, único: el de JS se retiró | `1a00017` (bloque 5), retirada de JS en el commit de este cambio | En revisión | `pruebas/blueprints-ara.test.js` (contra la referencia que generó el de JS) |
 | Plantillas, Academia, CQB y curso escritos en Ara | Antes de esta rama | Hecho | `pruebas/ejemplos.test.js`, `pruebas/cqb.test.js` |
 | Física 2D: `fisica2d`, `mover`, solidez y mosaicos | `bf37180` (B2), `2e4289b` (revisión cruzada) | En revisión | `pruebas/fisica2d-ara.test.js` |
 | Matrices de mundo, cajas y pares de `contactos2d` | `c1b2b95` (B3) | En revisión | Ídem, 10 pruebas, iguales bit a bit a JS |
 | Seno y coseno de la rotación en Ara (fdlibm) | `abc24d9` | Hecho | Ídem |
 
 - JS sigue como respaldo en `mundo.js` (`fisica2d`, `contactos2d`). Se usa si `nucleo.wasm` no carga.
+- El compilador de Blueprints no tiene respaldo en JS: si `blueprints.wasm` no carga, da un error claro ([`BLUEPRINTS.md`](BLUEPRINTS.md)). Solo queda en JS el catálogo de bloques (`NODOS` en `blueprints.js`), que se aplana a Ara al cargar.
 - Medidas: [`BENCHMARKS.md`](BENCHMARKS.md).
 
 ## Qué queda en JS
@@ -21,9 +23,8 @@ Estado del 21-11-2026, rama `motor-ara` (`6117105`). Plan completo y estados en 
 Por orden de la fase 2 y después:
 1. Temporizadores, partículas y animación de sprites (`mundo.js`: `actualizarTemporizadores`, `actualizarParticulas`, `avanzarAnimacion`).
 2. Física 3D, `Controles3D` y la lógica de CQB (`mundo3d.js`, `control3d.js`, `tactico3d.js`).
-3. El compilador de Blueprints (`blueprints.js`).
-4. Escena y eventos (`mundo.js`, `tipos.js`). Hoy el árbol es de JS.
-5. Capa de plataforma (render, audio, entrada, editor DOM, `principal/`). Se queda en JS hasta que Ara nativo pueda sustituirla (fases 3 a 5). Primer corte: `examples/native-2d`, un `.exe` con ventana, OpenGL 1.1 y teclado que usa la física 2D del núcleo. Ver [`ARCHITECTURE.md`](ARCHITECTURE.md).
+3. Escena y eventos (`mundo.js`, `tipos.js`). Hoy el árbol es de JS.
+4. Capa de plataforma (render, audio, entrada, editor DOM, `principal/`). Se queda en JS hasta que Ara nativo pueda sustituirla (fases 3 a 5). Primer corte: `examples/native-2d`, un `.exe` con ventana, OpenGL 1.1 y teclado que usa la física 2D del núcleo. Ver [`ARCHITECTURE.md`](ARCHITECTURE.md).
 
 ## Criterio para mover un bloque
 

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import { blueprintsCQB } from '../src/motor/cqb-blueprints.js';
-import { compilarBlueprint } from '../src/motor/blueprints.js';
+import { cargarCompiladorBlueprints, compilarBlueprint } from '../src/motor/blueprints-ara.js';
 import { comprobarAra } from '../src/ara/puente.js';
 import { Mundo, NodoVivo } from '../src/motor/mundo.js';
 import { Mundo3D } from '../src/motor/mundo3d.js';
@@ -10,6 +10,7 @@ import { crearNodo } from '../src/motor/tipos.js';
 import { datosProyecto } from '../src/motor/proyecto.js';
 import { nucleoAra } from '../src/motor/nucleo-ara.js';
 
+await cargarCompiladorBlueprints();
 const archivos = blueprintsCQB();
 const nucleo = await nucleoAra(); // rayos y A* por el núcleo de Ara, como en el juego
 const N = (tipo, nombre, props = {}, hijos = [], extra = {}) => Object.assign(crearNodo(tipo, nombre, props, hijos), extra);

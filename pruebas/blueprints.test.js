@@ -1,8 +1,11 @@
 // Pruebas del compilador de Blueprints (Blueprint → Ara).
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { compilarBlueprint, blueprintVacio, claseBlueprint, generadoDe, textoAra, NODOS } from '../src/motor/blueprints.js';
+import { blueprintVacio, claseBlueprint, generadoDe, NODOS } from '../src/motor/blueprints.js';
+import { cargarCompiladorBlueprints, compilarBlueprint } from '../src/motor/blueprints-ara.js';
 import { comprobarAra } from '../src/ara/puente.js';
+
+await cargarCompiladorBlueprints();
 
 /** El código compila con el compilador de Ara de verdad (junto a motor.ara). */
 async function compila(r, rel = 'blueprints/x.bp') {
@@ -204,12 +207,11 @@ test('evento vacío genera pasar y aviso; un Blueprint vacío es una clase vací
   await compila(vacio, 'blueprints/v.bp');
 });
 
-test('nombres: clases, archivos generados y textos de Ara', () => {
+test('nombres: clases y archivos generados', () => {
   assert.equal(claseBlueprint('blueprints/enemigo_volador.bp'), 'EnemigoVoladorBp');
   assert.equal(claseBlueprint('blueprints/jefes/final.bp'), 'JefesFinalBp');
   assert.equal(claseBlueprint('2d.bp'), 'B2dBp');
   assert.equal(generadoDe('blueprints/jefes/final.bp'), 'generado/blueprints/jefes/final.ara');
-  assert.equal(textoAra('a{b}\n"\\'), '"a{{b}}\\n\\"\\\\"');
 });
 
 test('todos los bloques del catálogo se compilan a Ara (los de acción en un evento, los de datos mostrados)', async () => {

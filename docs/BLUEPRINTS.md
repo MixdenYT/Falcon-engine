@@ -5,9 +5,9 @@ Estado del 21-11-2026, rama `motor-ara`. Todo lo que se describe aquí existe y 
 ## Flujo
 
 ```
-.bp (JSON) ──> compilador de Blueprints: dos versiones con el mismo resultado
-                  · en Ara: src/motor/ara-blueprints/blueprints.ara → blueprints.wasm (juego)
-                  · en JS: compilarBlueprint, src/motor/blueprints.js:247 (editor, exportación, respaldo)
+.bp (JSON) ──> compilador de Blueprints, escrito en Ara (el único):
+                  src/motor/ara-blueprints/blueprints.ara → blueprints.wasm, cargado por
+                  src/motor/blueprints-ara.js (`compilarBlueprint`): editor, plantillas, juego y exportación
                   ├─ validación: nombres, tipos de cable, miembros de la API ─> errores por bloque
                   └─ código Ara: «clase <Nombre>Bp extiende <base>:» + líneas por bloque
                          │
@@ -15,22 +15,24 @@ Estado del 21-11-2026, rama `motor-ara`. Todo lo que se describe aquí existe y 
                          └─ juego / exportación: entra en el mismo módulo que los .ara ─> compilador de Ara ─> wasm
 ```
 
-- **Formato del `.bp`:** `{ formato: 'falcon-blueprint', version: 1, nombre, base, variables, funciones, grafos }` (`blueprintVacio`, `blueprints.js:186`). El grafo `eventos` va en `grafos.eventos` y cada función en `grafos['fn:<nombre>']`.
-- **Qué devuelve el compilador:** `{ codigo, clase, errores, avisos, lineas }` (`blueprints.js:702`). `lineas` da la línea de cada bloque, para situar los errores de ejecución.
-- **Dos pasadas.** La primera deduce lo que devuelve cada función (lo que llega a «Devolver»); la segunda genera el código (`blueprints.js:684`).
-- **`generado/` no cuenta al ejecutar.** `Mundo.compilarAra` (`mundo.js:439-453`) y `exportar.js:58-63` compilan siempre desde el `.bp`, así que nunca corre una versión vieja.
-- **El compilador también está escrito en Ara** (bloque 5 de la fase 2, [`REWRITE_ROADMAP.md`](REWRITE_ROADMAP.md)). Ver la sección siguiente.
+- **Formato del `.bp`:** `{ formato: 'falcon-blueprint', version: 1, nombre, base, variables, funciones, grafos }` (`blueprintVacio`, `blueprints.js:180`). El grafo `eventos` va en `grafos.eventos` y cada función en `grafos['fn:<nombre>']`.
+- **Qué devuelve el compilador:** `{ codigo, clase, errores, avisos, lineas }` (`blueprints-ara.js:28`). `lineas` da la línea de cada bloque, para situar los errores de ejecución.
+- **Dos pasadas.** La primera deduce lo que devuelve cada función (lo que llega a «Devolver»); la segunda genera el código.
+- **`generado/` no cuenta al ejecutar.** `Mundo.compilarAra` (`mundo.js:441-457`) y `exportar.js:58-66` compilan siempre desde el `.bp`, así que nunca corre una versión vieja.
+- **El compilador está escrito en Ara** (bloque 5 de la fase 2, [`REWRITE_ROADMAP.md`](REWRITE_ROADMAP.md)). Ver la sección siguiente.
 
 ## Compilador en Ara
 
 - **Archivos:**
-  - `src/motor/ara-blueprints/blueprints.ara`: traduce `compilarBlueprint` función por función;
+  - `src/motor/ara-blueprints/blueprints.ara`: el compilador. Nació como traducción función por función del de JS, que se retiró después (ver «Sin compilador de JS»);
   - `blueprints.wasm`: el anterior compilado, versionado como `nucleo.wasm`. Se regenera con `node herramientas/compilar-blueprints-ara.mjs` y se comprueba con `--comprobar` o con la prueba;
-  - `src/motor/blueprints-ara.js`: lo carga una vez y ofrece `compiladorBlueprintsAra()` (`{ compilar(bp, archivo) }`) y `compiladorBlueprints()`, que usa Ara y, si no carga o falla, JS.
-- **Quién lo usa:**
-  - el juego (`Mundo.compilarAra`) usa `compiladorBlueprints()`;
-  - el editor, la exportación y las plantillas siguen con `compilarBlueprint`, que es síncrono.
-  - Los dos dan lo mismo, así que el código de `generado/` no cambia.
+  - `src/motor/blueprints-ara.js`: `cargarCompiladorBlueprints()` carga el wasm una vez (promesa) y `compilarBlueprint(bp, archivo)` compila, síncrono, una vez cargado.
+- **Quién lo carga** (una vez por ventana o proceso) y quién lo usa:
+  - el editor, al abrir el proyecto (`editor.js`, `iniciar`); luego compilan síncronos los errores en vivo del grafo (`disposiciones/blueprints.js`), guardar (`estado.js`), crear un Blueprint (`acciones.js`) y «Compilar todo» (`editor.js`);
+  - `crearProyecto` (`plantillas.js`), antes de construir la plantilla: las plantillas, la Academia y el CQB escriben el Ara de sus Blueprints en `generado/`;
+  - el juego (`Mundo.compilarAra`), también el exportado;
+  - la exportación (`exportar.js`, proceso principal): el módulo es ESM y el proceso principal ya lo importa con `import()`, así que carga el mismo wasm allí. No hace falta precompilar.
+- **Sin compilador de JS.** Si `blueprints.wasm` no carga, no hay respaldo: `cargarCompiladorBlueprints()` falla con «No se pudo cargar el compilador de Blueprints (blueprints.wasm): …» y `compilarBlueprint` lanza ese error. El editor lo escribe en la consola, el juego lo da como error de cada `.bp` y la exportación se detiene con él.
 - **Frontera.** JS no decide nada; solo aplana:
   - una vez, el catálogo (`NODOS`) y la API (`API_MOTOR`), con llamadas escalares;
   - en cada compilación, el `.bp` en **un solo texto**: campos separados por el carácter 31 y cada registro con su letra delante (`E`, `V`, `F`, `P`, `G`, `N`, `v`, `C`); el 27 escapa al 31 y a sí mismo;
@@ -42,12 +44,12 @@ Estado del 21-11-2026, rama `motor-ara`. Todo lo que se describe aquí existe y 
   - `toFixed(12)` (decimales menores que 1e-6) redondea en coma flotante;
   - nombres que no son textos (un `true` o una lista como nombre de variable) se comparan por su texto.
   - El editor no escribe ninguno de estos casos.
-- **Rendimiento.** Ara es 1,6–1,7× más lento que JS: 3,2 ms frente a 1,85 ms para los 76 Blueprints. La mitad es la frontera ([`BENCHMARKS.md`](BENCHMARKS.md)).
+- **Rendimiento.** 3,2 ms para los 76 Blueprints; el de JS retirado tardaba 1,85 ms, así que Ara es 1,6–1,7× más lento. La mitad es la frontera, y en el editor se compila un Blueprint cada vez (~0,04 ms) ([`BENCHMARKS.md`](BENCHMARKS.md)).
 
 ## Validación
 
 - **Tipos de pin** (`TIPOS_DATO`): `exec`, `bool`, `decimal`, `entero`, `texto`, `objeto`, `lista` y `cualquiera`.
-- **Al conectar** (`compatibles`, `blueprints.js:175`):
+- **Al conectar** (`compatibles`, `blueprints.js:169`):
   - `exec` solo con `exec`;
   - los números entre sí;
   - cualquier valor hacia `texto` o `bool`;
@@ -74,12 +76,12 @@ Hay 67 bloques en 9 categorías (`NODOS`, `CATEGORIAS`):
 | Texto | 3 |
 | Audio | 3 |
 
-Los bloques `ob_*` leen y cambian propiedades, y llaman a métodos y funciones de otro nodo por su nombre. El nombre del miembro tiene que ser constante (`blueprints.js:255-261`).
+Los bloques `ob_*` leen y cambian propiedades, y llaman a métodos y funciones de otro nodo por su nombre. El nombre del miembro tiene que ser constante (`ara-blueprints/blueprints.ara:1595-1602`).
 
 ## Editor
 
 - `src/editor/disposiciones/blueprints.js`: listas de variables, eventos y funciones; buscador de bloques; Inspector.
-- Recompila en vivo (`compilarBlueprint`, línea 43). Marca en rojo los bloques con error (línea 150) y muestra el código generado en solo lectura (línea 262).
+- Recompila en vivo (`compilarBlueprint`, líneas 44 y 435). Marca en rojo los bloques con error (línea 151) y muestra el código generado en solo lectura (línea 265).
 - `src/ui/grafo.js` (`crearGrafo`) es el lienzo de nodos genérico. Lo comparten Blueprints y materiales; la semántica la pone quien lo usa (`definicion`, `compatibles`, `cambiar`).
 - **CQB.** `src/motor/cqb-blueprints.js` (`blueprintsCQB`) construye por código los grafos de la IA del CQB. Pasan por el mismo compilador y se pueden editar en el editor.
 
@@ -90,4 +92,4 @@ Los bloques `ob_*` leen y cambian propiedades, y llaman a métodos y funciones d
 | `pruebas/blueprints.test.js` (7) | Clases con campos tipados, eventos con filtro, funciones con parámetros y retorno deducidos, otros nodos, errores por bloque, nombres, y que **todo el catálogo** compila a Ara |
 | `pruebas/ara.test.js` | Los Blueprints van compilados al exportar, y uno con errores detiene la exportación |
 | `pruebas/cqb.test.js`, `pruebas/ejemplos.test.js` | Grafos reales (CQB, plantillas, Academia) que compilan y juegan |
-| `pruebas/blueprints-ara.test.js` (4) | El compilador en Ara da exactamente lo mismo que el de JS (texto, errores, avisos y líneas) con los 76 Blueprints que existen (`pruebas/corpus-blueprints.js`), con casos límite (números, escapes, nombres, base) y con 608 variaciones al azar de semilla fija; `blueprints.wasm` está al día |
+| `pruebas/blueprints-ara.test.js` (4) | El compilador da exactamente la referencia guardada en `pruebas/blueprints-esperado.json` (texto, errores, avisos y líneas), que generó el compilador de JS antes de retirarlo: los 76 Blueprints que existen (`pruebas/corpus-blueprints.js`, con los ids de bloque renumerados), 16 casos límite (números, escapes, nombres, base) y la huella de 608 variaciones al azar de semilla fija (154 con errores); `blueprints.wasm` está al día. Si cambia a propósito una plantilla o el compilador: `FIJAR=1 node pruebas/blueprints-ara.test.js` y revisar el diff |

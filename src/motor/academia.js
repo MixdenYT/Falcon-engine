@@ -1,5 +1,6 @@
 // Un laboratorio ejecutable por cada bloque del catálogo, incluida la entrada de función.
-import { NODOS, CATEGORIAS, blueprintVacio, compilarBlueprint, generadoDe, pinesDe } from './blueprints.js';
+import { NODOS, CATEGORIAS, blueprintVacio, generadoDe, pinesDe } from './blueprints.js';
+import { compilarBlueprint } from './blueprints-ara.js';
 import { crearNodo } from './tipos.js';
 import { datosProyecto, escenaVacia } from './proyecto.js';
 import { sintetizar } from './generadores.js';

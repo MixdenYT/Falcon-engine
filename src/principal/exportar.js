@@ -55,7 +55,9 @@ async function compilarAra(proyectoDir, raizApp, destino = null) {
   if (!textos.size && !blueprints.size) return null;
   const { compilarParaExportar } = await import(pathToFileURL(path.join(raizApp, 'src', 'ara', 'puente.js')).href);
   // Cada Blueprint es una clase de Ara (como en el juego, ver compilarAra en src/motor/mundo.js).
-  const { compilarBlueprint, generadoDe } = await import(pathToFileURL(path.join(raizApp, 'src', 'motor', 'blueprints.js')).href);
+  const { generadoDe } = await import(pathToFileURL(path.join(raizApp, 'src', 'motor', 'blueprints.js')).href);
+  const { cargarCompiladorBlueprints, compilarBlueprint } = await import(pathToFileURL(path.join(raizApp, 'src', 'motor', 'blueprints-ara.js')).href);
+  if (blueprints.size) await cargarCompiladorBlueprints();
   for (const [rel, texto] of blueprints) {
     let r;
     try { r = compilarBlueprint(JSON.parse(texto), rel); } catch (e) { throw new Error(`El Blueprint ${rel} no se puede leer: ${e.message}`); }

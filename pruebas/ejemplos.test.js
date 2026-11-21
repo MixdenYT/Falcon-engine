@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import { NODOS, pinesDe, compatibles, compilarBlueprint, generadoDe } from '../src/motor/blueprints.js';
+import { NODOS, pinesDe, compatibles, generadoDe } from '../src/motor/blueprints.js';
+import { cargarCompiladorBlueprints, compilarBlueprint } from '../src/motor/blueprints-ara.js';
 import { plantillaAcademia } from '../src/motor/academia.js';
 import { plantillaShooter } from '../src/motor/shooters.js';
 import { comprobarAra, HAY_JSPI } from '../src/ara/puente.js';
@@ -13,6 +14,7 @@ import { normalizarEscena } from '../src/motor/proyecto.js';
 import { readFile } from 'node:fs/promises';
 import './dom.js';
 
+await cargarCompiladorBlueprints();
 const academia = plantillaAcademia('Academia'), shooter = plantillaShooter('Shooter');
 const recorrer = n => [n, ...(n.hijos || []).flatMap(recorrer)];
 const nucleo = await nucleoAra(); // los rayos de `rayos()` van por el núcleo de Ara, como en el juego

@@ -1,6 +1,7 @@
 // Estado compartido del editor: proyecto, documentos abiertos, selección y eventos.
 import { normalizarEscena, extension, nombreBase, sinExtension, tipoRecurso } from '../motor/proyecto.js';
-import { compilarBlueprint, generadoDe } from '../motor/blueprints.js';
+import { generadoDe } from '../motor/blueprints.js';
+import { compilarBlueprint } from '../motor/blueprints-ara.js';
 import { buscarNodo, recorrer } from '../motor/tipos.js';
 
 // ---------- Bus de eventos ----------

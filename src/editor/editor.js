@@ -5,6 +5,7 @@ import { cerrar as cerrarDoc } from './paneles/documentos.js';
 import { duplicarNodos, copiarNodos, pegarNodos, eliminarNodos } from './operaciones.js';
 import { Proyecto } from '../motor/proyecto.js';
 import { necesitaConversion } from '../ara/convertir.js';
+import { cargarCompiladorBlueprints, compilarBlueprint } from '../motor/blueprints-ara.js';
 import { icono, logo } from '../ui/iconos.js';
 import { el, esc, $, $$, menuBajo, controlesVentana, barraArrastrable, activarGlobos, confirmar, avisar, dialogo } from '../ui/componentes.js';
 
@@ -34,6 +35,8 @@ async function iniciar() {
     document.querySelector('body button').onclick = () => falcon.app.gestor();
     return;
   }
+  // El compilador de Blueprints (blueprints.wasm) se carga una vez; el editor compila en vivo y es síncrono.
+  await cargarCompiladorBlueprints().catch((e) => log(e.message, 'error'));
   est.modoEditor = est.proyecto.datos.modo_editor === 'sencillo' ? 'sencillo' : 'avanzado';
   falcon.ventana.titulo(`${est.proyecto.datos.nombre} · Falcon Engine`);
   await refrescarArchivos();
@@ -402,7 +405,7 @@ async function comprobarScripts() {
 }
 
 async function compilarTodos() {
-  const { compilarBlueprint, generadoDe } = await import('../motor/blueprints.js');
+  const { generadoDe } = await import('../motor/blueprints.js');
   for (const a of est.archivos.filter(x => x.rel.endsWith('.bp'))) {
     const d = documento(a.rel);
     const bp = d ? d.datos : await est.proyecto.leerJSON(a.rel);

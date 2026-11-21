@@ -164,7 +164,7 @@ function pintarAnimacion(c) {
     caja.innerHTML = `
       <div class="fila-anim"><b>${esc(sprite.nombre)}</b><span style="color:var(--texto-2)">${esc(rel)} · ${total} cuadros</span>
         <select class="campo" style="width:150px;height:28px;margin-left:12px" data-a="anim">${Object.keys(anims).map(k => `<option ${k === elegida ? 'selected' : ''}>${esc(k)}</option>`).join('')}<option value="__nueva">+ Nueva animación…</option></select>
-        ${elegida ? `<span style="color:var(--texto-2)">de</span><input class="campo mono" type="number" min="0" max="${total - 1}" value="${rango[0]}" data-a="ini" style="width:64px;height:28px"><span style="color:var(--texto-2)">a</span><input class="campo mono" type="number" min="0" max="${total - 1}" value="${rango[1]}" data-a="fin" style="width:64px;height:28px"><button class="btn fantasma peq" data-a="borrar">${icono('papelera', '', 14)}</button>` : ''}
+        ${elegida ? `<span style="color:var(--texto-2)">de</span><input class="campo mono" type="number" min="0" max="${total - 1}" value="${esc(rango[0])}" data-a="ini" style="width:64px;height:28px"><span style="color:var(--texto-2)">a</span><input class="campo mono" type="number" min="0" max="${total - 1}" value="${esc(rango[1])}" data-a="fin" style="width:64px;height:28px"><button class="btn fantasma peq" data-a="borrar">${icono('papelera', '', 14)}</button>` : ''}
         <span style="margin-left:auto;color:var(--texto-2);font-family:var(--mono)">animar("${esc(elegida || 'nombre')}")</span></div>
       <div class="tira-cuadros">${Array.from({ length: total }, (_, i) => `<div class="cuadro-anim ${i >= rango[0] && i <= rango[1] ? 'en-rango' : ''}" data-i="${i}"><canvas width="56" height="56"></canvas><span>${i}</span></div>`).join('')}</div>`;
     const dibujar = () => {
@@ -220,7 +220,7 @@ function pintarAudio(c) {
   const vol = p.datos.volumen ||= { general: 1, musica: 0.7, efectos: 1 };
   const sonidos = archivosDeTipo('sonido');
   const caja = el(`<div class="desplazable">
-    <div class="mezclador">${[['general', 'Volumen general'], ['musica', 'Música'], ['efectos', 'Efectos']].map(([k, t]) => `<div class="canal"><span>${t} <b class="mono" data-n="${k}">${Math.round(vol[k] * 100)} %</b></span><input type="range" class="deslizador" min="0" max="1" step="0.01" value="${vol[k]}" data-k="${k}"></div>`).join('')}</div>
+    <div class="mezclador">${[['general', 'Volumen general'], ['musica', 'Música'], ['efectos', 'Efectos']].map(([k, t]) => `<div class="canal"><span>${t} <b class="mono" data-n="${k}">${Math.round(vol[k] * 100)} %</b></span><input type="range" class="deslizador" min="0" max="1" step="0.01" value="${esc(vol[k])}" data-k="${k}"></div>`).join('')}</div>
     <div class="lista-sonidos">${sonidos.length ? sonidos.map(s => `<div class="chip-sonido" data-r="${esc(s.rel)}" title="${esc(s.rel)}">${icono('play', '', 13)}${esc(s.nombre)}</div>`).join('') : '<span class="vacio-texto">No hay sonidos en el proyecto. Impórtalos desde Recursos.</span>'}</div></div>`);
   c.append(caja);
   $$('.deslizador', caja).forEach(i => { pintarDeslizador(i); i.oninput = () => { vol[i.dataset.k] = Number(i.value); caja.querySelector(`[data-n=${i.dataset.k}]`).textContent = Math.round(i.value * 100) + ' %'; }; i.onchange = () => p.guardar(); });

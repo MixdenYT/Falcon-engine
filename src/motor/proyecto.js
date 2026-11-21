@@ -100,7 +100,7 @@ export function normalizarEscena(datos) {
   const e = typeof datos === 'string' ? JSON.parse(datos) : datos;
   e.formato ||= 'falcon-escena';
   e.version ||= VERSION_FORMATO;
-  e.tipo ||= '2D';
+  e.tipo = e.tipo === '3D' ? '3D' : '2D';
   e.raiz = normalizarNodo(e.raiz || { tipo: e.tipo === '3D' ? 'Nodo3D' : 'Nodo2D', nombre: 'Escena' });
   e.editor ||= {};
   return e;

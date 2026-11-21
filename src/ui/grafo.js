@@ -46,14 +46,14 @@ export function crearGrafo(contenedor, op) {
     const conectadas = new Set();
     for (const c of grafo.conexiones) { conectadas.add(c.a + ':' + c.entrada); conectadas.add(c.de + ':' + c.salida); }
     for (const c of grafo.comentarios || []) {
-      const ce = el(`<div class="comentario-g ${seleccion.has(c.id) ? 'sel' : ''}" data-com="${esc(c.id)}" style="left:${c.x}px;top:${c.y}px;width:${c.ancho}px;height:${c.alto}px">${editandoComentario === c.id ? `<textarea>${esc(c.texto)}</textarea>` : esc(c.texto)}</div>`);
+      const ce = el(`<div class="comentario-g ${seleccion.has(c.id) ? 'sel' : ''}" data-com="${esc(c.id)}" style="left:${Number(c.x)}px;top:${Number(c.y)}px;width:${Number(c.ancho)}px;height:${Number(c.alto)}px">${editandoComentario === c.id ? `<textarea>${esc(c.texto)}</textarea>` : esc(c.texto)}</div>`);
       capaCom.append(ce);
     }
     for (const n of grafo.nodos) {
       const d = op.definicion(n);
       if (!d) continue;
       const clases = ['nodo-g', d.compacto ? 'compacto' : '', seleccion.has(n.id) ? 'sel' : '', errores.has(n.id) ? 'error' : '', d.clase || ''].join(' ');
-      const ne = el(`<div class="${clases}" data-id="${esc(n.id)}" style="left:${n.x}px;top:${n.y}px"></div>`);
+      const ne = el(`<div class="${clases}" data-id="${esc(n.id)}" style="left:${Number(n.x)}px;top:${Number(n.y)}px"></div>`);
       const pin = (p, lado) => {
         const tipo = p.t;
         const color = op.colorTipo(tipo);

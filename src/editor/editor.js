@@ -30,7 +30,8 @@ async function iniciar() {
   est.proyecto = new Proyecto(q.get('proyecto'));
   try { await est.proyecto.cargar(); }
   catch (e) {
-    document.body.innerHTML = `<div style="padding:40px;font:15px Manrope;color:#F07A7A">No se pudo abrir el proyecto: ${esc(e.message)}<br><br><button class="btn secundario" onclick="window.falcon.app.gestor()">Volver al gestor</button></div>`;
+    document.body.innerHTML = `<div style="padding:40px;font:15px Manrope;color:#F07A7A">No se pudo abrir el proyecto: ${esc(e.message)}<br><br><button class="btn secundario">Volver al gestor</button></div>`;
+    document.querySelector('body button').onclick = () => falcon.app.gestor();
     return;
   }
   est.modoEditor = est.proyecto.datos.modo_editor === 'sencillo' ? 'sencillo' : 'avanzado';

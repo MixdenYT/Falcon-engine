@@ -69,7 +69,7 @@ export async function crearDisposicionMalla(contenedor) {
     const c = $('.lods', panelLod);
     const lods = m().lod && m().lod.length ? m().lod : [{ nivel: 0, distancia: 0 }];
     while (lods.length < 3) lods.push({ nivel: lods.length, distancia: lods.length * 20 });
-    c.innerHTML = lods.slice(0, 3).map((l, i) => `<div class="lod ${i === lodSel ? 'sel' : ''}" data-i="${i}"><b>LOD ${i}</b><span>${TEXTO_LOD[i]}</span>${i ? `<span class="mono" style="margin-left:auto;font-size:12px">${l.distancia} m</span>` : ''}</div>`).join('');
+    c.innerHTML = lods.slice(0, 3).map((l, i) => `<div class="lod ${i === lodSel ? 'sel' : ''}" data-i="${i}"><b>LOD ${i}</b><span>${TEXTO_LOD[i]}</span>${i ? `<span class="mono" style="margin-left:auto;font-size:12px">${esc(l.distancia)} m</span>` : ''}</div>`).join('');
     $$('.lod', c).forEach(x => x.onclick = () => { lodSel = Number(x.dataset.i); pintarLod(); construir(); });
   }
 

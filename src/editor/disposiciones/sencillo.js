@@ -61,11 +61,11 @@ export async function crearDisposicionSencilla(contenedor) {
     let html = '';
     for (const p of t.props.filter(x => x.sencillo)) {
       const v = n.props[p.clave];
-      html += `<div class="p-s" data-sencillo-prop="${p.clave}"><label>${esc(p.sencillo.etiqueta)}</label><input type="range" class="deslizador" min="${p.min ?? 0}" max="${p.max ?? 100}" step="${p.paso ?? 1}" value="${v}" data-k="${p.clave}">${p.sencillo.izq ? `<div class="extremos"><span>${esc(p.sencillo.izq)}</span><span>${esc(p.sencillo.der)}</span></div>` : ''}</div>`;
+      html += `<div class="p-s" data-sencillo-prop="${p.clave}"><label>${esc(p.sencillo.etiqueta)}</label><input type="range" class="deslizador" min="${p.min ?? 0}" max="${p.max ?? 100}" step="${p.paso ?? 1}" value="${esc(v)}" data-k="${p.clave}">${p.sencillo.izq ? `<div class="extremos"><span>${esc(p.sencillo.izq)}</span><span>${esc(p.sencillo.der)}</span></div>` : ''}</div>`;
     }
     const sprite = n.tipo === 'Sprite' ? n : n.hijos.find(h => h.tipo === 'Sprite');
     if (sprite && !sprite.props.imagen) html += `<div class="p-s"><label>Color</label><input type="color" value="${esc(normalizarColor(sprite.props.color))}" data-color="${esc(sprite.id)}" style="width:100%;height:32px;border:0;background:none"></div>`;
-    if (n.tipo === 'Plataforma') html += `<div class="p-s"><label>Largo</label><input type="range" class="deslizador" min="40" max="800" step="10" value="${n.props.ancho}" data-k="ancho"><div class="extremos"><span>Corta</span><span>Larga</span></div></div><div class="p-s"><label>Color</label><input type="color" value="${esc(normalizarColor(n.props.color))}" data-k-color="color" style="width:100%;height:32px;border:0;background:none"></div>`;
+    if (n.tipo === 'Plataforma') html += `<div class="p-s"><label>Largo</label><input type="range" class="deslizador" min="40" max="800" step="10" value="${esc(n.props.ancho)}" data-k="ancho"><div class="extremos"><span>Corta</span><span>Larga</span></div></div><div class="p-s"><label>Color</label><input type="color" value="${esc(normalizarColor(n.props.color))}" data-k-color="color" style="width:100%;height:32px;border:0;background:none"></div>`;
     if (n.tipo === 'Etiqueta') html += `<div class="p-s"><label>Texto</label><input class="campo" value="${esc(n.props.texto)}" data-texto></div>`;
     if (n.tipo === 'Personaje2D') html += `<div class="p-s">${interruptor(n.props.usa_gravedad, 'Le afecta la gravedad', 'grav')}</div>`;
     if (!html) html = '<div class="vacio-texto" style="text-align:left;padding:4px 0 10px">Esto no tiene ajustes sencillos. Pasa al modo Avanzado para verlo todo.</div>';

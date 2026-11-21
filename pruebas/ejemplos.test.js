@@ -8,6 +8,7 @@ import { comprobarAra, HAY_JSPI } from '../src/ara/puente.js';
 import { Mundo, NodoVivo } from '../src/motor/mundo.js';
 import { Mundo3D } from '../src/motor/mundo3d.js';
 import { crearProyecto, PLANTILLAS } from '../src/motor/plantillas.js';
+import { normalizarEscena } from '../src/motor/proyecto.js';
 import { readFile } from 'node:fs/promises';
 import './dom.js';
 
@@ -79,6 +80,20 @@ test('todas las plantillas: escenas con archivos existentes, sin Águila y con t
       }
     }
     assert.deepEqual(await comprobarAra(textos), [], id);
+  }
+});
+
+test('la validación de tipos al cargar no cambia nada de las escenas de las plantillas', async () => {
+  for (const [id, archivos] of Object.entries(await proyectosDePlantillas())) {
+    for (const [ruta, datos] of archivos) {
+      if (!ruta.endsWith('.fscn')) continue;
+      const crudos = recorrer(JSON.parse(datos).raiz), normalizados = recorrer(normalizarEscena(datos).raiz);
+      crudos.forEach((c, i) => {
+        const n = normalizados[i], donde = `${id} · ${ruta} · ${c.nombre}`;
+        for (const k of ['id', 'tipo', 'nombre', 'script', 'blueprint', 'grupos', 'senales', 'exportados']) if (k in c) assert.deepEqual(n[k], c[k], `${donde}: ${k}`);
+        for (const k of Object.keys(c.props || {})) assert.deepEqual(n.props[k], c.props[k], `${donde}: props.${k}`);
+      });
+    }
   }
 });
 

@@ -263,7 +263,7 @@ export async function crearDisposicionAguila(contenedor) {
     if (pestanaDer === 'variables') {
       c.innerHTML = `<div class="ayuda-aguila"><div class="titulo-seccion" style="margin:4px 0 10px">Variables ${clase ? 'de ' + esc(clase) : 'del script'}</div>${listaVariables()}
         ${analisis && analisis.simbolos.funciones.length ? `<div class="titulo-seccion" style="margin:18px 0 10px">Funciones</div>${analisis.simbolos.funciones.map(f => `<div class="mono" style="font-size:13px;padding:4px 0;cursor:pointer;color:var(--azul)" data-l="${f.linea}">${esc(f.nombre)}(${esc(f.params.join(', '))})</div>`).join('')}` : ''}
-        ${analisis && analisis.simbolos.eventos.length ? `<div class="titulo-seccion" style="margin:18px 0 10px">Eventos</div>${analisis.simbolos.eventos.map(e => `<div class="mono" style="font-size:13px;padding:4px 0;cursor:pointer;color:var(--verde)" data-l="${e.linea}">cuando ${esc(e.evento)}(${e.filtro !== null ? JSON.stringify(e.filtro) : esc(e.params.join(', '))})</div>`).join('')}` : ''}
+        ${analisis && analisis.simbolos.eventos.length ? `<div class="titulo-seccion" style="margin:18px 0 10px">Eventos</div>${analisis.simbolos.eventos.map(e => `<div class="mono" style="font-size:13px;padding:4px 0;cursor:pointer;color:var(--verde)" data-l="${e.linea}">cuando ${esc(e.evento)}(${esc(e.filtro !== null ? JSON.stringify(e.filtro) : e.params.join(', '))})</div>`).join('')}` : ''}
         ${est.juego.activo ? '<p style="color:var(--texto-2);font-size:12px;margin-top:14px">En verde, el valor que tiene ahora mismo en el juego.</p>' : ''}</div>`;
       $$('[data-l]', c).forEach(x => x.onclick = () => editor.irA(Number(x.dataset.l), 0));
       return;

@@ -307,8 +307,8 @@ export async function dialogoAjustesProyecto() {
     <div data-p="general">
       <div class="fila"><label class="etiqueta-campo">Nombre del juego</label><input class="campo" data-k="nombre" value="${esc(d.nombre)}"></div>
       <div class="fila"><label class="etiqueta-campo">Escena principal</label><select class="campo" data-k="escena_principal">${escenas.map(e => `<option ${e === d.escena_principal ? 'selected' : ''}>${esc(e)}</option>`).join('')}</select></div>
-      <div class="fila fila-flex"><div class="crece"><label class="etiqueta-campo">Resolución (ancho)</label><input class="campo mono" type="number" data-k="ancho" value="${d.resolucion[0]}"></div><div class="crece"><label class="etiqueta-campo">Alto</label><input class="campo mono" type="number" data-k="alto" value="${d.resolucion[1]}"></div></div>
-      <div class="fila fila-flex"><div class="crece"><label class="etiqueta-campo">Gravedad</label><input class="campo mono" type="number" data-k="gravedad" value="${d.gravedad}"></div><div class="crece"><label class="etiqueta-campo">Color de fondo</label><input class="campo mono" data-k="fondo" value="${esc(d.fondo)}"></div></div>
+      <div class="fila fila-flex"><div class="crece"><label class="etiqueta-campo">Resolución (ancho)</label><input class="campo mono" type="number" data-k="ancho" value="${esc(d.resolucion[0])}"></div><div class="crece"><label class="etiqueta-campo">Alto</label><input class="campo mono" type="number" data-k="alto" value="${esc(d.resolucion[1])}"></div></div>
+      <div class="fila fila-flex"><div class="crece"><label class="etiqueta-campo">Gravedad</label><input class="campo mono" type="number" data-k="gravedad" value="${esc(d.gravedad)}"></div><div class="crece"><label class="etiqueta-campo">Color de fondo</label><input class="campo mono" data-k="fondo" value="${esc(d.fondo)}"></div></div>
       <div class="fila">${interruptor(d.filtro_pixel, 'Pixel art: imágenes nítidas por defecto', 'filtro_pixel')}</div>
     </div>
     <div data-p="controles" class="oculto">
@@ -329,7 +329,7 @@ export async function dialogoAjustesProyecto() {
       </div>
     </div>
     <div data-p="sonido" class="oculto">
-      ${['general', 'musica', 'efectos'].map(k => `<div class="fila"><label class="etiqueta-campo">Volumen ${k === 'general' ? 'general' : k === 'musica' ? 'de la música' : 'de los efectos'}</label><input type="range" class="deslizador" min="0" max="1" step="0.01" data-vol="${k}" value="${d.volumen?.[k] ?? 1}" style="--p:${(d.volumen?.[k] ?? 1) * 100}%"></div>`).join('')}
+      ${['general', 'musica', 'efectos'].map(k => `<div class="fila"><label class="etiqueta-campo">Volumen ${k === 'general' ? 'general' : k === 'musica' ? 'de la música' : 'de los efectos'}</label><input type="range" class="deslizador" min="0" max="1" step="0.01" data-vol="${k}" value="${esc(d.volumen?.[k] ?? 1)}" style="--p:${Number(d.volumen?.[k] ?? 1) * 100}%"></div>`).join('')}
     </div>
   </div>`);
   const pintarAcciones = () => {

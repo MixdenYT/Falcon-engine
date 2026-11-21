@@ -122,7 +122,7 @@ export function crearInspector(contenedor) {
         return f;
       }
       case 'deslizador': {
-        const f = fila(p.etiqueta, `<div class="desliz"><input type="range" class="deslizador" min="${p.min ?? 0}" max="${p.max ?? 1}" step="${p.paso ?? 0.01}" value="${v}"><span class="num">${redondo(v)}</span></div>`, p.ayuda);
+        const f = fila(p.etiqueta, `<div class="desliz"><input type="range" class="deslizador" min="${p.min ?? 0}" max="${p.max ?? 1}" step="${p.paso ?? 0.01}" value="${esc(v)}"><span class="num">${redondo(v)}</span></div>`, p.ayuda);
         const r = $('input', f);
         pintarDeslizador(r);
         r.oninput = () => { $('.num', f).textContent = redondo(r.value); fijar(Number(r.value)); };
@@ -303,7 +303,7 @@ export function crearInspector(contenedor) {
 
   function pintarEscena(doc) {
     const principal = est.proyecto.datos.escena_principal === doc.rel;
-    const c = el(`<div><div class="cab-nodo" style="padding-top:8px"><div class="caja-ico" style="color:var(--verde)">${icono('escena', '', 18)}</div><div class="t"><b>${esc(doc.titulo)}</b><span>Escena ${doc.dim}</span></div></div>
+    const c = el(`<div><div class="cab-nodo" style="padding-top:8px"><div class="caja-ico" style="color:var(--verde)">${icono('escena', '', 18)}</div><div class="t"><b>${esc(doc.titulo)}</b><span>Escena ${esc(doc.dim)}</span></div></div>
       <div class="seccion-insp"><div class="titulo-seccion">Escena</div>
         <div class="prop"><label>Principal</label><div class="valor">${interruptor(principal, principal ? 'Se abre al jugar' : 'No')}</div></div>
         <div class="prop"><label>Nodos</label><div class="valor mono" style="font-size:13px">${contar(doc.datos.raiz)}</div></div>

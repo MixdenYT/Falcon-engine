@@ -58,7 +58,7 @@ export function crearArbol(contenedor) {
       if (visible || hijosVisibles.length) {
         const d = tipoNodo(n.tipo);
         const plegado = plegados.has(n.id) && !filtro;
-        const fila = el(`<div class="fila-nodo ${doc.seleccion.includes(n.id) ? 'sel' : ''} ${n.visible === false ? 'oculto-nodo' : ''}" data-id="${n.id}" draggable="${nivel > 0}" style="padding-left:${6 + nivel * 16}px">
+        const fila = el(`<div class="fila-nodo ${doc.seleccion.includes(n.id) ? 'sel' : ''} ${n.visible === false ? 'oculto-nodo' : ''}" data-id="${esc(n.id)}" draggable="${nivel > 0}" style="padding-left:${6 + nivel * 16}px">
           <span class="flecha ${n.hijos.length ? '' : 'vacia'} ${plegado ? 'cerrada' : ''}">${icono('flechaAbajo', '', 12)}</span>
           <span style="color:${COLORES_FAMILIA[d.familia]}">${icono(d.icono, '', 16)}</span>
           <span class="nombre-nodo">${renombrando === n.id ? `<input value="${esc(n.nombre)}">` : esc(n.nombre)}</span>

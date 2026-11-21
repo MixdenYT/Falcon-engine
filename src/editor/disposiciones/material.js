@@ -138,7 +138,7 @@ export async function crearDisposicionMaterial(contenedor) {
       const inp = $('input', c);
       inp.oninput = () => { c.querySelector('span').textContent = inp.value.toUpperCase(); doc.cambiar(() => { n.valor = inp.value.toUpperCase(); }, { fusionar: 'color-' + n.id, valor: true }); };
     } else {
-      c.innerHTML = `<div style="padding:2px 0"><div style="width:72px;height:56px;border-radius:6px;background:#111 center/cover no-repeat ${n.archivo ? `url('${est.proyecto.url(n.archivo)}')` : ''};border:1px solid var(--borde);cursor:pointer" data-ayuda="Elegir textura"></div><div class="mono" style="font-size:11px;color:var(--texto-2);margin-top:4px;max-width:120px;overflow:hidden;text-overflow:ellipsis">${esc(n.archivo ? nombreBase(n.archivo) : 'sin textura')}</div></div>`;
+      c.innerHTML = `<div style="padding:2px 0"><div style="width:72px;height:56px;border-radius:6px;background:#111 center/cover no-repeat ${n.archivo ? `url('${est.proyecto.url(n.archivo).replace(/'/g, '%27')}')` : ''};border:1px solid var(--borde);cursor:pointer" data-ayuda="Elegir textura"></div><div class="mono" style="font-size:11px;color:var(--texto-2);margin-top:4px;max-width:120px;overflow:hidden;text-overflow:ellipsis">${esc(n.archivo ? nombreBase(n.archivo) : 'sin textura')}</div></div>`;
       c.firstChild.firstChild.onclick = (e) => elegirTextura(n, e.currentTarget);
     }
   }
@@ -206,7 +206,7 @@ export async function crearDisposicionMaterial(contenedor) {
     if (!params.length) c.append(el('<div class="vacio-texto">El material base no tiene parámetros editables.</div>'));
     for (const p of params) {
       const actual = mat().parametros?.[p.parametro] ?? p.valor;
-      const f = el(`<div class="prop"><label>${esc(p.parametro)}</label><div class="valor">${p.tipo === 'color' ? `<div class="color"><input type="color" value="${esc(String(actual).slice(0, 7).toLowerCase())}"><input type="text" value="${esc(String(actual).toUpperCase())}"></div>` : `<div class="desliz"><input type="range" class="deslizador" min="0" max="1" step="0.01" value="${actual}"><span class="num">${actual}</span></div>`}</div></div>`);
+      const f = el(`<div class="prop"><label>${esc(p.parametro)}</label><div class="valor">${p.tipo === 'color' ? `<div class="color"><input type="color" value="${esc(String(actual).slice(0, 7).toLowerCase())}"><input type="text" value="${esc(String(actual).toUpperCase())}"></div>` : `<div class="desliz"><input type="range" class="deslizador" min="0" max="1" step="0.01" value="${esc(actual)}"><span class="num">${esc(actual)}</span></div>`}</div></div>`);
       const fijar = (v) => doc.cambiar(() => { (mat().parametros ||= {})[p.parametro] = v; }, { fusionar: 'param-' + p.parametro });
       if (p.tipo === 'color') { const [cc, t] = $$('input', f); cc.oninput = () => { t.value = cc.value.toUpperCase(); fijar(cc.value.toUpperCase()); }; }
       else { const r = $('input', f); pintarDeslizador(r); r.oninput = () => { $('.num', f).textContent = r.value; fijar(Number(r.value)); }; }

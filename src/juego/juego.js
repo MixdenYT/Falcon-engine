@@ -84,7 +84,7 @@ function pintar(escena) {
       <button class="btn secundario peq" data-a="libre">${icono('camara', '', 16)}Cámara libre</button>
       <button class="btn contorno peq" data-a="vivos">${icono('check', '', 15)}Valores en vivo</button>
       <button class="btn secundario peq" data-a="velocidad">Velocidad 1×</button>
-      <button class="btn secundario peq" data-a="resolucion">${proyecto.datos.resolucion.join(' × ')} ${icono('flechaAbajo', '', 14)}</button>
+      <button class="btn secundario peq" data-a="resolucion">${esc(proyecto.datos.resolucion.join(' × '))} ${icono('flechaAbajo', '', 14)}</button>
       <button class="btn secundario peq oculto" data-a="calidad" data-ayuda="Calidad gráfica (F10)">${icono('sol', '', 15)}<span>Calidad</span> ${icono('flechaAbajo', '', 14)}</button>
       <span class="fps">-- fps</span>
       <button class="btn principal peq" data-a="editor">${icono('flechaIzquierda', '', 16)}Volver al editor</button>
@@ -267,7 +267,7 @@ function mostrarFinal(estado) {
   const puntos = mundo.interp.globales.vars.get('puntos') || 0;
   const d = el(`<div class="final"><div class="tarjeta ${gana ? 'gana' : 'pierde'}">
     <h2>${gana ? '¡Has ganado!' : 'Fin de la partida'}</h2>
-    <p>${gana ? 'Nivel completado' : 'Inténtalo otra vez'}${puntos ? ` · ${puntos} puntos` : ''}</p>
+    <p>${gana ? 'Nivel completado' : 'Inténtalo otra vez'}${puntos ? ` · ${esc(puntos)} puntos` : ''}</p>
     <div class="botones"><button class="btn principal grande" data-a="otra">${icono('reiniciar', '', 16)}Jugar otra vez</button>
     ${MODO === 'prueba' ? `<button class="btn secundario grande" data-a="volver">${icono('flechaIzquierda', '', 16)}Volver al editor</button>` : ''}</div>
   </div></div>`);

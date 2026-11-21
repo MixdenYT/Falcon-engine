@@ -8,6 +8,7 @@ const fsp = require('node:fs/promises');
 const { pathToFileURL } = require('node:url');
 const { exportarJuego } = require('./exportar.js');
 const { crearActualizaciones } = require('./actualizaciones.js');
+const { rutaDeUrl } = require('./rutas.js');
 
 const RAIZ_APP = path.resolve(__dirname, '..', '..');
 const ICONO = path.join(RAIZ_APP, 'recursos', 'icono.png');
@@ -40,17 +41,11 @@ function escribirDatos(d) {
   fs.writeFileSync(RUTA_DATOS(), JSON.stringify(d, null, 2));
 }
 
-// ---- Protocolo falcon:// ----
-// falcon://app/<ruta>   → archivos de la aplicación
-// falcon://fs/<ruta>    → archivos del disco (proyectos del usuario)
+// ---- Protocolo falcon:// (ver rutas.js) ----
 function registrarProtocolo() {
   protocol.handle('falcon', async (req) => {
-    const url = new URL(req.url);
-    let ruta;
-    const p = decodeURIComponent(url.pathname);
-    if (url.host === 'app') ruta = path.join(RAIZ_APP, p);
-    else if (url.host === 'fs') ruta = process.platform === 'win32' ? p.replace(/^\//, '') : p;
-    else return new Response('No encontrado', { status: 404 });
+    const ruta = rutaDeUrl(req.url, RAIZ_APP);
+    if (!ruta) return new Response('No encontrado', { status: 404 });
     try {
       const r = await net.fetch(pathToFileURL(ruta).toString());
       const tipo = tipoMime(ruta);
@@ -58,7 +53,8 @@ function registrarProtocolo() {
         const h = new Headers(r.headers);
         h.set('Content-Type', tipo);
         h.set('Cache-Control', 'no-cache');
-        h.set('Access-Control-Allow-Origin', '*');
+        // Las páginas viven en falcon://app y cargan texturas y modelos de falcon://fs (otro origen).
+        h.set('Access-Control-Allow-Origin', 'falcon://app');
         return new Response(r.body, { status: r.status, headers: h });
       }
       return r;

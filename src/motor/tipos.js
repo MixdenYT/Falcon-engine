@@ -432,19 +432,38 @@ export function crearNodo(tipoId, nombre, props = {}, hijos = []) {
   };
 }
 
-/** Rellena propiedades que falten (por ejemplo al abrir escenas antiguas o de Talon). */
+// Una propiedad leída de disco se queda solo si es del tipo de su valor por defecto: los proyectos
+// ajenos no son de fiar y un «número» con HTML dentro acabaría en la interfaz.
+function delTipo(v, def) {
+  if (typeof def === 'number') {
+    const x = typeof v === 'string' && v.trim() ? Number(v) : v;
+    return Number.isFinite(x) ? x : def;
+  }
+  if (Array.isArray(def)) return Array.isArray(v) ? def.map((d, i) => delTipo(v[i], d)) : def;
+  if (def && typeof def === 'object') return v && typeof v === 'object' && !Array.isArray(v) ? v : def;
+  if (typeof def === 'string' && typeof v === 'number') return String(v);
+  return typeof v === typeof def ? v : def;
+}
+
+const texto = (v) => (typeof v === 'string' && v ? v : null);
+const lista = (v) => (Array.isArray(v) ? v : []);
+
+/** Rellena propiedades que falten (por ejemplo al abrir escenas antiguas o de Talon) y descarta las de tipo incorrecto. */
 export function normalizarNodo(n) {
-  n.id ||= nuevoId();
-  n.tipo ||= 'Nodo2D';
-  n.nombre ||= tipo(n.tipo).nombreVisible;
-  n.props = { ...valoresPorDefecto(n.tipo), ...(n.props || {}) };
-  n.hijos = (n.hijos || []).map(normalizarNodo);
-  n.exportados ||= {};
-  n.grupos ||= [];
-  n.senales ||= [];
-  if (n.visible === undefined) n.visible = true;
-  n.script ||= null;
-  n.blueprint ||= null;
+  if (!n || typeof n !== 'object' || Array.isArray(n)) n = {};
+  n.id = /^[\w.-]{1,64}$/.test(n.id) ? n.id : nuevoId();
+  n.tipo = texto(n.tipo) || 'Nodo2D';
+  n.nombre = texto(n.nombre) || tipo(n.tipo).nombreVisible;
+  const props = n.props && typeof n.props === 'object' ? n.props : {};
+  n.props = { ...props, ...valoresPorDefecto(n.tipo) };
+  for (const p of tipo(n.tipo).props) if (p.clave in props) n.props[p.clave] = delTipo(props[p.clave], n.props[p.clave]);
+  n.hijos = lista(n.hijos).map(normalizarNodo);
+  if (!n.exportados || typeof n.exportados !== 'object' || Array.isArray(n.exportados)) n.exportados = {};
+  n.grupos = lista(n.grupos).filter(g => typeof g === 'string');
+  n.senales = lista(n.senales).filter(s => s && typeof s === 'object');
+  n.visible = n.visible !== false;
+  n.script = texto(n.script);
+  n.blueprint = texto(n.blueprint);
   return n;
 }
 

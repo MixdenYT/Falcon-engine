@@ -1,18 +1,21 @@
-<p align="center"><strong>FALCON ENGINE</strong></p>
+<p align="center"><img src="recursos/logo.png" alt="Falcon Engine" width="128"></p>
 
-# Crea tu próximo juego, en tu idioma.
+<h1 align="center">FALCON ENGINE — POWERED BY ARA</h1>
 
-En **Gestor → Plantillas** encontrarás **Academia de Blueprints** (67 laboratorios, uno por cada bloque del catálogo actual, con grafos comentados, pruebas y ejercicios), **Shooter · Base abierta** (tercera persona) y **Shooter · CQB** (primera persona). **Umbral CQB** incluye un recorrido de habitaciones y pasillos, cuatro puertas, tres enemigos, personajes originales con rig y animaciones, carabina y pistola. Su combate, inventario, puertas y victoria ejecutan Ara generado por Blueprints editables. Cada proyecto genera su guía: `GUIA_BLUEPRINTS.md`, `GUIA_SHOOTER.md` o `GUIA_CQB.md` (español) y `GUIA_CQB_EN.md` (inglés).
+<p align="center"><strong>Crea tu próximo juego, en tu idioma.</strong></p>
 
-Para probar CQB, crea un proyecto nuevo con **Shooter · CQB**, ábrelo y pulsa **F5** o **Probar**. Haz clic en la ventana para capturar el ratón. **WASD** mueve, **Alt** avanza despacio, **Shift** acelera, **Ctrl** agacha, **Q/E** inclina, **clic derecho** apunta, **clic izquierdo** dispara, **R** recarga, **1/2/T** cambia de arma y **F** interactúa. **H** muestra todos los controles y **L** alterna español e inglés. El terminal final se activa al eliminar los tres enemigos.
+Motor de videojuegos **2D y 3D para Windows y Linux**, con **Blueprints visuales**, scripts en español con **[Ara](https://github.com/MixdenYT/ara)** e iluminación global **Lumbre**. Construye una escena, dale comportamiento y prueba tu idea desde el mismo editor.
 
-Motor de videojuegos **2D y 3D para Windows y Linux**, con **Blueprints visuales**, scripts en español con **Ara** (compilado a WebAssembly) e iluminación global **Lumbre**. Construye una escena, dale comportamiento y prueba tu idea desde el mismo editor.
+Falcon no es un envoltorio de otro motor. Su núcleo se está escribiendo en Ara, el lenguaje propio del proyecto:
+- la física 2D, los rayos y la búsqueda de caminos 3D;
+- el compilador de Blueprints;
+- un primer runtime nativo que corre un nivel de Falcon en un `.exe` sin Electron.
 
-[Web oficial](https://mixden.net/falcon-engine/) · [Instalar y probar](#instalar-y-probar) · [Capturas](#el-editor-en-imágenes) · [Exportar](#exportar-y-empaquetar)
+[Web oficial](https://mixden.net/falcon-engine/) · [Instalar y probar](#instalar-y-probar) · [Capturas](#el-editor-en-imágenes) · [Ara dentro de Falcon](#ara-dentro-de-falcon) · [Exportar](#exportar-y-empaquetar) · [Documentación](#documentación)
 
 ![Editor 3D de Falcon Engine con una mazmorra iluminada](docs/images/falcon-editor-3d.webp)
 
-> **En desarrollo activo.** Las capturas corresponden al editor actual. La compatibilidad y el rendimiento pueden variar según el equipo y el proyecto.
+> **En desarrollo activo.** Las capturas corresponden al editor actual. La compatibilidad y el rendimiento pueden variar según el equipo y el proyecto; lo comprobado en cada plataforma está en [`docs/PLATFORM_MATRIX.md`](docs/PLATFORM_MATRIX.md).
 
 ## Qué puedes crear
 
@@ -21,16 +24,48 @@ Motor de videojuegos **2D y 3D para Windows y Linux**, con **Blueprints visuales
 | Editor 2D | Niveles con sprites, mosaicos, colisiones y cámaras |
 | Editor 3D | Escenas con mallas, materiales, luces y personajes |
 | Blueprints | Lógica visual con eventos, condiciones y acciones; se compila a Ara con sus tipos |
-| Ara | Scripts en español con tipos, compilados a WebAssembly: hasta cientos de veces más rápidos que Águila, con errores en vivo |
+| Ara | Scripts en español con tipos, compilados a WebAssembly, con errores en vivo |
 | Águila | El lenguaje anterior: sus scripts siguen funcionando junto a los de Ara |
 | Lumbre | Iluminación global mediante sondas, sombras y reflejos |
 | Materiales | Grafos, vista previa, parámetros e instancias reutilizables |
+
+## Plantillas
+
+En **Gestor → Plantillas** hay:
+- **Academia de Blueprints:** 67 laboratorios, uno por cada bloque del catálogo, con grafos comentados, pruebas y ejercicios.
+- **Plataformas:** un nivel 2D.
+- **Shooter · Base abierta:** tercera persona.
+- **Shooter · CQB:** primera persona.
+- **Pruebas de iluminación:** para Lumbre.
+
+Cada proyecto genera su guía: `GUIA_BLUEPRINTS.md`, `GUIA_SHOOTER.md`, `GUIA_CQB.md` o `GUIA_CQB_EN.md`.
+
+**Umbral CQB** incluye un recorrido de habitaciones y pasillos, cuatro puertas, tres enemigos, personajes originales con rig y animaciones, carabina y pistola. Su combate, inventario, puertas y victoria ejecutan Ara generado por Blueprints editables.
+
+Para probarlo, crea un proyecto con **Shooter · CQB**, ábrelo y pulsa **F5** o **Probar**. Haz clic en la ventana para capturar el ratón.
+
+| Tecla | Acción |
+| --- | --- |
+| **WASD** | Mover |
+| **Alt** | Avanzar despacio |
+| **Shift** | Correr |
+| **Ctrl** | Agacharse |
+| **Q/E** | Inclinarse |
+| **Clic derecho** | Apuntar |
+| **Clic izquierdo** | Disparar |
+| **R** | Recargar |
+| **1/2/T** | Cambiar de arma |
+| **F** | Interactuar |
+| **H** | Ver todos los controles |
+| **L** | Alternar español e inglés |
+
+El terminal final se activa al eliminar a los tres enemigos.
 
 ## Instalar y probar
 
 Descarga el instalador de Windows o la AppImage de Linux x64/ARM64 desde [Releases](https://github.com/MixdenYT/Falcon-engine/releases/latest). El instalador incluye las plantillas y todos sus modelos; no necesitas Node.js para jugar.
 
-Para trabajar desde el código necesitas **Git, Git LFS, Node.js y npm**, además de acceso a este repositorio si es privado. Usa una versión de Node.js compatible con las dependencias indicadas en `package.json`.
+Para trabajar desde el código necesitas **Git, Git LFS, Node.js y npm**:
 
 ```sh
 git lfs install
@@ -40,31 +75,15 @@ npm install
 npm start
 ```
 
-Las dependencias incluidas en el repositorio se gestionan con Git LFS. Si faltan archivos tras clonar, ejecuta `git lfs pull`. `npm install` prepara las dependencias para tu plataforma.
+Si faltan modelos o recursos tras clonar, ejecuta `git lfs pull`. `npm install` prepara las dependencias para tu plataforma.
 
 En el gestor de proyectos, crea un proyecto 2D o 3D o elige una plantilla. Abre la escena, selecciona un nodo en el Inspector y pulsa **Probar** para ejecutar el juego. El **Modo Sencillo** y el curso **Mi primer juego** ofrecen un inicio guiado.
 
-Para comprobar el lenguaje y el compilador de Blueprints:
+Para pasar las pruebas (el motor sin ventana: escenas, física, scripts, Blueprints, CQB, seguridad y el runtime nativo):
 
 ```sh
 npm test
 ```
-
-## Actualizaciones y apoyo
-
-El gestor de proyectos incluye **Apoyar** y la selección de niveles de Patreon.
-El pago se completa en Patreon, en el navegador. Estos controles no aparecen
-en el editor ni en los juegos exportados.
-
-**Buscar actualizaciones**, junto a la versión del gestor, consulta las releases
-de GitHub usando SemVer. Muestra las notas reales agrupadas según Keep a Changelog,
-los canales Estable y Pruebas, el progreso y los errores de consulta o descarga.
-Los instaladores NSIS de Windows y AppImage de Linux admiten instalación al
-cerrar; los paquetes portátiles anteriores ofrecen descarga manual.
-
-Consulta [ACTUALIZACIONES.md](ACTUALIZACIONES.md) para publicar los instaladores,
-sus metadatos y las notas de versión. La versión publicada y el tag deben coincidir
-con la versión del paquete. La **1.2.0** incorporó Umbral CQB; la **1.3.0** cambia Águila por Ara.
 
 ## El editor en imágenes
 
@@ -78,30 +97,9 @@ Organiza sprites, mosaicos, colisiones y cámaras. Ajusta tu escena en la cuadr�
 
 ### Blueprints
 
-Une eventos, condiciones y acciones con cables tipados. Cada Blueprint se compila a una clase de Ara, con sus tipos: consulta el código generado y, si un dato no encaja, el bloque te lo dice.
+Une eventos, condiciones y acciones con cables tipados. Cada Blueprint se compila a una clase de Ara, con sus tipos: consulta el código generado y, si un dato no encaja, el bloque te lo dice. El compilador de Blueprints también está escrito en Ara.
 
 ![Blueprint del jugador con movimiento, salto y reproducción de sonido](docs/images/falcon-blueprints.webp)
-
-### Ara
-
-Los scripts se escriben en [Ara](https://github.com/MixdenYT/ara), un lenguaje en español parecido a Python, con tipos, que se compila a WebAssembly. El editor comprueba todo el proyecto mientras escribes y señala cada error con su archivo y su línea. Los juegos exportados llevan los scripts ya compilados.
-
-Velocidad de los scripts por fotograma, medida con `node herramientas/medir-ara.mjs`:
-
-| Juego | Águila | Ara |
-|---|---|---|
-| Shooter con 300 drones (sobre todo llamadas al motor) | 0,51 ms | 0,25 ms (2× más rápido) |
-| Bandada de 150 pájaros (lógica propia: listas y bucles) | 24 ms | 0,12 ms (195× más rápido) |
-
-Al volver a pulsar Jugar sin cambiar ningún script, Falcon reutiliza lo ya compilado: el juego empieza en unos milisegundos.
-
-Al abrir un proyecto con scripts de Águila, Falcon ofrece pasarlo a Ara: guarda una copia en `.falcon/copia-aguila-…`, convierte cada `.agl` en un `.ara` y deja en Águila (funcionando) lo que no sepa convertir, explicado en `CONVERSION_ARA.md`. También está en el menú **Juego › Convertir los scripts de Águila a Ara…**.
-
-### Águila
-
-El lenguaje anterior de Falcon. Las plantillas, la Academia y los Blueprints ya usan Ara; los scripts `.agl` que no se conviertan siguen funcionando y pueden convivir con los de Ara en el mismo proyecto. Escribe scripts con palabras como cuando, variable y si. Usa el diccionario, la ayuda contextual y el análisis de errores del editor.
-
-![Editor Águila con código del jugador en español y ayuda contextual](docs/images/falcon-aguila.webp)
 
 ### Lumbre
 
@@ -115,44 +113,52 @@ Conecta color, metal y rugosidad en un grafo con vista previa. Crea parámetros 
 
 ![Grafo de un material metálico con vista previa y parámetros](docs/images/falcon-materiales.webp)
 
-## Exportar y empaquetar
+### Águila
 
-**Para exportar tu juego**, abre **Proyecto › Exportar juego…** y elige Windows x64, Linux x64 o Linux ARM64. La primera exportación a otra plataforma descarga el motor de ejecución correspondiente.
+El lenguaje anterior de Falcon. Las plantillas, la Academia y los Blueprints ya usan Ara; los scripts `.agl` siguen funcionando y pueden convivir con los de Ara en el mismo proyecto.
 
-**Para empaquetar el editor** desde el código:
+![Editor Águila con código del jugador en español y ayuda contextual](docs/images/falcon-aguila.webp)
 
-| Plataforma | Comando | Resultado |
-| --- | --- | --- |
-| Windows x64 | `npm run build:win` | `dist/Falcon Engine-win32-x64/` |
-| Linux x64 | `npm run build:linux` | `dist/Falcon Engine-linux-x64.tar.gz` |
-| Linux ARM64 | `npm run build:linux-arm` | `dist/Falcon Engine-linux-arm64.tar.gz` |
+### Pantallas
 
-En Linux, descomprime el paquete y abre `./falcon.sh`. Usa `--no-sandbox` solo si el sandbox de Chromium no está disponible.
+1. **Gestor de proyectos:**
+   - proyectos recientes con miniatura;
+   - nuevo proyecto (2D, 3D o plantilla), abrir e importar;
+   - curso, guías y ajustes.
 
-## Pantallas
+   Abre proyectos de Talon Engine (`proyecto.talon`) sin conversión.
+2. **Editor 2D:**
+   - árbol de escena, archivos e Inspector, con Señales y Grupos;
+   - visor con herramientas: seleccionar, mover, rotar, escalar y lápiz de mosaicos;
+   - ajuste a cuadrícula y área de cámara.
+3. **Editor 3D:**
+   - gizmos y vuelo con clic derecho + WASD;
+   - vistas Iluminado, Sin luz y Alambre;
+   - perspectiva u ortográfica, y vista previa de la cámara del juego.
+4. **Blueprints:**
+   - variables, eventos, funciones y catálogo de bloques;
+   - cables tipados y comentarios;
+   - compilación a Ara en directo y ayuda de cada bloque.
+5. **Ara y Águila:**
+   - resaltado, autocompletado y formato;
+   - errores en vivo en español;
+   - diccionario y ayuda contextual.
+6. **Recursos:**
+   - carpetas, filtros e importación arrastrando archivos;
+   - ajustes de importación, «Usado en» y referencias rotas.
+7. **Modo Sencillo:** lo esencial del nivel y el curso «Mi primer juego», 10 lecciones que se comprueban solas.
+8. **Materiales y Mallas:**
+   - grafo de material con vista previa, parámetros e instancias;
+   - formas básicas, LOD, colisión y física.
+9. **Ventana de prueba:**
+   - pausa, paso a paso y reinicio;
+   - cámara libre, valores en vivo, velocidad, resolución y capturas (F12).
 
-1. **Gestor de proyectos** — proyectos recientes con miniatura, nuevo proyecto (2D, 3D o plantilla), abrir, importar, plantillas, curso, guías y ajustes. Abre proyectos de Talon Engine (`proyecto.talon`) sin conversión.
-2. **Editor 2D** — árbol de escena, archivos, visor con herramientas (seleccionar, mover, rotar, escalar, lápiz de mosaicos), ajuste a cuadrícula, área de cámara, Inspector, Señales y Grupos.
-3. **Editor 3D** — visor three.js con gizmos, vuelo con clic derecho + WASD, iconos de luces y cámaras, Iluminado / Sin luz / Alambre, perspectiva / ortográfica, vista previa de la cámara del juego.
-4. **Blueprints** — variables, eventos, funciones, catálogo de bloques, grafo con cables tipados, comentarios, compilación a Ara en directo y ayuda de cada bloque.
-5. **Águila** — editor con resaltado, autocompletado, errores en español con «Arreglar», ordenar código, buscar, diccionario y ayuda contextual.
-6. **Recursos** — carpetas, filtros, importación arrastrando archivos, ajustes de importación (píxel/suave, hoja de sprites…), «Usado en» y referencias rotas.
-7. **Modo Sencillo** — lo esencial del nivel y el curso «Mi primer juego» (10 lecciones con pasos que se comprueban solos).
-8. **Materiales** — grafo de material con vista previa y plantillas, parámetros e instancias.
-9. **Mallas** — formas básicas, ranuras de material, LOD, colisión y física.
-10. **Ventana de prueba** — pausa, paso a paso, reinicio, silencio, cámara libre, valores en vivo, velocidad, resolución y capturas (F12). Los cambios hechos en el editor llegan al juego en marcha.
+   Los cambios hechos en el editor llegan al juego en marcha.
 
-**Iluminación global «Lumbre»** (inspirada en Lumen de Unreal): se activa en el nodo Entorno de una escena 3D. La luz rebota entre superficies en tiempo real mediante una rejilla de sondas calculada en la GPU, el cielo ilumina pero se tapa con techos y muros, los metales reflejan la escena, y hay oclusión ambiental (GTAO) y resplandor. Hay cuatro calidades (Baja, Media, Alta y Ultra) y un modo Automático que reconoce la gráfica (una RTX 2060 va a Alta) y baja de nivel si el juego va lento. Funciona con WebGL2 en cualquier gráfica de NVIDIA, AMD o Intel; donde no se puede, vuelve sola a la iluminación clásica. El jugador la cambia con F10 y los scripts con `calidad_grafica()`. Lumbre se puede desactivar para todo el proyecto en Proyecto › Ajustes › Gráficos, y el jugador también puede apagarla en el menú F10.
+## Ara dentro de Falcon
 
-Lumbre también incluye espejos (reflejo **plano**, con cámara reflejada, y **curvo**, con sonda propia por objeto; se eligen en el material o en el Inspector), sombras de sol, bombillas y focos sobre mallas y personajes (la sombra del sol sigue a la cámara), y nodos **Volumen Lumbre** con más sondas para salas cerradas. La plantilla **Pruebas de iluminación** reúne una Caja de Cornell, una sala oscura con ventana, espejos, neón, esferas de rugosidad × metal, luz que gira, antorchas y día/noche con la tecla E.
-
-Para gastar poco, Lumbre solo recalcula la luz cerca de lo que cambia (luces que se mueven, el sol, objetos desplazados), usa una versión simplificada de la escena para calcular las sondas, redibuja cada sombra solo cuando algo se mueve cerca y no dibuja los espejos que no se ven. Con la escena quieta apenas gasta medio milisegundo por fotograma. Las sondas que caen dentro de muros se sacan fuera para que la luz no se cuele, y la **exposición automática** adapta la imagen al entrar en sitios oscuros.
-
-**Controles 3D**: un Personaje3D puede usar controles de **tercera persona** (cámara que orbita con el ratón o el mando, rueda para acercar, choca con las paredes y sigue con suavidad) o de **primera persona** (vista desde los ojos, el cuerpo sigue dando sombra). Movimiento con inercia, salto con margen al borde y altura variable, y la tecla V cambia de vista.
-
-**Exportar** (Proyecto › Exportar juego…) crea un juego independiente para Windows x64 (carpeta con `.exe`), Linux x64 y Linux ARM64 (`.tar.gz` con permisos). La primera exportación a otra plataforma descarga su motor de ejecución.
-
-## Ara en un vistazo
+Los scripts se escriben en [Ara](https://github.com/MixdenYT/ara), un lenguaje en español parecido a Python, con tipos. El editor comprueba todo el proyecto mientras escribes y señala cada error con su archivo y su línea. Los juegos exportados llevan los scripts ya compilados, sin el compilador.
 
 ```
 clase Jugador extiende Personaje2D:
@@ -177,42 +183,119 @@ clase Jugador extiende Personaje2D:
         pausar_juego()
 ```
 
-Igual que en Águila, lo del nodo (`mover`, `x`, `saltar`…) se usa sin `yo.` delante y `esperar` pausa solo ese evento. Lo nuevo: los tipos se comprueban al compilar (`220.0` es decimal y `0` es entero), y toda la API del motor está declarada en [`src/ara/motor.ara`](src/ara/motor.ara). Cómo funciona por dentro: [`docs/JUEGOS.md` de Ara](https://github.com/MixdenYT/ara/blob/main/docs/JUEGOS.md).
+Lo del nodo (`mover`, `x`, `saltar`…) se usa sin `yo.` delante, y `esperar` pausa solo ese evento. Los tipos se comprueban al compilar. Toda la API del motor está declarada en [`src/ara/motor.ara`](src/ara/motor.ara).
 
-## Águila en un vistazo
+Al abrir un proyecto con scripts de Águila, Falcon ofrece pasarlo a Ara:
+- guarda una copia en `.falcon/copia-aguila-…`;
+- convierte cada `.agl` en un `.ara`;
+- deja en Águila, funcionando, lo que no sepa convertir, y lo explica en `CONVERSION_ARA.md`.
 
-```
-clase Jugador extiende Personaje2D:
-    exportar variable velocidad = 220
-    variable monedas = 0
+También está en **Juego › Convertir los scripts de Águila a Ara…**.
 
-    cuando se_actualiza(delta):
-        mover(eje("izquierda", "derecha") * velocidad)
-        si se_pulsa("saltar") y en_el_suelo():
-            saltar()
+### El núcleo del motor, en Ara
 
-    cuando toca(otro):
-        si otro.es("Moneda"):
-            monedas = monedas + 1
-            otro.eliminar()
-            si monedas >= 10:
-                ganar_partida()
-```
+Además de los scripts, partes del propio motor están escritas en Ara y compiladas a WebAssembly ([`src/motor/ara/`](src/motor/ara)):
+- la física 2D, con transformaciones, cajas y contactos;
+- los rayos de combate, visión y cobertura;
+- la búsqueda de caminos A*;
+- el compilador de Blueprints ([`src/motor/ara-blueprints/`](src/motor/ara-blueprints)).
 
-Bloques por sangría, `si / sino si / sino`, `mientras`, `para cada … en`, `repetir N veces`, `función`, `devolver`, clases, listas y diccionarios, y `esperar(segundos)` dentro de los eventos sin congelar el juego. `y` y `o` funcionan como operadores entre valores y como nombres normales (la coordenada `y`) en cualquier otro sitio.
+Las pruebas exigen que den exactamente el mismo resultado que el código de JavaScript al que sustituyen. Ara es además la referencia determinista: da lo mismo en todas las plataformas, cosa que `Math.sin` y `DOMMatrix` de los navegadores no garantizan.
+
+Medido en un Snapdragon X Plus con Node 26 ([`docs/BENCHMARKS.md`](docs/BENCHMARKS.md), metodología y cifras completas):
+
+| Qué | JavaScript / Águila | Ara | Ara es… |
+|---|---|---|---|
+| Bandada de 300 pájaros (lógica de script) | 59–69 ms/fotograma | 0,27–0,28 ms | 209–260× más rápido |
+| Shooter con 300 drones (sobre todo llamadas al motor) | 0,25–0,29 ms | 0,19–0,22 ms | 1,2–1,5× |
+| Física 2D, 200 personajes y 450 celdas de mosaico | 0,74 ms/paso | 0,19 ms | 3,9× |
+| Búsqueda de caminos A*, 20 cajas | 157 µs | 40 µs | 3,9× |
+
+### Sin Electron: el runtime nativo
+
+[`examples/native-2d/`](examples/native-2d/README.md) es un `.exe` de Windows hecho con Ara: ventana Win32, OpenGL y teclado. Corre el nivel de la plantilla **Plataformas** con:
+- la misma física que el motor;
+- los mismos scripts y Blueprints: el jugador, el enemigo que patrulla, las monedas, los pinchos y la meta.
+
+Una prueba compara ese `.exe` con Falcon paso a paso y exige el mismo resultado bit a bit. Un paso del nivel tarda 0,017 ms en el `.exe` y 0,060 ms en Falcon.
+
+![El nivel de plataformas corriendo en un ejecutable nativo de Ara](docs/img/nativo-2d.png)
+
+Todavía no tiene sprites, texto, audio ni el resto de la API del motor. Es el primer corte de la [fase 4 de la hoja de ruta](docs/REWRITE_ROADMAP.md).
+
+## Lumbre
+
+Lumbre es la **iluminación global**. Se activa en el nodo Entorno de una escena 3D.
+- **La luz rebota entre superficies en tiempo real**, mediante una rejilla de sondas calculada en la GPU.
+- **Cielo y reflejos:** el cielo ilumina, pero se tapa con techos y muros, y los metales reflejan la escena.
+- **Efectos:** hay oclusión ambiental (GTAO) y resplandor.
+- **Calidades:** Baja, Media, Alta y Ultra, más un modo Automático que reconoce la gráfica y baja de nivel si el juego va lento.
+
+Funciona con WebGL2; donde no se puede, vuelve sola a la iluminación clásica. El jugador la cambia con **F10**, los scripts con `calidad_grafica()`, y se puede desactivar para todo el proyecto en **Proyecto › Ajustes › Gráficos**.
+
+Incluye además:
+- espejos planos y curvos;
+- sombras de sol, bombillas y focos;
+- nodos **Volumen Lumbre** para salas cerradas;
+- exposición automática.
+
+Para gastar poco, solo recalcula la luz cerca de lo que cambia. Qué hace exactamente y dónde está comprobado: [`docs/GRAPHICS.md`](docs/GRAPHICS.md).
+
+**Controles 3D:** un Personaje3D puede usar tercera persona (cámara que orbita y choca con las paredes) o primera persona (vista desde los ojos, el cuerpo sigue dando sombra). Se mueve con inercia y el salto tiene altura variable. La tecla **V** cambia de vista.
+
+## Exportar y empaquetar
+
+**Para exportar tu juego**, abre **Proyecto › Exportar juego…** y elige Windows x64, Linux x64 o Linux ARM64. La primera exportación a otra plataforma descarga el motor de ejecución correspondiente, comprobando su suma SHA-256.
+
+**Para empaquetar el editor** desde el código:
+
+| Plataforma | Comando | Resultado |
+| --- | --- | --- |
+| Windows x64 | `npm run build:win` | `dist/Falcon Engine-win32-x64/` |
+| Linux x64 | `npm run build:linux` | `dist/Falcon Engine-linux-x64.tar.gz` |
+| Linux ARM64 | `npm run build:linux-arm` | `dist/Falcon Engine-linux-arm64.tar.gz` |
+
+En Linux, descomprime el paquete y abre `./falcon.sh`. Usa `--no-sandbox` solo si el sandbox de Chromium no está disponible.
+
+## Seguridad
+
+Un proyecto es un archivo que alguien te puede pasar, así que el editor lo trata como no fiable:
+- **Ventanas aisladas:** todas corren en sandbox y con una política de contenido sin scripts en línea.
+- **Datos validados:** los datos del proyecto se escapan antes de mostrarse y se validan al cargarse.
+- **Disco limitado:** el proceso principal solo deja leer y escribir en el proyecto abierto o en lo que elijas en un diálogo.
+- **Juego en solo lectura:** el juego no puede escribir en el disco.
+- **Permisos:** solo se conceden la captura del ratón y copiar al portapapeles.
+
+Auditoría, hallazgos corregidos y lo que sigue abierto: [`docs/SECURITY.md`](docs/SECURITY.md).
+
+## Actualizaciones y apoyo
+
+**Buscar actualizaciones**, junto a la versión del gestor, consulta las releases de GitHub usando SemVer:
+- muestra las notas reales agrupadas según Keep a Changelog;
+- tiene los canales Estable y Pruebas;
+- comprueba la suma de cada descarga antes de instalar.
+
+Los instaladores NSIS de Windows y AppImage de Linux admiten instalación al cerrar. Consulta [ACTUALIZACIONES.md](ACTUALIZACIONES.md) para publicar versiones.
+
+El gestor de proyectos incluye **Apoyar** con los niveles de Patreon. El pago se completa en Patreon, en el navegador. Estos controles no aparecen en el editor ni en los juegos exportados.
 
 ## Estructura
 
 ```
-src/ara         Ara: el compilador (WebAssembly), la API del motor (motor.ara) y el puente con el mundo del juego
-src/aguila      Lenguaje: léxico, sintaxis, intérprete, analizador y biblioteca
-src/motor       Tipos de nodo, Blueprints, proyecto, plantillas, mundo 2D/3D, render, física, audio, entrada
-src/editor      Editor: estado, acciones, paneles, visores y disposiciones de cada modo
-src/gestor      Gestor de proyectos
-src/juego       Ventana de prueba y reproductor de juegos exportados
-src/principal   Proceso principal de Electron, puente seguro y exportador
-pruebas         Pruebas de los lenguajes, de Ara en el motor, del conversor y del compilador de Blueprints (pruebas/aguila: scripts de Águila de la 1.2)
-herramientas    Empaquetado e iconos
+src/ara              Ara en Falcon: compilador (WebAssembly), API del motor (motor.ara) y puente con el juego
+src/motor            Tipos de nodo, proyecto, plantillas, mundo 2D/3D, render, audio, entrada
+src/motor/ara        Núcleo del motor en Ara: física 2D, rayos y A* (→ nucleo.wasm)
+src/motor/ara-blueprints  Compilador de Blueprints en Ara (→ blueprints.wasm)
+src/motor/nativo     API del motor escrita en Ara para el runtime nativo
+src/aguila           Águila: léxico, sintaxis, intérprete, analizador y biblioteca
+src/editor           Editor: estado, acciones, paneles, visores y disposiciones de cada modo
+src/gestor           Gestor de proyectos
+src/juego            Ventana de prueba y reproductor de juegos exportados
+src/principal        Proceso principal de Electron, preloads, protocolo falcon:// y exportador
+examples/native-2d   El nivel de plataformas en un .exe nativo de Ara
+pruebas              Pruebas del motor sin ventana (npm test)
+herramientas         Empaquetado, iconos y compilación y medida del núcleo en Ara
+docs                 Documentación (abajo)
 ```
 
 ## Formatos de archivo
@@ -227,6 +310,21 @@ herramientas    Empaquetado e iconos
 | `*.mat` | Material (grafo) o instancia de material |
 | `*.malla` | Malla: modelo o forma básica, materiales, colisión y física |
 | `.falcon/` | Ajustes de importación, sesión del editor y miniatura; en un juego exportado, los scripts de Ara compilados (`ara.wasm`, `ara.json`) |
+
+## Documentación
+
+| Documento | De qué trata |
+| --- | --- |
+| [REWRITE_ROADMAP](docs/REWRITE_ROADMAP.md) | Hoja de ruta de Falcon — Powered by Ara, estado real e informe de continuidad |
+| [ARCHITECTURE](docs/ARCHITECTURE.md) | Procesos, motor, núcleo en Ara y capa de plataforma |
+| [ARA_INTEGRATION](docs/ARA_INTEGRATION.md) | Cómo entra Ara: scripts, Blueprints, núcleo, actualización y runtime nativo |
+| [BLUEPRINTS](docs/BLUEPRINTS.md) | Del grafo al código Ara |
+| [GRAPHICS](docs/GRAPHICS.md) | Render 2D/3D y Lumbre, con lo comprobado en cada plataforma |
+| [MIGRATION](docs/MIGRATION.md) | Qué ha pasado de JavaScript a Ara y qué queda |
+| [TESTING](docs/TESTING.md) · [BENCHMARKS](docs/BENCHMARKS.md) | Pruebas y medidas reproducibles |
+| [PLATFORM_MATRIX](docs/PLATFORM_MATRIX.md) · [COMPATIBILITY](docs/COMPATIBILITY.md) | Plataformas comprobadas y compatibilidad de proyectos |
+| [SECURITY](docs/SECURITY.md) · [DEPENDENCIES](docs/DEPENDENCIES.md) | Auditoría de seguridad y dependencias |
+| [CHANGELOG](docs/CHANGELOG.md) · [CONTRIBUTING](docs/CONTRIBUTING.md) | Cambios y cómo contribuir |
 
 ## Licencia / License
 
@@ -244,4 +342,3 @@ redistribute or modify the engine or publish its source. Third-party licenses
 and valid earlier grants remain in effect.
 
 [Inventario de terceros](THIRD_PARTY_NOTICES.md) · [Aplicación y revisión de la licencia](LICENSING.md)
-

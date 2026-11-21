@@ -1,14 +1,21 @@
-# Falcon Engine nativo, primer corte (fase 4 de docs/REWRITE_ROADMAP.md): el nivel de la plantilla «plataformas» en un
-# .exe de Windows x64, sin Electron ni JavaScript. Ventana Win32 con la función de ventana en Ara, OpenGL 1.1,
-# teclado con GetAsyncKeyState y la física 2D del motor (src/motor/ara/fisica2d.ara, la misma que corre en wasm) a
-# paso fijo con QueryPerformanceCounter. Se compila con `node herramientas/escena-nativa-2d.mjs` (ver README.md).
+# Falcon Engine nativo (fase 4 de docs/REWRITE_ROADMAP.md): el nivel de la plantilla «plataformas» en un .exe de
+# Windows x64, sin Electron ni JavaScript, con los mismos scripts y Blueprints que en el editor. Este archivo solo pone
+# la ventana Win32 (con la función de ventana en Ara), el dibujo con OpenGL 1.1, el teclado (GetAsyncKeyState) y el
+# reloj (QueryPerformanceCounter, paso fijo de 1/60 s). El juego lo lleva el anfitrión del motor en Ara
+# (src/motor/nativo/anfitrion2d.ara: la API de motor.ara, la tabla de nodos, los eventos y la física del núcleo,
+# fisica2d.ara); los scripts y Blueprints del nivel son sus clases de Ara, que la escena generada crea y avisa.
+# Se compila con `node herramientas/escena-nativa-2d.mjs` (ver README.md).
 #
 # Modos (variables de entorno):
-#   FALCON_PASOS=N            sin ventana: N pasos con la entrada del guion; escribe el estado final (la prueba
-#                             pruebas/nativo-2d.test.js lo compara con la ruta wasm de Falcon, bit a bit).
-#   FALCON_CAPTURA=ruta.bmp   con ventana: juega el guion 150 pasos, guarda el fotograma (glReadPixels) y sale.
+#   FALCON_PASOS=N            sin ventana: N pasos con la entrada del guion; escribe el estado final (con
+#                             FALCON_TRAZA, tras cada paso: lo compara pruebas/nativo-2d.test.js con Falcon, bit a bit).
+#   FALCON_GUION=texto        el guion: una letra por paso, 'a' + 1 (derecha) + 2 (izquierda) + 4 (saltar); el último
+#                             se repite. Sin él, uno fijo (andar a la derecha y saltar de vez en cuando).
+#   FALCON_CAPTURA=ruta.bmp   con ventana: juega el guion 150 pasos (o FALCON_CAPTURA_PASOS), guarda el fotograma
+#                             (glReadPixels) y sale.
 importar nativo.bufer
 importar fisica2d
+importar anfitrion2d
 importar escena
 
 externa "kernel32.dll" func GetModuleHandleW(nombre: entero) -> entero
@@ -73,78 +80,55 @@ const TECLA_D = 68
 const TECLA_W = 87
 const ANCHO = 1280
 const ALTO = 720
-const DT = 1.0 / 60.0  # el paso fijo de la física
-const PASOS_CAPTURA = 150
+const PASOS_CAPTURA = 150  # sin FALCON_CAPTURA_PASOS
 
 global cerrada = falso
 
-# Un personaje (Personaje2D) y lo que su física guarda entre pasos (en Falcon, los campos de NodoVivo).
-estructura Personaje:
-    nodo: entero
-    usa_gravedad: booleano
-    gravedad: decimal
-    vy: decimal
-    emp_x: decimal
-    emp_y: decimal
-    en_suelo: booleano
-    nodo_suelo: entero
-
 func ventana_proc(ventana: entero, mensaje: entero, w: entero, l: entero) -> entero:
-    m = mensaje % 4294967296  # un UINT llega con la mitad alta sin definir
-    si m == WM_PAINT:
+    msg = mensaje % 4294967296  # un UINT llega con la mitad alta sin definir
+    si msg == WM_PAINT:
         ValidateRect(ventana, 0)
         devolver 0
-    si m == WM_CLOSE:
+    si msg == WM_CLOSE:
         DestroyWindow(ventana)
         devolver 0
-    si m == WM_DESTROY:
+    si msg == WM_DESTROY:
         cerrada = verdadero
         PostQuitMessage(0)
         devolver 0
-    devolver DefWindowProcW(ventana, m, w, l)
+    devolver DefWindowProcW(ventana, msg, w, l)
 
-# ---------- La entrada guionizada de la prueba (la misma regla que `guion` de herramientas/escena-nativa-2d.mjs) ----------
+# ---------- La entrada ----------
 
-func guion_dx(i: entero) -> decimal:
-    si (i // 120) % 4 == 3:
-        devolver -1.0
-    devolver 1.0
+# El guion en el paso `i` (como `accionesDelGuion` de herramientas/escena-nativa-2d.mjs): sin guion, andar a la
+# derecha (a la izquierda un rato de cada cuatro) y saltar cada 35 pasos.
+func guion_en(guion: texto, i: entero) -> entero:
+    si guion == "":
+        b = 1
+        si (i // 120) % 4 == 3:
+            b = 2
+        si i % 35 == 10:
+            b += 4
+        devolver b
+    letras = bytes(guion)
+    devolver letras[minimo(i, largo(letras) - 1)] - 97
 
-func guion_salta(i: entero) -> booleano:
-    devolver i % 35 == 10
-
-# ---------- Juego ----------
-
-func crear_personajes() -> lista[Personaje]:
-    r: lista[Personaje] = []
-    nodos = escena.personajes()
-    gravedades = escena.gravedades()
-    usan = escena.usan_gravedad()
-    para k en rango(largo(nodos)):
-        agregar(r, Personaje(nodos[k], usan[k], gravedades[k], 0.0, 0.0, 0.0, falso, SIN_NODO))
-    devolver r
-
-# Un paso del mundo: lo que hacen el Blueprint del jugador (andar con el eje, saltar si toca el suelo) y
-# `Mundo.fisica2dAra` + `contactos2d` de src/motor/mundo.js. Las plataformas del nivel no se mueven: arrastre 0.
-func paso(f: Fisica, ps: lista[Personaje], dx: decimal, salta: booleano):
-    para p en ps:
-        si p.nodo == escena.JUGADOR y salta y p.en_suelo:
-            p.vy = 0.0 - escena.SALTO
-            p.en_suelo = falso
-    f.preparar()
-    para p en ps:
-        mueve = 0.0
-        si p.nodo == escena.JUGADOR:
-            mueve = dx * escena.VELOCIDAD
-        f.mover(p.nodo, mueve, 0.0, p.emp_x, p.emp_y, p.vy, p.usa_gravedad, p.gravedad, DT, escena.AMORT, 0.0, 0.0)
-        p.emp_x = f.emp_x
-        si p.usa_gravedad:
-            p.vy = f.vy
-        sino:
-            p.emp_y = f.emp_y
-        p.en_suelo = f.en_suelo
-        p.nodo_suelo = f.nodo_suelo
-    f.pares()
+# Pone en el anfitrión las acciones de este paso (`b`: 1 derecha, 2 izquierda, 4 saltar) y lo que se acaba de pulsar
+# o soltar respecto a las de antes, en el orden de las acciones del proyecto.
+func entrada(b: entero):
+    ahora: lista[texto] = []
+    para k en rango(3):
+        si b // [2, 1, 4][k] % 2 == 1:
+            agregar(ahora, ["izquierda", "derecha", "saltar"][k])
+    antes = mundo.mantenidas
+    mundo.pulsadas = []
+    mundo.soltadas = []
+    para a en ["izquierda", "derecha", "saltar"]:
+        si contiene(ahora, a) y no contiene(antes, a):
+            agregar(mundo.pulsadas, a)
+        si contiene(antes, a) y no contiene(ahora, a):
+            agregar(mundo.soltadas, a)
+    mundo.mantenidas = ahora
 
 # Un decimal con 17 cifras: basta para leerlo de vuelta exacto (la prueba compara bit a bit).
 func cifras(b: Bufer, x: decimal) -> texto:
@@ -160,10 +144,15 @@ func cifras(b: Bufer, x: decimal) -> texto:
 # Una variable de entorno (vacío si no está).
 func variable(b: Bufer, nombre: texto) -> texto:
     poner_texto_ancho(b, 0, nombre)
-    n = GetEnvironmentVariableW(direccion(b, 0), direccion(b, 256), 256)
+    n = GetEnvironmentVariableW(direccion(b, 0), 0, 0)  # lo que ocupa, con el 0 del final (0 si no está)
+    si n == 0:
+        devolver ""
+    v = bufer(2 * n)
+    n = GetEnvironmentVariableW(direccion(b, 0), direccion(v, 0), n)
     letras: lista[entero] = []
     para k en rango(n):
-        agregar(letras, leer_u16(b, 256 + 2 * k))
+        agregar(letras, leer_u16(v, 2 * k))
+    soltar_bufer(v)
     devolver texto_de_bytes(letras, 0, largo(letras))
 
 func segundos(b: Bufer, frecuencia: entero) -> decimal:
@@ -176,34 +165,41 @@ func pulsada(tecla: entero) -> booleano:
 func color(c: entero):
     glColor3d(decimal(c // 65536) / 255.0, decimal(c // 256 % 256) / 255.0, decimal(c % 256) / 255.0)
 
-# Rectángulos de color: el fondo, las celdas de los mosaicos y las cajas de todo lo que tiene caja, con la cámara
-# siguiendo al jugador dentro del nivel.
-func dibujar(f: Fisica, colores: lista[entero], cm: lista[entero], cc: lista[entero], cf: lista[entero]):
-    f.caja(escena.JUGADOR)
-    cx = minimo(maximo(f.kx - ANCHO / 2.0, 0.0), escena.ANCHO_NIVEL - ANCHO)
+# Rectángulos de color: el fondo, las celdas de los mosaicos y las cajas de los nodos vivos que tienen caja, con la
+# cámara siguiendo al jugador dentro del nivel.
+func dibujar():
+    jugador = nodo("Jugador")
+    cx = 0.0
+    si jugador.existe():
+        caja_de(entero(jugador))
+        cx = minimo(maximo(fis.kx - ANCHO / 2.0, 0.0), escena.ANCHO_NIVEL - ANCHO)
     glMatrixMode(GL_PROJECTION)
     glLoadIdentity()
     glOrtho(cx, cx + ANCHO, decimal(ALTO), 0.0, -1.0, 1.0)
     glClear(GL_COLOR_BUFFER_BIT)
-    para k en rango(largo(cm)):
-        m = cm[k]
-        f.caja(m)
-        t = f.cw[m]
-        x = f.me + decimal(cc[k]) * t
-        y_ = f.mf + decimal(cf[k]) * t
-        color(colores[m])
-        glRectd(x, y_, x + t, y_ + t)
-        color(escena.BORDE_MOSAICO)
-        glRectd(x, y_, x + t, y_ + 4.0)
-    para i en rango(f.nn):
-        si colores[i] >= 0 y f.tsol[i] != 3 y f.ctipo[i] != 0 y i != escena.JUGADOR:
-            caja(f, i, colores[i])
-    caja(f, escena.JUGADOR, colores[escena.JUGADOR])  # el jugador, delante de todo
+    vivos: lista[entero] = []
+    recorrer(mundo.raiz, vivos)
+    para h en vivos:
+        si mundo.solido[h] == 3:
+            caja_de(h)
+            t = mundo.cw[h]
+            para k en rango(largo(mundo.celdas_c[h])):
+                x = fis.me + decimal(mundo.celdas_c[h][k]) * t
+                y_ = fis.mf + decimal(mundo.celdas_f[h][k]) * t
+                color(mundo.color[h])
+                glRectd(x, y_, x + t, y_ + t)
+                color(escena.BORDE_MOSAICO)
+                glRectd(x, y_, x + t, y_ + 4.0)
+    para h en vivos:
+        si mundo.color[h] >= 0 y mundo.solido[h] != 3 y mundo.ctipo[h] != 0 y mundo.nombre[h] != "Jugador":
+            caja(h, mundo.color[h])
+    si jugador.existe():
+        caja(entero(jugador), mundo.color[entero(jugador)])  # el jugador, delante de todo
 
-func caja(f: Fisica, i: entero, c: entero):
-    f.caja(i)
+func caja(h: entero, c: entero):
+    caja_de(h)
     color(c)
-    glRectd(f.kx - f.kw / 2.0, f.ky - f.kh / 2.0, f.kx + f.kw / 2.0, f.ky + f.kh / 2.0)
+    glRectd(fis.kx - fis.kw / 2.0, fis.ky - fis.kh / 2.0, fis.kx + fis.kw / 2.0, fis.ky + fis.kh / 2.0)
 
 # El fotograma (BGRA, de abajo arriba) a un BMP de 32 bits.
 func guardar_bmp(ruta: texto):
@@ -228,15 +224,37 @@ func guardar_bmp(ruta: texto):
 
 # ---------- Programa ----------
 
+# El estado tras un paso (el formato que lee `leerEstadoNativo` de herramientas/escena-nativa-2d.mjs): los personajes y
+# los pares que se tocan, por su posición entre los nodos vivos, y los puntos, el estado de la partida y cuántos nodos
+# quedan.
+func escribir_estado(t: Bufer, i: entero):
+    imprimir("paso {i}")
+    vivos: lista[entero] = []
+    recorrer(mundo.raiz, vivos)
+    para h en vivos:
+        si mundo.tipo[h] == "Personaje2D":
+            imprimir("personaje {posicion_en(vivos, h)} {cifras(t, mundo.px[h])} {cifras(t, mundo.py[h])} {cifras(t, mundo.vy[h])} {cifras(t, mundo.emp_x[h])} {cifras(t, mundo.emp_y[h])} {mundo.en_suelo[h]} {posicion_en(vivos, mundo.nodo_suelo[h])}")
+    para k en rango(largo(mundo.pares_a)):
+        imprimir("par {posicion_en(vivos, mundo.pares_a[k])} {posicion_en(vivos, mundo.pares_b[k])}")
+    imprimir("juego {mundo.puntos} {mundo.estado} {largo(vivos)}")
+
+func posicion_en(l: lista[entero], h: entero) -> entero:
+    para k en rango(largo(l)):
+        si l[k] == h:
+            devolver k
+    devolver -1
+
 b = bufer(4096)  # las estructuras de la ventana
 t = bufer(1024)  # lo de las funciones de arriba (entorno, tiempo, cifras)
-f = Fisica()
-escena.cargar(f)
-ps = crear_personajes()
+cargar_escena()
 QueryPerformanceFrequency(direccion(t, 0))
 frecuencia = leer_i64(t, 0)
 pasos = variable(t, "FALCON_PASOS")
 captura = variable(t, "FALCON_CAPTURA")
+guion = variable(t, "FALCON_GUION")
+pasos_captura = PASOS_CAPTURA
+si variable(t, "FALCON_CAPTURA_PASOS") != "":
+    pasos_captura = entero(variable(t, "FALCON_CAPTURA_PASOS"))
 
 si pasos != "":
     # Sin ventana: el guion, y el estado en texto (con FALCON_TRAZA, tras cada paso; si no, solo al final).
@@ -244,13 +262,10 @@ si pasos != "":
     traza = variable(t, "FALCON_TRAZA") != ""
     t0 = segundos(t, frecuencia)
     para i en rango(n):
-        paso(f, ps, guion_dx(i), guion_salta(i))
+        entrada(guion_en(guion, i))
+        paso()
         si traza o i == n - 1:
-            imprimir("paso {i}")
-            para p en ps:
-                imprimir("personaje {p.nodo} {cifras(t, f.px[p.nodo])} {cifras(t, f.py[p.nodo])} {cifras(t, p.vy)} {cifras(t, p.emp_x)} {cifras(t, p.emp_y)} {p.en_suelo} {p.nodo_suelo}")
-            para k en rango(f.npar):
-                imprimir("par {f.pa[k]} {f.pb[k]}")
+            escribir_estado(t, i)
     ms = (segundos(t, frecuencia) - t0) * 1000.0 / decimal(maximo(n, 1))
     imprimir("ms_por_paso {ms}")
 sino:
@@ -283,10 +298,6 @@ sino:
     glViewport(0, 0, ANCHO, ALTO)
     fondo = escena.FONDO
     glClearColor(decimal(fondo // 65536) / 255.0, decimal(fondo // 256 % 256) / 255.0, decimal(fondo % 256) / 255.0, 1)
-    colores = escena.colores()
-    cm = escena.celdas_mosaico()
-    cc = escena.celdas_c()
-    cf = escena.celdas_f()
 
     # Bucle: mensajes, física a paso fijo con el tiempo real (hasta 5 pasos por fotograma) y un fotograma.
     antes = segundos(t, frecuencia)
@@ -294,7 +305,6 @@ sino:
     acumulado = 0.0
     hechos = 0
     fotogramas = 0
-    saltar_antes = falso
     mientras no cerrada:
         mientras PeekMessageW(direccion(b, 1024), 0, 0, 0, PM_REMOVE):
             TranslateMessage(direccion(b, 1024))
@@ -302,24 +312,25 @@ sino:
         si cerrada:
             romper
         ahora_s = segundos(t, frecuencia)
-        acumulado = minimo(acumulado + ahora_s - antes, 5.0 * DT)
+        acumulado = minimo(acumulado + ahora_s - antes, 5.0 * escena.DT)
         antes = ahora_s
-        mientras acumulado >= DT:
-            acumulado -= DT
+        mientras acumulado >= escena.DT:
+            acumulado -= escena.DT
             si captura != "":
-                paso(f, ps, guion_dx(hechos), guion_salta(hechos))
+                entrada(guion_en(guion, hechos))
             sino:
-                dx = 0.0
+                teclas = 0
                 si pulsada(VK_RIGHT) o pulsada(TECLA_D):
-                    dx += 1.0
+                    teclas += 1
                 si pulsada(VK_LEFT) o pulsada(TECLA_A):
-                    dx -= 1.0
-                saltar = pulsada(VK_SPACE) o pulsada(VK_UP) o pulsada(TECLA_W)
-                paso(f, ps, dx, saltar y no saltar_antes)  # como `se_pulsa`: solo al pulsar
-                saltar_antes = saltar
+                    teclas += 2
+                si pulsada(VK_SPACE) o pulsada(VK_UP) o pulsada(TECLA_W):
+                    teclas += 4
+                entrada(teclas)
+            paso()
             hechos += 1
-        dibujar(f, colores, cm, cc, cf)
-        si captura != "" y hechos >= PASOS_CAPTURA:
+        dibujar()
+        si captura != "" y hechos >= pasos_captura:
             guardar_bmp(captura)
             PostMessageW(ventana, WM_CLOSE, 0, 0)
         SwapBuffers(dc)
@@ -329,6 +340,6 @@ sino:
     duracion = segundos(t, frecuencia) - inicio
     wglMakeCurrent(0, 0)
     wglDeleteContext(contexto)
-    imprimir("fotogramas {fotogramas}, pasos {hechos}, {decimal(fotogramas) / maximo(duracion, 0.001)} fps")
+    imprimir("fotogramas {fotogramas}, pasos {hechos}, {decimal(fotogramas) / maximo(duracion, 0.001)} fps, puntos {mundo.puntos}, estado {mundo.estado}")
 soltar_bufer(b)
 soltar_bufer(t)

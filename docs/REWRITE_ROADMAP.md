@@ -180,7 +180,31 @@ Reglas de la frontera:
   - **Pendiente:**
     - sprites, texturas y texto;
     - audio;
-    - scripts y Blueprints en nativo: hoy el `.exe` repite a mano lo que hace el Blueprint del jugador (andar y saltar);
+    - ~~scripts y Blueprints en nativo~~: hecho en el segundo corte (abajo);
     - plataformas móviles (arrastre);
     - leer escenas sin recompilar;
     - Linux y ARM64 nativos (no hay FFI de Ara para ellos).
+- Fase 4, segundo corte: scripts y Blueprints en el `.exe` nativo, con el mismo código de juego que en Falcon.
+  - **Ara** (`motor-ara`, `fced30d`; `docs/NATIVO.md`, «Un anfitrión escrito en Ara»). Son mejoras generales para cualquier programa con un anfitrión escrito en Ara:
+    - `externa func f(...):` con cuerpo implementa una externa ya declarada (métodos, propiedades con lectura y escritura, y `esperar`), y no se importa;
+    - `entero(nodo)` y `Nodo(n)` pasan entre un objeto del anfitrión y su manejador;
+    - `Clase(yo)` crea un objeto de una clase de script, y `avisar(objeto, "evento", ...)` ejecuta sus `cuando`;
+    - en `nativo`, un error en una función que llama una DLL acaba el programa con su mensaje, también desde una fibra;
+    - los dos compiladores (Rust y Ara) sacan el mismo árbol, HIR, errores y wasm;
+    - batería: 233/233, con los puntos fijos.
+  - **Falcon:**
+    - `src/motor/nativo/anfitrion2d.ara`: el anfitrión. Tiene la tabla de nodos, la API que usa el nivel sobre `fisica2d.ara`, el paso en el orden de `Mundo.paso` y `ProgramaAra`, y `esperar` con fibras de Windows;
+    - `herramientas/escena-nativa-2d.mjs` genera la escena: los nodos, y el reparto de eventos a las clases de cada nodo;
+    - `juego.ara` ya no repite el Blueprint: carga la escena, pone la entrada y llama al paso.
+  - **Prueba** `pruebas/nativo-2d.test.js`. Falcon (wasm, con los Blueprints y scripts reales) y el `.exe`, bit a bit en cada paso: personajes, pares que se tocan, puntos, estado y nodos.
+    - Guion de 1000 pasos: recoge monedas, muere en los pinchos (empujón, `esperar(0.4)` y reinicio) y gana en la meta en el paso 928 con 4 puntos.
+    - Segundo caso: el enemigo patrullando, 300 pasos.
+    - Lo que se vio al probar: en la plantilla, la caja del enemigo entra 4 px en el suelo, y el primer paso lo empuja al hueco de las columnas 44-45. Pasa igual en Falcon (con el núcleo y con JS) y en el `.exe`. La prueba lo apoya en el suelo para ver la patrulla. Está en `plantillas.js`, que no toca este corte.
+  - **Cifras** (este equipo, `.exe` x64 emulado): paso del nivel con scripts, `.exe` 0,017 ms y Falcon (wasm + JS) 0,060 ms.
+  - **Captura:** `docs/img/nativo-2d.png` (paso 560 del guion de la prueba).
+  - `npm test`: 91/91, salida 0.
+  - **Pendiente:**
+    - el resto de `motor.ara`: 3D, `crear`, `grupo`, `llamar` y `leer_*`;
+    - los valores del Inspector y las Señales;
+    - audio y temblor de cámara (hoy no hacen nada);
+    - un error de script cierra el `.exe`; en Falcon desactiva ese `cuando` y el juego sigue.

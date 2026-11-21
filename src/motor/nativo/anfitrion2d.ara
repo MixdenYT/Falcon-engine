@@ -1,0 +1,718 @@
+# El anfitrión 2D de Falcon Engine escrito en Ara: el mundo del juego para un ejecutable nativo (fase 4 de
+# docs/REWRITE_ROADMAP.md). Implementa en Ara, con `externa func ...:` y su cuerpo, la parte de la API de
+# src/ara/motor.ara que usan los scripts y Blueprints de un juego 2D de plataformas, sobre una tabla de nodos y la
+# física del núcleo (fisica2d.ara). Hace lo mismo que `Mundo` (src/motor/mundo.js) con `ProgramaAra`
+# (src/ara/puente.js): el mismo orden de eventos, de física y de contactos, para que el juego dé lo mismo, paso a paso.
+#
+# - Los nodos son manejadores (`Nodo(h)`, `entero(nodo)`): índices de la tabla, que nunca se reutilizan (al
+#   reiniciar el nivel se añaden nodos nuevos). El 0 es «ningún nodo».
+# - Los scripts los crea y los avisa la escena generada (`escena.ara`, ver herramientas/escena-nativa-2d.mjs) con
+#   `Clase(yo)` y `avisar(objeto, "evento", ...)`.
+# - `esperar` pausa un evento: cada evento corre en una fibra de Windows (CreateFiber / SwitchToFiber) y `esperar`
+#   vuelve a la principal; la fibra sigue cuando pasa ese tiempo de juego, como las promesas de `ProgramaAra`.
+# - Lo que no implementa no compila a nativo: `nativo` dice qué externa falta.
+importar fisica2d
+importar motor
+importar escena
+
+externa "kernel32.dll" func ConvertThreadToFiber(dato: entero) -> entero
+externa "kernel32.dll" func CreateFiber(pila: entero, inicio: entero, dato: entero) -> entero
+externa "kernel32.dll" func SwitchToFiber(fibra: entero)
+externa "kernel32.dll" func ExitProcess(codigo: u32)
+
+const EV_EMPIEZA = 0
+const EV_ACTUALIZA = 1
+const EV_TOCA = 2
+const EV_DEJA = 3
+const EV_PULSA = 4
+const EV_SUELTA = 5
+const EV_ELIMINA = 6
+const JUGANDO = 0
+const GANADO = 1
+const PERDIDO = 2
+
+# La tabla de nodos (por manejador) y el estado del juego.
+estructura Mundo2D:
+    nombre: lista[texto]
+    # El nombre como lo compara `nodo()`, `hijo()` y `es()` (sin tildes ni mayúsculas), y sin el número del final.
+    nombre_normal: lista[texto]
+    nombre_sin_numero: lista[texto]
+    tipo: lista[texto]
+    tipo_visible: lista[texto]
+    grupos: lista[lista[texto]]
+    padre: lista[entero]
+    hijos: lista[lista[entero]]
+    eliminado: lista[booleano]
+    # Lo que `sincronizarAra` manda al núcleo (props.posicion, rotación, escala y caja).
+    px: lista[decimal]
+    py: lista[decimal]
+    sin_matriz: lista[booleano]
+    grados: lista[decimal]
+    esc: lista[booleano]
+    sx: lista[decimal]
+    sy: lista[decimal]
+    ctipo: lista[entero]
+    cox: lista[decimal]
+    coy: lista[decimal]
+    cw: lista[decimal]
+    ch: lista[decimal]
+    solido: lista[entero]
+    papel: lista[entero]
+    celdas_c: lista[lista[entero]]
+    celdas_f: lista[lista[entero]]
+    # Personajes (los campos de NodoVivo).
+    usa_gravedad: lista[booleano]
+    gravedad: lista[decimal]
+    salto: lista[decimal]
+    mueve_x: lista[decimal]
+    mueve_y: lista[decimal]
+    emp_x: lista[decimal]
+    emp_y: lista[decimal]
+    vy: lista[decimal]
+    en_suelo: lista[booleano]
+    en_pared: lista[booleano]
+    en_techo: lista[booleano]
+    nodo_suelo: lista[entero]
+    contactos: lista[lista[entero]]
+    # Lo que cambian los scripts y se dibuja.
+    voltear_h: lista[booleano]
+    texto: lista[texto]
+    color: lista[entero]
+    # Los scripts de cada nodo: su clase (de la escena) y su objeto.
+    script_clase: lista[lista[entero]]
+    script_objeto: lista[lista[entero]]
+    # La escena actual: su raíz, los nodos vivos en el orden de `todos()` (del último `sincronizar`) y la ranura de
+    # cada uno en el núcleo.
+    raiz: entero
+    vivos: lista[entero]
+    ranura: lista[entero]
+    # Juego.
+    puntos: entero
+    puntos_iniciales: entero
+    estado: entero
+    reiniciar: booleano
+    tiempo: decimal
+    pares_a: lista[entero]
+    pares_b: lista[entero]
+    cola_eliminar: lista[entero]
+    # Entrada: lo que se mantiene y lo que se acaba de pulsar o soltar en este paso.
+    mantenidas: lista[texto]
+    pulsadas: lista[texto]
+    soltadas: lista[texto]
+
+    func crear(este):
+        este.nuevo("", "", "", 0)  # el manejador 0: ningún nodo
+        este.eliminado[0] = verdadero
+
+    # Un nodo nuevo, hijo de `padre` (0 si es la raíz). Devuelve su manejador.
+    func nuevo(este, nombre: texto, tipo: texto, tipo_visible: texto, padre: entero) -> entero:
+        h = largo(este.nombre)
+        agregar(este.nombre, nombre)
+        agregar(este.nombre_normal, normal(nombre))
+        agregar(este.nombre_sin_numero, normal(sin_numero(nombre)))
+        agregar(este.tipo, tipo)
+        agregar(este.tipo_visible, tipo_visible)
+        agregar(este.grupos, [])
+        agregar(este.padre, padre)
+        agregar(este.hijos, [])
+        agregar(este.eliminado, falso)
+        agregar(este.px, 0.0)
+        agregar(este.py, 0.0)
+        agregar(este.sin_matriz, falso)
+        agregar(este.grados, 0.0)
+        agregar(este.esc, falso)
+        agregar(este.sx, 1.0)
+        agregar(este.sy, 1.0)
+        agregar(este.ctipo, 0)
+        agregar(este.cox, 0.0)
+        agregar(este.coy, 0.0)
+        agregar(este.cw, 0.0)
+        agregar(este.ch, 0.0)
+        agregar(este.solido, 0)
+        agregar(este.papel, 0)
+        agregar(este.celdas_c, [])
+        agregar(este.celdas_f, [])
+        agregar(este.usa_gravedad, falso)
+        agregar(este.gravedad, 1200.0)
+        agregar(este.salto, 0.0)
+        agregar(este.mueve_x, 0.0)
+        agregar(este.mueve_y, 0.0)
+        agregar(este.emp_x, 0.0)
+        agregar(este.emp_y, 0.0)
+        agregar(este.vy, 0.0)
+        agregar(este.en_suelo, falso)
+        agregar(este.en_pared, falso)
+        agregar(este.en_techo, falso)
+        agregar(este.nodo_suelo, 0)
+        agregar(este.contactos, [])
+        agregar(este.voltear_h, falso)
+        agregar(este.texto, "")
+        agregar(este.color, -1)
+        agregar(este.script_clase, [])
+        agregar(este.script_objeto, [])
+        agregar(este.ranura, -1)
+        si padre > 0:
+            agregar(este.hijos[padre], h)
+        sino si h > 0:
+            este.raiz = h
+        devolver h
+
+    # Lo que `sincronizarAra` manda al núcleo de este nodo (menos el padre, que es `padre`).
+    func fisica(este, h: entero, sin_matriz: booleano, x: decimal, y_: decimal, grados: decimal, esc: booleano, sx: decimal, sy: decimal, ctipo: entero, ox: decimal, oy: decimal, w: decimal, alto: decimal, solido: entero, papel: entero):
+        este.sin_matriz[h] = sin_matriz
+        este.px[h] = x
+        este.py[h] = y_
+        este.grados[h] = grados
+        este.esc[h] = esc
+        este.sx[h] = sx
+        este.sy[h] = sy
+        este.ctipo[h] = ctipo
+        este.cox[h] = ox
+        este.coy[h] = oy
+        este.cw[h] = w
+        este.ch[h] = alto
+        este.solido[h] = solido
+        este.papel[h] = papel
+
+    func personaje(este, h: entero, usa_gravedad: booleano, gravedad: decimal, salto: decimal):
+        este.usa_gravedad[h] = usa_gravedad
+        este.gravedad[h] = gravedad
+        este.salto[h] = salto
+
+global mundo = Mundo2D()
+global fis = Fisica()
+
+# ---------- Nodos ----------
+
+# `todos()`: los nodos vivos, en orden (cada uno antes que sus hijos).
+func recorrer(h: entero, salida: lista[entero]):
+    si mundo.eliminado[h]:
+        devolver
+    agregar(salida, h)
+    para k en mundo.hijos[h]:
+        recorrer(k, salida)
+
+# El nodo `h`, que tiene que existir; si no, el programa acaba con el error (en Falcon, ese evento deja de ejecutarse).
+func vivo(h: entero, que: texto) -> entero:
+    si h <= 0 o h >= largo(mundo.eliminado) o mundo.eliminado[h]:
+        imprimir("error: no hay ningún nodo para usar «{que}» (puede que se haya eliminado o que «nodo(...)» no lo encontrara)")
+        ExitProcess(1)
+    devolver h
+
+# Los nombres se comparan sin tildes ni mayúsculas, como `norm` de mundo.js.
+func normal(s: texto) -> texto:
+    t = minusculas(s)
+    para par en [["á", "a"], ["é", "e"], ["í", "i"], ["ó", "o"], ["ú", "u"], ["ü", "u"], ["ñ", "n"], ["Á", "a"], ["É", "e"], ["Í", "i"], ["Ó", "o"], ["Ú", "u"], ["Ñ", "n"]]:
+        t = reemplazar(t, par[0], par[1])
+    devolver t
+
+# `sinNumero`: sin las cifras finales (y los espacios de delante): «Moneda 3» y «Plataforma2» valen por su tipo.
+func sin_numero(s: texto) -> texto:
+    b = bytes(s)
+    n = largo(b)
+    mientras n > 0 y b[n - 1] >= 48 y b[n - 1] <= 57:
+        n -= 1
+    si n == largo(b):
+        devolver s
+    mientras n > 0 y (b[n - 1] == 32 o b[n - 1] == 9):
+        n -= 1
+    devolver texto_de_bytes(b, 0, n)
+
+# `buscarPorNombre`: el primero en orden con ese nombre, o 0.
+func buscar(nombre: texto) -> entero:
+    n = normal(nombre)
+    todos: lista[entero] = []
+    recorrer(mundo.raiz, todos)
+    para h en todos:
+        si mundo.nombre_normal[h] == n:
+            devolver h
+    devolver 0
+
+# `NodoVivo.hijo`: primero los hijos directos y luego, por orden, los de cada uno.
+func hijo_llamado(h: entero, n: texto) -> entero:
+    para k en mundo.hijos[h]:
+        si no mundo.eliminado[k] y mundo.nombre_normal[k] == n:
+            devolver k
+    para k en mundo.hijos[h]:
+        r = hijo_llamado(k, n)
+        si r > 0:
+            devolver r
+    devolver 0
+
+# La posición en el mundo (`Mundo.posicion`): la matriz de los antepasados por la posición local. Usa las matrices del
+# último `sincronizar`, como `caja`.
+func mundo_x(h: entero) -> decimal:
+    fis.matriz_padre(mundo.ranura[h])
+    devolver fis.ma * mundo.px[h] + fis.mc * mundo.py[h] + fis.me
+
+func mundo_y(h: entero) -> decimal:
+    fis.matriz_padre(mundo.ranura[h])
+    devolver fis.mb * mundo.px[h] + fis.md * mundo.py[h] + fis.mf
+
+# ---------- La API del motor (src/ara/motor.ara) ----------
+
+externa func Nodo.existe(este) -> booleano:
+    h = entero(este)
+    devolver h > 0 y h < largo(mundo.eliminado) y no mundo.eliminado[h]
+
+externa func Nodo.es(este, que: texto) -> booleano:
+    h = vivo(entero(este), "es")
+    n = normal(que)
+    si mundo.nombre_normal[h] == n o mundo.nombre_sin_numero[h] == n:
+        devolver verdadero
+    si normal(mundo.tipo[h]) == n o normal(mundo.tipo_visible[h]) == n:
+        devolver verdadero
+    para g en mundo.grupos[h]:
+        si normal(g) == n:
+            devolver verdadero
+    para c en mundo.script_clase[h]:
+        si normal(escena.nombre_clase(c)) == n:
+            devolver verdadero
+    devolver falso
+
+externa func Nodo.eliminar(este):
+    h = vivo(entero(este), "eliminar")
+    marcar_eliminado(h)
+    agregar(mundo.cola_eliminar, h)
+
+func marcar_eliminado(h: entero):
+    mundo.eliminado[h] = verdadero
+    para k en mundo.hijos[h]:
+        marcar_eliminado(k)
+
+externa func Nodo.hijo(este, nombre: texto) -> Nodo:
+    devolver Nodo(hijo_llamado(vivo(entero(este), "hijo"), normal(nombre)))
+
+externa func Nodo.en_grupo(este, grupo: texto) -> booleano:
+    devolver contiene(mundo.grupos[vivo(entero(este), "en_grupo")], grupo)
+
+externa func Nodo.nombre(este) -> texto:
+    devolver mundo.nombre[vivo(entero(este), "nombre")]
+
+externa func Nodo.x(este) -> decimal:
+    devolver mundo_x(vivo(entero(este), "x"))
+
+externa func Nodo.y(este) -> decimal:
+    devolver mundo_y(vivo(entero(este), "y"))
+
+externa func Nodo.voltear_h(este) -> booleano:
+    devolver mundo.voltear_h[vivo(entero(este), "voltear_h")]
+
+externa func Nodo.voltear_h(este, valor: booleano):
+    mundo.voltear_h[vivo(entero(este), "voltear_h")] = valor
+
+externa func Nodo.texto(este) -> texto:
+    devolver mundo.texto[vivo(entero(este), "texto")]
+
+externa func Nodo.texto(este, valor: texto):
+    mundo.texto[vivo(entero(este), "texto")] = valor
+
+# Personajes (`metodos()` de NodoVivo).
+externa func Nodo.mover(este, velocidad_x: decimal):
+    mundo.mueve_x[vivo(entero(este), "mover")] = velocidad_x
+
+externa func Nodo.mover(este, velocidad_x: decimal, velocidad_y: decimal):
+    h = vivo(entero(este), "mover")
+    mundo.mueve_x[h] = velocidad_x
+    mundo.mueve_y[h] = velocidad_y
+
+externa func Nodo.saltar(este):
+    h = vivo(entero(este), "saltar")
+    mundo.vy[h] = 0.0 - mundo.salto[h]
+    mundo.en_suelo[h] = falso
+
+externa func Nodo.saltar(este, fuerza: decimal):
+    h = vivo(entero(este), "saltar")
+    mundo.vy[h] = 0.0 - fuerza
+    mundo.en_suelo[h] = falso
+
+externa func Nodo.en_el_suelo(este) -> booleano:
+    devolver mundo.en_suelo[vivo(entero(este), "en_el_suelo")]
+
+externa func Nodo.en_pared(este) -> booleano:
+    devolver mundo.en_pared[vivo(entero(este), "en_pared")]
+
+externa func Nodo.en_techo(este) -> booleano:
+    devolver mundo.en_techo[vivo(entero(este), "en_techo")]
+
+externa func Nodo.empujar(este, x: decimal):
+    empujar_nodo(vivo(entero(este), "empujar"), x, 0.0)
+
+externa func Nodo.empujar(este, x: decimal, y_: decimal):
+    empujar_nodo(vivo(entero(este), "empujar"), x, y_)
+
+func empujar_nodo(h: entero, x: decimal, y_: decimal):
+    mundo.emp_x[h] = x
+    si mundo.usa_gravedad[h]:
+        mundo.vy[h] = y_
+    sino:
+        mundo.emp_y[h] = y_
+    mundo.en_suelo[h] = falso
+
+# Entrada (las acciones de Proyecto › Controles).
+externa func se_pulsa(accion: texto) -> booleano:
+    devolver contiene(mundo.pulsadas, accion)
+
+externa func se_mantiene(accion: texto) -> booleano:
+    devolver contiene(mundo.mantenidas, accion)
+
+externa func se_suelta(accion: texto) -> booleano:
+    devolver contiene(mundo.soltadas, accion)
+
+externa func eje(negativa: texto, positiva: texto) -> decimal:
+    r = 0.0
+    si contiene(mundo.mantenidas, positiva):
+        r += 1.0
+    si contiene(mundo.mantenidas, negativa):
+        r -= 1.0
+    devolver r
+
+# Escena y juego.
+externa func nodo(nombre: texto) -> Nodo:
+    devolver Nodo(buscar(nombre))
+
+externa func ganar_partida():
+    terminar(GANADO)
+
+externa func perder_partida():
+    terminar(PERDIDO)
+
+func terminar(estado: entero):
+    si mundo.estado == JUGANDO:
+        mundo.estado = estado
+
+externa func ganar_puntos():
+    mundo.puntos += 1
+
+externa func ganar_puntos(cantidad: entero):
+    mundo.puntos += cantidad
+
+externa func puntos() -> entero:
+    devolver mundo.puntos
+
+externa func poner_puntos(cantidad: entero):
+    mundo.puntos = cantidad
+
+externa func reiniciar_nivel():
+    mundo.reiniciar = verdadero
+
+externa func tiempo() -> decimal:
+    devolver mundo.tiempo
+
+# Sin audio ni temblor de cámara todavía: no hacen nada (no cambian el estado del juego).
+externa func sonar(sonido: texto):
+    pasar
+
+externa func sonar(sonido: texto, volumen: decimal):
+    pasar
+
+externa func musica(nombre: texto):
+    pasar
+
+externa func musica(nombre: texto, volumen: decimal):
+    pasar
+
+externa func parar_musica():
+    pasar
+
+externa func temblar_camara():
+    pasar
+
+externa func temblar_camara(fuerza: decimal, segundos: decimal):
+    pasar
+
+# ---------- Eventos en fibras: `esperar` ----------
+#
+# Cada evento corre en una fibra de trabajo. Si acaba, la fibra vuelve a la lista de libres; si llama a `esperar`, se
+# apunta con su hora de fin (tiempo de juego, el de `ProgramaAra.tiempo`) y vuelve a la principal. `actualizar`
+# saca las que ya terminaron de esperar y el paso las reanuda al final, como las promesas de JSPI.
+
+global fibra_principal = 0
+global fibra_actual = 0
+global fibras_libres: lista[entero] = []
+global fibra_acabo = falso
+global tiempo_ara = 0.0
+global esperan: lista[entero] = []
+global esperan_fin: lista[decimal] = []
+global listas: lista[entero] = []
+# El evento que tiene que correr la fibra.
+global ev_que = 0
+global ev_clase = 0
+global ev_objeto = 0
+global ev_decimal = 0.0
+global ev_nodo = 0
+global ev_texto = ""
+
+externa func esperar(segundos: decimal):
+    si fibra_actual == 0:
+        imprimir("error: `esperar` solo se puede usar dentro de un evento (`cuando`)")
+        ExitProcess(1)
+    agregar(esperan, fibra_actual)
+    agregar(esperan_fin, tiempo_ara + maximo(0.0, segundos))
+    fibra_acabo = falso
+    SwitchToFiber(fibra_principal)
+
+# La fibra de trabajo: corre un evento tras otro (lo que dejó `correr` en ev_*).
+func trabajar(dato: entero):
+    mientras verdadero:
+        avisar_a(ev_que, ev_clase, ev_objeto, ev_decimal, ev_nodo, ev_texto)
+        fibra_acabo = verdadero
+        SwitchToFiber(fibra_principal)
+
+func avisar_a(que: entero, cl: entero, objeto: entero, d: decimal, n: entero, t: texto):
+    si que == EV_EMPIEZA:
+        escena.avisar_empieza(cl, objeto)
+    sino si que == EV_ACTUALIZA:
+        escena.avisar_se_actualiza(cl, objeto, d)
+    sino si que == EV_TOCA:
+        escena.avisar_toca(cl, objeto, n)
+    sino si que == EV_DEJA:
+        escena.avisar_deja_de_tocar(cl, objeto, n)
+    sino si que == EV_PULSA:
+        escena.avisar_se_pulsa(cl, objeto, t)
+    sino si que == EV_SUELTA:
+        escena.avisar_se_suelta(cl, objeto, t)
+    sino:
+        escena.avisar_se_elimina(cl, objeto)
+
+# Corre un evento de un script en una fibra (desde otra fibra, en la misma: allí no se puede esperar).
+func correr(que: entero, cl: entero, objeto: entero, d: decimal, n: entero, t: texto):
+    si fibra_actual != 0:
+        avisar_a(que, cl, objeto, d, n, t)
+        devolver
+    si fibra_principal == 0:
+        fibra_principal = ConvertThreadToFiber(0)
+    fibra = 0
+    si largo(fibras_libres) > 0:
+        fibra = sacar(fibras_libres)
+    sino:
+        fibra = CreateFiber(0, retrollamada(trabajar), 0)
+    ev_que = que
+    ev_clase = cl
+    ev_objeto = objeto
+    ev_decimal = d
+    ev_nodo = n
+    ev_texto = t
+    seguir(fibra)
+
+# Pasa a la fibra hasta que acaba su evento o espera.
+func seguir(fibra: entero):
+    fibra_actual = fibra
+    SwitchToFiber(fibra)
+    fibra_actual = 0
+    si fibra_acabo:
+        agregar(fibras_libres, fibra)
+
+# `ProgramaAra.actualizar`: avanza el tiempo y aparta, por su hora de fin, las que ya no esperan.
+func actualizar(dt: decimal):
+    tiempo_ara += dt
+    mientras verdadero:
+        k = -1
+        para i en rango(largo(esperan)):
+            si esperan_fin[i] <= tiempo_ara + 0.000000001 y (k < 0 o esperan_fin[i] < esperan_fin[k]):
+                k = i
+        si k < 0:
+            romper
+        agregar(listas, esperan[k])
+        quitar_de(esperan, k)
+        quitar_de_d(esperan_fin, k)
+
+func quitar_de(l: lista[entero], k: entero):
+    para i en rango(k, largo(l) - 1):
+        l[i] = l[i + 1]
+    sacar(l)
+
+func quitar_de_d(l: lista[decimal], k: entero):
+    para i en rango(k, largo(l) - 1):
+        l[i] = l[i + 1]
+    sacar(l)
+
+# `emitirNodo`: el evento a cada script del nodo, si sigue vivo.
+func emitir_a(h: entero, que: entero, d: decimal, n: entero, t: texto):
+    si mundo.eliminado[h]:
+        devolver
+    para k en rango(largo(mundo.script_clase[h])):
+        correr(que, mundo.script_clase[h][k], mundo.script_objeto[h][k], d, n, t)
+
+# ---------- Escena ----------
+
+# Carga la escena (`cargarEscena` e `iniciarScripts`): nodos nuevos, sus scripts y `empieza`.
+func cargar_escena():
+    escena.nodos(mundo)
+    mundo.tiempo = 0.0
+    mundo.estado = JUGANDO
+    mundo.pares_a = []
+    mundo.pares_b = []
+    mundo.puntos_iniciales = mundo.puntos
+    nuevos: lista[entero] = []
+    recorrer(mundo.raiz, nuevos)
+    sincronizar(nuevos)
+    para h en nuevos:
+        para c en mundo.script_clase[h]:
+            agregar(mundo.script_objeto[h], escena.crear_script(c, h))
+    para h en nuevos:
+        emitir_a(h, EV_EMPIEZA, 0.0, 0, "")
+
+# Pasa al núcleo los nodos (`sincronizarAra`) si no son los de la última vez. Si son los mismos, el núcleo ya tiene lo
+# que Falcon le mandaría: las posiciones nuevas las pone su `mover`, como aquí, y nada más cambia lo que lee.
+func sincronizar(nodos: lista[entero]):
+    antes = mundo.vivos
+    si antes == nodos:
+        devolver
+    mundo.vivos = nodos
+    fis.empezar(largo(mundo.vivos))
+    para i en rango(largo(mundo.vivos)):
+        mundo.ranura[mundo.vivos[i]] = i
+    para i en rango(largo(mundo.vivos)):
+        h = mundo.vivos[i]
+        p = -1
+        si mundo.padre[h] > 0:
+            p = mundo.ranura[mundo.padre[h]]
+        fis.nodo(i, p, mundo.sin_matriz[h], mundo.px[h], mundo.py[h], mundo.grados[h], mundo.esc[h], mundo.sx[h], mundo.sy[h], mundo.ctipo[h], mundo.cox[h], mundo.coy[h], mundo.cw[h], mundo.ch[h], mundo.solido[h], mundo.papel[h])
+    fis.vaciar_celdas()
+    para h en mundo.vivos:
+        para k en rango(largo(mundo.celdas_c[h])):
+            fis.celda(mundo.ranura[h], mundo.celdas_c[h][k], mundo.celdas_f[h][k])
+
+# ---------- El paso ----------
+
+# Un paso del mundo (`Mundo.paso`) con la entrada ya puesta en `mundo.mantenidas`, `mundo.pulsadas` y `mundo.soltadas`.
+func paso():
+    si mundo.estado != JUGANDO:
+        devolver
+    dt = escena.DT
+    mundo.tiempo += dt
+    nodos: lista[entero] = []
+    recorrer(mundo.raiz, nodos)
+    sincronizar(nodos)
+    para a en mundo.pulsadas:
+        para h en nodos:
+            emitir_a(h, EV_PULSA, 0.0, 0, a)
+    para a en mundo.soltadas:
+        para h en nodos:
+            emitir_a(h, EV_SUELTA, 0.0, 0, a)
+    para h en nodos:
+        emitir_a(h, EV_ACTUALIZA, dt, 0, "")
+    actualizar(dt)
+    mover_personajes(dt, nodos)
+    tocar_pares(nodos)
+    eliminados()
+    final_del_paso()
+
+# `fisica2dAra`: cada personaje, con lo que pidieron sus scripts.
+func mover_personajes(dt: decimal, nodos: lista[entero]):
+    fis.preparar()
+    para h en nodos:
+        si mundo.tipo[h] != "Personaje2D":
+            continuar
+        fis.mover(mundo.ranura[h], mundo.mueve_x[h], mundo.mueve_y[h], mundo.emp_x[h], mundo.emp_y[h], mundo.vy[h], mundo.usa_gravedad[h], mundo.gravedad[h], dt, escena.AMORT, 0.0, 0.0)
+        mundo.emp_x[h] = fis.emp_x
+        si mundo.usa_gravedad[h]:
+            mundo.vy[h] = fis.vy
+        sino:
+            mundo.emp_y[h] = fis.emp_y
+        mundo.en_suelo[h] = fis.en_suelo
+        mundo.en_pared[h] = fis.en_pared
+        mundo.en_techo[h] = fis.en_techo
+        mundo.nodo_suelo[h] = 0
+        si fis.nodo_suelo >= 0:
+            mundo.nodo_suelo[h] = mundo.vivos[fis.nodo_suelo]
+        cs: lista[entero] = []
+        para k en rango(fis.nc):
+            agregar(cs, mundo.vivos[fis.contactos[k]])
+        mundo.contactos[h] = cs
+        mundo.px[h] = mundo.px[h] + fis.ddx
+        mundo.py[h] = mundo.py[h] + fis.ddy
+        mundo.mueve_x[h] = 0.0
+        mundo.mueve_y[h] = 0.0
+
+# `contactos2d`: los pares de este paso, en su orden; `toca` a los nuevos y `deja_de_tocar` a los que ya no están.
+func tocar_pares(nodos: lista[entero]):
+    pa: lista[entero] = []
+    pb: lista[entero] = []
+    para k en rango(fis.pares()):
+        poner_par(pa, pb, mundo.vivos[fis.pa[k]], mundo.vivos[fis.pb[k]])
+    para h en nodos:
+        si mundo.tipo[h] != "Personaje2D":
+            continuar
+        para s en mundo.contactos[h]:
+            si largo(mundo.script_clase[s]) > 0 o largo(mundo.script_clase[h]) > 0:
+                poner_par(pa, pb, h, s)
+    para k en rango(largo(pa)):
+        si posicion_par(mundo.pares_a, mundo.pares_b, pa[k], pb[k]) < 0:
+            emitir_a(pa[k], EV_TOCA, 0.0, pb[k], "")
+            emitir_a(pb[k], EV_TOCA, 0.0, pa[k], "")
+    para k en rango(largo(mundo.pares_a)):
+        a = mundo.pares_a[k]
+        b = mundo.pares_b[k]
+        si posicion_par(pa, pb, a, b) < 0:
+            emitir_a(a, EV_DEJA, 0.0, b, "")
+            emitir_a(b, EV_DEJA, 0.0, a, "")
+    mundo.pares_a = pa
+    mundo.pares_b = pb
+
+# Como `Map.set` con la clave del par: si ya está, cambia su orden pero no su sitio.
+func poner_par(pa: lista[entero], pb: lista[entero], a: entero, b: entero):
+    k = posicion_par(pa, pb, a, b)
+    si k >= 0:
+        pa[k] = a
+        pb[k] = b
+    sino:
+        agregar(pa, a)
+        agregar(pb, b)
+
+func posicion_par(pa: lista[entero], pb: lista[entero], a: entero, b: entero) -> entero:
+    para k en rango(largo(pa)):
+        si (pa[k] == a y pb[k] == b) o (pa[k] == b y pb[k] == a):
+            devolver k
+    devolver -1
+
+# `procesarEliminados`: `se_elimina` a sus scripts, fuera de su padre y fuera de los pares.
+func eliminados():
+    para h en mundo.cola_eliminar:
+        avisar_eliminado(h)
+        si mundo.padre[h] > 0:
+            quitar_hijo(mundo.padre[h], h)
+    mundo.cola_eliminar = []
+    pa: lista[entero] = []
+    pb: lista[entero] = []
+    para k en rango(largo(mundo.pares_a)):
+        si no mundo.eliminado[mundo.pares_a[k]] y no mundo.eliminado[mundo.pares_b[k]]:
+            agregar(pa, mundo.pares_a[k])
+            agregar(pb, mundo.pares_b[k])
+    mundo.pares_a = pa
+    mundo.pares_b = pb
+
+func avisar_eliminado(h: entero):
+    para k en rango(largo(mundo.script_clase[h])):
+        correr(EV_ELIMINA, mundo.script_clase[h][k], mundo.script_objeto[h][k], 0.0, 0, "")
+    para k en mundo.hijos[h]:
+        avisar_eliminado(k)
+
+func quitar_hijo(p: entero, h: entero):
+    otros: lista[entero] = []
+    para k en mundo.hijos[p]:
+        si k != h:
+            agregar(otros, k)
+    mundo.hijos[p] = otros
+
+# El final del paso, en el orden de Falcon: `procesarPendiente` empieza (los puntos vuelven a los del principio), siguen
+# los eventos que ya no esperan (las promesas resueltas) y se termina de cargar la escena.
+func final_del_paso():
+    recargar = mundo.reiniciar
+    si recargar:
+        mundo.reiniciar = falso
+        mundo.puntos = mundo.puntos_iniciales
+    seguir_listas()
+    si recargar:
+        cargar_escena()
+
+func seguir_listas():
+    ahora = listas
+    listas = []
+    para fibra en ahora:
+        seguir(fibra)
+
+# Para dibujar: la caja de un nodo vivo (en fis.kx, fis.ky, fis.kw, fis.kh).
+func caja_de(h: entero):
+    fis.caja(mundo.ranura[h])

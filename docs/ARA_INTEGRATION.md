@@ -89,5 +89,11 @@ Referencia: `ara-etapa5/ara/docs/NATIVO.md`. Las líneas citadas son de Ara `7e4
   - una DLL no puede leer la memoria de Ara, así que todo pasa por el búfer;
   - no hay funciones variádicas;
   - el JIT no ejecuta `externa`.
-- **En Falcon la usa solo el ejemplo nativo** `examples/native-2d` (fase 4, primer corte de [`REWRITE_ROADMAP.md`](REWRITE_ROADMAP.md)). Es un `.exe` con ventana Win32, OpenGL 1.1 y teclado, que importa `src/motor/ara/fisica2d.ara`: la misma física que el núcleo wasm. `pruebas/nativo-2d.test.js` comprueba que da lo mismo bit a bit. El motor (Electron) no la usa.
+- **En Falcon la usa solo el ejemplo nativo** `examples/native-2d` (fase 4 de [`REWRITE_ROADMAP.md`](REWRITE_ROADMAP.md)). Es un `.exe` con ventana Win32, OpenGL 1.1 y teclado, que importa `src/motor/ara/fisica2d.ara`: la misma física que el núcleo wasm. El motor (Electron) no la usa.
+- **Scripts y Blueprints en nativo** (Ara `motor-ara`, `fced30d`; `docs/NATIVO.md`, «Un anfitrión escrito en Ara»):
+  - `src/motor/nativo/anfitrion2d.ara` implementa en Ara, con `externa func ...:` y su cuerpo, la parte de `motor.ara` que usa el nivel;
+  - la escena generada crea los objetos de los scripts con `Clase(yo)` y les manda los eventos con `avisar`;
+  - `esperar` va con fibras de Windows;
+  - `pruebas/nativo-2d.test.js` comprueba que el `.exe` y Falcon (wasm, con el anfitrión de JS) dan lo mismo bit a bit en cada paso: personajes, contactos, puntos, estado y nodos.
+  - El wasm de los scripts en Falcon no cambia: sin cuerpos, el compilador saca el mismo módulo.
 - En wasm, una `externa "x.dll"` se importa del módulo `"x.dll"`. El cargador solo da los módulos `ara` y `anfitrion` (`ara.mjs:311`), así que un script de juego que la declare no se puede instanciar. Es una deducción del código; no se ha probado.

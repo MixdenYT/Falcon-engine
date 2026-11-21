@@ -1,6 +1,8 @@
-// El juego 2D nativo (examples/native-2d) da lo mismo, bit a bit y en cada paso, que la ruta wasm de Falcon: el mismo
-// nivel, la misma entrada guionizada y la misma física (src/motor/ara/fisica2d.ara, compilada a wasm y a x86-64).
-// Necesita Windows y el compilador de Ara (ARA_DIR / ARA, ver herramientas/escena-nativa-2d.mjs); si no, se salta.
+// El juego 2D nativo (examples/native-2d) da lo mismo, bit a bit y en cada paso, que Falcon: el mismo nivel, con sus
+// scripts y Blueprints de verdad (en Falcon, compilados a WebAssembly con su anfitrión de JS; en el .exe, a código
+// máquina con el anfitrión del motor escrito en Ara, src/motor/nativo/anfitrion2d.ara), la misma entrada guionizada y la
+// misma física (src/motor/ara/fisica2d.ara). Necesita Windows y el compilador de Ara (ARA_DIR / ARA, ver
+// herramientas/escena-nativa-2d.mjs); si no, se salta.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
@@ -9,41 +11,75 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import './dom.js';
 import { nucleoAra } from '../src/motor/nucleo-ara.js';
-import { rutasAra, compilarNativo2d, mundoPlataformas, pasoFalcon, estadoFalcon, leerEstadoNativo } from '../herramientas/escena-nativa-2d.mjs';
+import { nivelPlataformas } from '../src/motor/plantillas.js';
+import { rutasAra, compilarNativo2d, mundoFalcon, estadoFalcon, leerEstadoNativo, GUION, expandirGuion } from '../herramientas/escena-nativa-2d.mjs';
 
-const PASOS = 900;
 const rutas = rutasAra();
 const motivo = rutas ? false : 'falta el compilador de Ara para Windows x64 (ARA_DIR / ARA) o no es Windows: no se prueba el .exe nativo';
 if (motivo) console.warn(`⚠ nativo-2d: ${motivo}`);
 
-test('juego 2D nativo (.exe) = ruta wasm de Falcon, bit a bit en cada paso', { skip: motivo, timeout: 120000 }, async () => {
+/** Corre el .exe y Falcon con el mismo guion y compara su estado tras cada paso. Devuelve los estados de Falcon. */
+async function comparar(exe, guion, pasos, nivel) {
+  const salida = execFileSync(exe, { env: { ...process.env, FALCON_PASOS: String(pasos), FALCON_TRAZA: '1', FALCON_GUION: guion }, encoding: 'utf8', maxBuffer: 64 << 20 });
+  const nativo = leerEstadoNativo(salida).pasos;
+  assert.equal(nativo.size, pasos);
+  const f = await mundoFalcon(await nucleoAra(), guion, nivel);
+  const estados = [];
+  for (let i = 0; i < pasos; i++) {
+    await f.paso(i);
+    const a = estadoFalcon(f.m), b = nativo.get(i);
+    assert.equal(b.personajes.length, a.personajes.length, `paso ${i}: personajes`);
+    a.personajes.forEach((p, k) => {
+      for (const c in p) assert.ok(Object.is(p[c], b.personajes[k][c]), `paso ${i}, personaje ${k}.${c}: Falcon ${p[c]} y nativo ${b.personajes[k][c]}`);
+    });
+    assert.deepEqual(b.pares, a.pares, `paso ${i}: pares que se tocan`);
+    assert.deepEqual(b.juego, a.juego, `paso ${i}: puntos, estado y nodos`);
+    estados.push(a);
+  }
+  assert.deepEqual(f.m.errores, []);
+  return estados;
+}
+
+test('juego 2D nativo (.exe) = Falcon con los scripts y Blueprints de la plantilla, en cada paso', { skip: motivo, timeout: 300000 }, async () => {
   const carpeta = mkdtempSync(join(tmpdir(), 'falcon-nativo-2d-'));
   try {
-    const exe = compilarNativo2d(rutas, join(carpeta, 'falcon-2d.exe'));
-    const salida = execFileSync(exe, { env: { ...process.env, FALCON_PASOS: String(PASOS), FALCON_TRAZA: '1' }, encoding: 'utf8', maxBuffer: 64 << 20 });
-    const { pasos } = leerEstadoNativo(salida);
-    assert.equal(pasos.size, PASOS);
-
-    const m = mundoPlataformas(await nucleoAra());
-    const suelos = new Set();
-    let pares = 0, paredes = 0;
-    for (let i = 0; i < PASOS; i++) {
-      pasoFalcon(m, i);
-      const a = estadoFalcon(m), b = pasos.get(i);
-      assert.equal(b.personajes.length, a.personajes.length, `paso ${i}: personajes`);
-      a.personajes.forEach((p, k) => {
-        for (const c in p) assert.ok(Object.is(p[c], b.personajes[k][c]), `paso ${i}, nodo ${p.nodo}.${c}: wasm ${p[c]} y nativo ${b.personajes[k][c]}`);
-      });
-      assert.deepEqual(b.pares, a.pares, `paso ${i}: pares de contactos2d`);
-      const j = m.todos().find((n) => n.nombre === 'Jugador');
-      if (j._nodoSuelo) suelos.add(j._nodoSuelo.tipo);
-      pares += a.pares.length;
-      paredes += j.enPared;
-    }
-    // El guion cubre algo: suelo de mosaicos y plataformas, paredes y contactos con monedas.
-    assert.deepEqual([...suelos].sort(), ['Mosaicos', 'Plataforma']);
-    assert.ok(pares > 0 && paredes > 0, `pares ${pares}, paredes ${paredes}`);
+    const exe = await compilarNativo2d(rutas, join(carpeta, 'falcon-2d.exe'));
+    const estados = await comparar(exe, GUION, GUION.length);
+    // Lo que cubre el guion: el Blueprint del jugador anda y salta; recoge monedas (cada una se va con sus 2 hijos);
+    // los pinchos lo empujan, esperan (`esperar(0.4)`) y reinician el nivel (vuelven los puntos y los nodos), y la meta
+    // gana la partida.
+    const juego = estados.map((e) => e.juego), x = estados.map((e) => e.personajes[0].x);
+    const reinicio = x.findIndex((v, i) => i > 0 && v < x[i - 1] - 200);
+    assert.ok(reinicio > 0, 'muere y el nivel vuelve a empezar');
+    assert.ok(juego[reinicio - 1].puntos > 0 && juego[reinicio].puntos === 0 && juego[reinicio].nodos === juego[0].nodos);
+    const pinchos = estados.findIndex((e, i) => i > 0 && e.personajes[0].vy === -500);
+    assert.ok(pinchos > 0 && reinicio - pinchos >= 24, `el reinicio espera 0,4 s tras los pinchos (pinchos ${pinchos}, reinicio ${reinicio})`);
+    assert.deepEqual(juego.at(-1), { puntos: 4, estado: 1, nodos: juego[0].nodos - 12 });
+    assert.equal(juego.findIndex((j) => j.estado === 1), 928);
   } finally {
-    rmSync(carpeta, { recursive: true, force: true });
+    rmSync(carpeta, { recursive: true, force: true, maxRetries: 5 });
+  }
+});
+
+test('juego 2D nativo: el enemigo patrulla igual que en Falcon (con el enemigo apoyado en el suelo)', { skip: motivo, timeout: 300000 }, async () => {
+  // En la plantilla, la caja del enemigo entra 4 px en el suelo: el primer paso lo saca hacia el hueco de las
+  // columnas 44-45 y cae, en Falcon y en el .exe. Aquí se apoya en el suelo para ver la patrulla: anda a la izquierda
+  // hasta la roca y allí se da la vuelta en cada paso (su script mira `en_pared()` del paso anterior después de
+  // `mover`, así que vuelve a chocar), también igual en los dos.
+  const nivel = () => {
+    const n = nivelPlataformas();
+    n.hijos.find((h) => h.nombre === 'Enemigo').props.posicion[1] = 572;
+    return n;
+  };
+  const carpeta = mkdtempSync(join(tmpdir(), 'falcon-nativo-2d-'));
+  try {
+    const exe = await compilarNativo2d(rutas, join(carpeta, 'falcon-2d.exe'), nivel);
+    const estados = await comparar(exe, expandirGuion('a'), 300, nivel);
+    const ex = estados.map((e) => e.personajes[1].x);
+    const vuelta = ex.findIndex((v, i) => i > 0 && v > ex[i - 1]);
+    assert.ok(ex[0] > 1690 && vuelta > 200 && ex[vuelta - 1] < 1400, `anda a la izquierda y se da la vuelta en la roca (paso ${vuelta}, x ${ex[vuelta - 1]})`);
+    assert.ok(estados.slice(vuelta).every((e) => e.personajes[1].suelo), 'sin caerse');
+  } finally {
+    rmSync(carpeta, { recursive: true, force: true, maxRetries: 5 });
   }
 });

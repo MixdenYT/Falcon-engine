@@ -85,7 +85,34 @@ Falcon Runtime ─ núcleo en Ara: escena, física, controles, IA, animación
   - llamadas indirectas y retrollamadas;
   - ejemplos de ventana Win32 con OpenGL.
 
-  Falcon la usa solo en `examples/native-2d`: el nivel de «plataformas» en un `.exe` (Win32, OpenGL 1.1, teclado) con la misma física 2D que el núcleo wasm, igual bit a bit (ver [`ARA_INTEGRATION.md`](ARA_INTEGRATION.md) §6).
+  Falcon la usa solo en `examples/native-2d`: el nivel de «plataformas» en un `.exe` (Win32, OpenGL 1.1, teclado) con sus scripts y Blueprints de verdad y la misma física 2D que el núcleo wasm, igual bit a bit que el juego en Falcon (ver [`ARA_INTEGRATION.md`](ARA_INTEGRATION.md) §6).
+
+### Decisión: scripts y Blueprints en nativo con un anfitrión escrito en Ara
+
+El mismo código de juego (las clases de Ara de los scripts y de los Blueprints) compila a dos destinos; solo cambia el anfitrión, el que da las `externa` de `src/ara/motor.ara`:
+
+```
+scripts .ara + Blueprints → clases de Ara ─┬─ wasm: anfitrión en JS (src/ara/puente.js, ProgramaAra)      → Electron
+           + src/ara/motor.ara (la API)    └─ .exe: anfitrión en Ara (src/motor/nativo/anfitrion2d.ara)      → Windows x64
+                                                    + escena generada + juego.ara (ventana, dibujo, teclado)
+```
+
+- **Cómo.** Tres mejoras generales de Ara (`docs/NATIVO.md`, «Un anfitrión escrito en Ara»; Ara `motor-ara`, `fced30d`):
+  - `externa func f(...):` con cuerpo implementa una externa ya declarada (también propiedades y `esperar`), y no se importa;
+  - `Clase(yo)` crea un objeto de una clase de script;
+  - `avisar(objeto, "evento", ...)` ejecuta sus `cuando`.
+- **El anfitrión nativo** (`anfitrion2d.ara`) implementa la parte de `motor.ara` que usa un juego 2D de plataformas sobre una tabla de nodos y `fisica2d.ara`. Repite `Mundo.paso` y `ProgramaAra` en el mismo orden: eventos, esperas, física, contactos, eliminados y reinicio.
+- **`esperar`.** Cada evento corre en una fibra de Windows, y `esperar` vuelve a la principal: hace lo mismo que JSPI en wasm.
+- **La escena** la genera `herramientas/escena-nativa-2d.mjs`: los nodos, y una función por evento que reparte con `avisar` a la clase de cada nodo.
+- **Por qué así:**
+  - las clases ya se compilaban a funciones normales; solo faltaba poder dar las externas desde Ara y llamar a las clases desde Ara;
+  - wasm no cambia: sin cuerpos, el módulo sale igual byte a byte, con las mismas importaciones y exportaciones (`ProgramaAra` no se toca);
+  - lo que no se implementa no compila a nativo, y `nativo` dice qué externa falta.
+- **Alternativas descartadas** (detalle en `docs/NATIVO.md` de Ara):
+  - un paso del compilador solo para nativo que convierta las clases en código con una tabla de eventos: seguirían faltando las externas;
+  - enlazar en `nativo` un segundo módulo con el anfitrión: memoria, datos y runtime compartidos, y nombres de exportación que Ara no sabe declarar;
+  - una API distinta para nativo con estructuras en vez de tipos externos: las clases solo extienden tipos externos.
+- **Prueba.** `pruebas/nativo-2d.test.js` compara Falcon (wasm, con los Blueprints reales) y el `.exe` paso a paso, bit a bit, en un guion de 1000 pasos que recoge monedas, muere en los pinchos (`esperar` y reinicio) y gana en la meta.
 
 ## Reglas de frontera
 

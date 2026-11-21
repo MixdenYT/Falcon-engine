@@ -30,7 +30,7 @@ Electron 44 + three.js 0.186; unas 22.900 líneas de JS en `src/`. `npm test` (h
 | Render 3D y Lumbre | `lumbre*.js`, `escena3d.js`, `materiales.js` | 2.500 | Funciona: WebGL2, sondas, GTAO, bloom | No |
 | Audio | `audio.js` (Web Audio) | 124 | Funciona | No |
 | Entrada | `entrada.js` (DOM) | 78 | Funciona | No |
-| Blueprints | `blueprints.js` y `cqb-blueprints.js` | 790 | Compilan a Ara de verdad (lo prueban los tests) | Generan Ara; el compilador del grafo es JS |
+| Blueprints | `blueprints.js` y `cqb-blueprints.js` | 790 | Compilan a Ara de verdad (lo prueban los tests) | **En revisión** (bloque 5): el compilador del grafo también está en Ara (`motor/ara-blueprints/blueprints.ara`, cargado por `motor/blueprints-ara.js`) y es el que usa el juego (`Mundo.compilarAra`). Da el mismo texto, errores y avisos que el de JS en los 76 Blueprints que existen y en 608 variaciones con errores (`pruebas/blueprints-ara.test.js`). El de JS queda de respaldo y lo sigue usando el editor. Es 1,6–1,7× más lento que JS: la mitad es la frontera (`docs/BENCHMARKS.md`) |
 | Scripts | `src/ara/*` | 1.665 | Ara→wasm, entre 98 y 195× más rápido que Águila | Sí |
 | Editor y gestor | `editor/`, `ui/`, `gestor/` | 8.570 | Funciona (DOM) | No |
 | Exportación y actualizaciones | `principal/` | 1.078 | Funciona: NSIS, AppImage, electron-updater | No |
@@ -90,7 +90,7 @@ Reglas de la frontera:
 |---|---|---|
 | 0 | Auditoría, línea base y esta hoja de ruta | Completado |
 | 1 | Fundación:<br>• trigonometría en Ara<br>• `herramientas/compilar-nucleo-ara.mjs`<br>• `src/motor/ara/nucleo.wasm` versionado | Completado |
-| 2 | Núcleo en Ara, por bloques, cada uno con las pruebas headless en verde:<br>1. física 2D (en revisión)<br>2. contactos 2D (los pares, en revisión con B3)<br>3. temporizadores, partículas, animación de sprites<br>4. física 3D, controles y CQB (B4 en revisión: rayos y A*)<br>5. compilador de Blueprints | En desarrollo |
+| 2 | Núcleo en Ara, por bloques, cada uno con las pruebas headless en verde:<br>1. física 2D (en revisión)<br>2. contactos 2D (los pares, en revisión con B3)<br>3. temporizadores, partículas, animación de sprites<br>4. física 3D, controles y CQB (B4 en revisión: rayos y A*)<br>5. compilador de Blueprints (en revisión: en Ara, idéntico al de JS) | En desarrollo |
 | 3 | Ara nativo (Windows x64):<br>• FFI con DLL, convención Win64<br>• `f32` y búferes<br>• ventana Win32<br>• triángulo y cubo OpenGL<br>• llamadas indirectas y retrollamadas | Completado (Ara `7e4e99b`, 232/232 pruebas) |
 | 4 | Runtime nativo: el núcleo de la fase 2 corre en un `.exe` y dibuja con la fase 3; escena 2D primero | En desarrollo: primer corte hecho (`examples/native-2d`, ver abajo) |
 | 5 | Lumbre nativo: capacidades documentadas por plataforma | Pendiente |

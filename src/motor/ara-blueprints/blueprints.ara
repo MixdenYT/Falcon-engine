@@ -1,0 +1,1672 @@
+# Compilador de Blueprints (grafo → validación → código Ara), escrito en Ara (fase 2, bloque 5).
+#
+# Es la traducción de `compilarBlueprint` (src/motor/blueprints.js) y da el mismo texto y los mismos errores
+# (pruebas/blueprints-ara.test.js). JS solo aplana (src/motor/blueprints-ara.js): una vez, el catálogo de bloques
+# (`NODOS`) y la API del motor (`API_MOTOR`) con llamadas escalares; por cada compilación, el `.bp` ya leído en un
+# solo texto plano (`leer_bp`). Aquí se valida, se tipa cada cable y se genera el código. El resultado vuelve por las
+# externas `bp_*`.
+#
+# Cada valor del `.bp` cruza como `Val`: su clase de JS (`typeof`), `String(v)` y `Number(v)`. Con eso se repiten
+# las reglas de JS (`??`, `||`, `Number(v) < 0`, `String(v)`) sin que JS decida nada.
+
+externa tipo Anfitrion
+externa func bp_codigo(t: texto)
+externa func bp_clase(t: texto)
+externa func bp_error(mensaje: texto, nodo: texto, hay_nodo: booleano, aviso: booleano)
+externa func bp_linea(nodo: texto, n: entero)
+
+# Clases de valor (Val.k).
+const NULO = 1
+const BOOL = 2
+const NUM = 3
+const TXT = 4
+const OTRO = 5
+
+# Precedencias (P de blueprints.js).
+const ATOMO = 10
+const MUL = 6
+const SUMA = 5
+const COMP = 4
+const NO = 3
+const PY = 2
+const PO = 1
+
+estructura Val:
+    k: entero
+    t: texto
+    n: decimal
+
+estructura Pin:
+    n: texto
+    t: texto
+    etq: texto
+    def: Val
+
+estructura Def:
+    titulo: texto
+    evento: texto
+    filtro: texto
+    es_evento: booleano
+    params: lista[texto]
+    entradas: lista[Pin]
+    salidas: lista[Pin]
+
+estructura Firma:
+    params: lista[texto]
+    retorno: texto
+
+estructura Miembro:
+    k: entero  # 0 nada, 1 propiedad, 2 método
+    propiedad: texto
+    firmas: lista[Firma]
+
+estructura Bloque:
+    id: texto
+    def: texto
+    variable: Val
+    funcion: Val
+    px: decimal
+    py: decimal
+    valores: diccionario[texto, Val]
+    vbucle: texto
+
+estructura Con:
+    de: texto
+    salida: texto
+    a: texto
+    entrada: texto
+
+estructura Grafo:
+    nombre: texto
+    bloques: lista[entero]
+    cons: lista[Con]
+
+estructura Variable:
+    nombre: Val
+    tipo: texto
+    valor: Val
+    exporta: booleano
+
+estructura Param:
+    nombre: Val
+    tipo: texto
+
+estructura Funcion:
+    nombre: Val
+    params: lista[Param]
+
+estructura PT:
+    nombre: texto
+    tipo: texto
+
+estructura FInfo:
+    params: lista[PT]
+    retorno: texto
+    visto: texto
+
+estructura Err:
+    mensaje: texto
+    nodo: texto
+    hay: booleano
+
+estructura R:
+    codigo: texto
+    tipo: texto
+    prec: entero
+
+# ---------- Textos ----------
+
+func trozo(b: lista[entero], desde: entero, hasta: entero) -> texto:
+    si hasta <= desde:
+        devolver ""
+    devolver texto_de_bytes(b, desde, hasta)
+
+func repetir_texto(t: texto, n: entero) -> texto:
+    r = ""
+    para i en rango(n):
+        r = r + t
+    devolver r
+
+func empieza(t: texto, pre: texto) -> booleano:
+    a = bytes(t)
+    b = bytes(pre)
+    si largo(b) > largo(a):
+        devolver falso
+    para i en rango(largo(b)):
+        si a[i] != b[i]:
+            devolver falso
+    devolver verdadero
+
+# Puntos de código de un texto (UTF-8 válido: viene de JS).
+func codigos(t: texto) -> lista[entero]:
+    b = bytes(t)
+    r: lista[entero] = []
+    i = 0
+    mientras i < largo(b):
+        c = b[i]
+        si c < 128:
+            agregar(r, c)
+            i += 1
+        sino si c < 224:
+            agregar(r, (c - 192) * 64 + (b[i + 1] - 128))
+            i += 2
+        sino si c < 240:
+            agregar(r, ((c - 224) * 64 + (b[i + 1] - 128)) * 64 + (b[i + 2] - 128))
+            i += 3
+        sino:
+            agregar(r, (((c - 240) * 64 + (b[i + 1] - 128)) * 64 + (b[i + 2] - 128)) * 64 + (b[i + 3] - 128))
+            i += 4
+    devolver r
+
+# `/^[\p{L}_][\p{L}\p{N}_]*$/u`. shortcut: es_letra / es_alfanumerico son «Alphabetic» de Unicode, algo más que
+# \p{L} (marcas como las vocales de devanagari); solo cambia con esos nombres, que el editor no escribe.
+func es_ident(t: texto) -> booleano:
+    b = bytes(t)
+    si largo(b) == 0:
+        devolver falso
+    ascii = verdadero
+    para i en rango(largo(b)):
+        c = b[i]
+        si c >= 128:
+            ascii = falso
+            romper
+        si c == 95 o (c >= 97 y c <= 122) o (c >= 65 y c <= 90):
+            continuar
+        si i == 0 o c < 48 o c > 57:
+            devolver falso
+    si ascii:
+        devolver verdadero
+    cs = codigos(t)
+    si largo(cs) == 0:
+        devolver falso
+    para i en rango(largo(cs)):
+        c = cs[i]
+        si c == 95:
+            continuar
+        si i == 0:
+            si no es_letra(c):
+                devolver falso
+        sino si no es_alfanumerico(c):
+            devolver falso
+    devolver verdadero
+
+# `textoAra`: entre comillas, con escapes y las llaves dobladas; quita los demás caracteres de control.
+func texto_ara(s: texto) -> texto:
+    b = bytes(s)
+    r: lista[entero] = [34]
+    para c en b:
+        si c == 92 o c == 34:
+            agregar(r, 92)
+            agregar(r, c)
+        sino si c == 10:
+            agregar(r, 92)
+            agregar(r, 110)
+        sino si c == 9:
+            agregar(r, 92)
+            agregar(r, 116)
+        sino si c == 13:
+            agregar(r, 92)
+            agregar(r, 114)
+        sino si c == 123 o c == 125:
+            agregar(r, c)
+            agregar(r, c)
+        sino si c >= 32:
+            agregar(r, c)
+    agregar(r, 34)
+    devolver texto_de_bytes(r, 0, largo(r))
+
+# `String(x)` de JS para un decimal finito. `texto(x)` de Ara da las mismas cifras (las más cortas que vuelven al
+# mismo número) pero cambia a notación científica en otros límites, así que se rehace con la regla de JS.
+func numero_js(x: decimal) -> texto:
+    si x == 0.0:
+        devolver "0"
+    si x < 0.0:
+        devolver "-" + numero_js(-x)
+    s = texto(x)
+    exp = 0
+    man = s
+    si contiene(s, "e"):
+        partes = dividir(s, "e")
+        man = partes[0]
+        eb = bytes(partes[1])
+        neg = eb[0] == 45
+        inicio = 0
+        si eb[0] == 45 o eb[0] == 43:
+            inicio = 1
+        para i en rango(inicio, largo(eb)):
+            exp = exp * 10 + (eb[i] - 48)
+        si neg:
+            exp = -exp
+    mb = bytes(man)
+    cifras: lista[entero] = []
+    punto = -1
+    para c en mb:
+        si c == 46:
+            punto = largo(cifras)
+        sino:
+            agregar(cifras, c)
+    si punto < 0:
+        punto = largo(cifras)
+    n = punto + exp
+    # Sin ceros a la izquierda ni a la derecha.
+    ini = 0
+    mientras ini < largo(cifras) - 1 y cifras[ini] == 48:
+        ini += 1
+        n -= 1
+    fin = largo(cifras)
+    mientras fin > ini + 1 y cifras[fin - 1] == 48:
+        fin -= 1
+    d = trozo(cifras, ini, fin)
+    k = fin - ini
+    si k <= n y n <= 21:
+        devolver d + repetir_texto("0", n - k)
+    si 0 < n y n <= 21:
+        db = bytes(d)
+        devolver trozo(db, 0, n) + "." + trozo(db, n, k)
+    si -6 < n y n <= 0:
+        devolver "0." + repetir_texto("0", -n) + d
+    e = n - 1
+    signo = "+"
+    si e < 0:
+        signo = "-"
+        e = -e
+    si k == 1:
+        devolver d + "e" + signo + texto(e)
+    db = bytes(d)
+    devolver trozo(db, 0, 1) + "." + trozo(db, 1, k) + "e" + signo + texto(e)
+
+func finito(x: decimal) -> booleano:
+    devolver x == x y abs(x) <= 1.7976931348623157e308
+
+func truncar(x: decimal) -> decimal:
+    si abs(x) < 4.0e15:
+        devolver decimal(entero(x))
+    devolver x
+
+func sin_ceros_finales(s: texto) -> texto:
+    b = bytes(s)
+    fin = largo(b)
+    mientras fin > 0 y b[fin - 1] == 48:
+        fin -= 1
+    devolver trozo(b, 0, fin)
+
+# `n.toFixed(12)` para |n| < 1e21. shortcut: redondea con `n * 1e12` en coma flotante, no con el valor exacto;
+# solo se usa con |n| < 1e-6 (decimales en notación científica), que ningún Blueprint escribe.
+func fijo12(x: decimal) -> texto:
+    si x < 0.0:
+        devolver "-" + fijo12(-x)
+    si x >= 1.0e21:
+        devolver numero_js(x)
+    m = piso(x * 1.0e12 + 0.5)
+    s = texto(m)
+    mientras largo(bytes(s)) < 13:
+        s = "0" + s
+    b = bytes(s)
+    devolver trozo(b, 0, largo(b) - 12) + "." + trozo(b, largo(b) - 12, largo(b))
+
+# `numeroAra`: `220.0` si es decimal, `3` si es entero.
+func numero_ara(v: Val, tipo: texto) -> texto:
+    n = v.n
+    si no finito(n):
+        n = 0.0
+    si tipo == "entero":
+        devolver numero_js(truncar(n))
+    s = numero_js(n)
+    si contiene(s, "e"):
+        s = sin_ceros_finales(fijo12(n))
+    si no contiene(s, "."):
+        s = s + ".0"
+    si termina_en_punto(s):
+        devolver s + "0"
+    devolver s
+
+func termina_en_punto(s: texto) -> booleano:
+    b = bytes(s)
+    devolver largo(b) > 0 y b[largo(b) - 1] == 46
+
+# Espacio en blanco de `String.prototype.trim`.
+func es_blanco(c: entero) -> booleano:
+    si (c >= 9 y c <= 13) o c == 32 o c == 160 o c == 5760 o (c >= 8192 y c <= 8202):
+        devolver verdadero
+    devolver c == 8232 o c == 8233 o c == 8239 o c == 8287 o c == 12288 o c == 65279
+
+# `/^-?\d+(\.\d+)?$/.test(v.trim())`
+func es_numero_texto(t: texto) -> booleano:
+    cs = codigos(t)
+    ini = 0
+    fin = largo(cs)
+    mientras ini < fin y es_blanco(cs[ini]):
+        ini += 1
+    mientras fin > ini y es_blanco(cs[fin - 1]):
+        fin -= 1
+    i = ini
+    si i < fin y cs[i] == 45:
+        i += 1
+    cifras = 0
+    mientras i < fin y cs[i] >= 48 y cs[i] <= 57:
+        i += 1
+        cifras += 1
+    si cifras == 0:
+        devolver falso
+    si i == fin:
+        devolver verdadero
+    si cs[i] != 46:
+        devolver falso
+    i += 1
+    dec = 0
+    mientras i < fin y cs[i] >= 48 y cs[i] <= 57:
+        i += 1
+        dec += 1
+    devolver dec > 0 y i == fin
+
+# ---------- Valores de JS ----------
+
+func vtexto(t: texto) -> Val:
+    devolver Val(TXT, t, 0.0)
+
+func vnulo() -> Val:
+    devolver Val(NULO, "", 0.0)
+
+func vnum(x: decimal) -> Val:
+    devolver Val(NUM, numero_js(x), x)
+
+# `!!v` de JS.
+func verdad(v: Val) -> booleano:
+    si v.k == NULO:
+        devolver falso
+    si v.k == BOOL:
+        devolver v.t == "true"
+    si v.k == NUM:
+        devolver v.n == v.n y v.n != 0.0
+    si v.k == TXT:
+        devolver v.t != ""
+    devolver verdadero
+
+# `String(v ?? '')`
+func txt(v: Val) -> texto:
+    si v.k == NULO:
+        devolver ""
+    devolver v.t
+
+# `String(v || '')`
+func txt_o(v: Val) -> texto:
+    si verdad(v):
+        devolver v.t
+    devolver ""
+
+# `a === b` (null y undefined cruzan igual). shortcut: los diccionarios de variables y funciones usan el texto del
+# nombre, no el valor de JS; solo cambia con nombres que no son textos (`true`, una lista), que el editor no escribe.
+func val_igual(a: Val, b: Val) -> booleano:
+    si a.k != b.k:
+        devolver falso
+    si a.k == NULO:
+        devolver verdadero
+    si a.k == NUM:
+        devolver a.n == b.n
+    si a.k == OTRO:
+        devolver falso
+    devolver a.t == b.t
+
+# ---------- Tipos ----------
+
+func tipo_ara(t: texto) -> texto:
+    segun t:
+        caso "bool":
+            devolver "booleano"
+        caso "decimal":
+            devolver "decimal"
+        caso "entero":
+            devolver "entero"
+        caso "texto":
+            devolver "texto"
+        caso "objeto":
+            devolver "Nodo"
+        caso "lista":
+            devolver "lista[Nodo]"
+        sino:
+            devolver ""
+
+func es_numero(t: texto) -> booleano:
+    devolver t == "decimal" o t == "entero"
+
+func nombre_tipo(t: texto) -> texto:
+    segun t:
+        caso "decimal":
+            devolver "un número"
+        caso "entero":
+            devolver "un número entero"
+        caso "texto":
+            devolver "un texto"
+        caso "booleano":
+            devolver "un sí / no"
+        caso "Nodo":
+            devolver "un objeto"
+        caso "lista[Nodo]":
+            devolver "una lista"
+        caso "nada":
+            devolver "nada"
+        sino:
+            devolver t
+
+func por_defecto(t: texto) -> texto:
+    segun t:
+        caso "decimal":
+            devolver "0.0"
+        caso "entero":
+            devolver "0"
+        caso "texto":
+            devolver "\"\""
+        caso "booleano":
+            devolver "falso"
+        caso "Nodo":
+            devolver "nodo(\"\")"
+        sino:
+            devolver "0.0"
+
+func o_decimal(t: texto) -> texto:
+    si t == "":
+        devolver "decimal"
+    devolver t
+
+func par(r: R, prec: entero) -> texto:
+    si r.prec < prec:
+        devolver "(" + r.codigo + ")"
+    devolver r.codigo
+
+func ra(codigo: texto, tipo: texto) -> R:
+    devolver R(codigo, tipo, ATOMO)
+
+
+# `claseBlueprint`: «blueprints/jugador.bp» → «JugadorBp».
+func clase_bp(rel: texto) -> texto:
+    s = reemplazar(rel, "\\", "/")
+    b = bytes(s)
+    pre = bytes("blueprints/")
+    si empieza(s, "blueprints/"):
+        b = bytes(trozo(b, largo(pre), largo(b)))
+    n = largo(b)
+    si n >= 3 y b[n - 3] == 46 y (b[n - 2] == 98 o b[n - 2] == 66) y (b[n - 1] == 112 o b[n - 1] == 80):
+        b = bytes(trozo(b, 0, n - 3))
+    cs = codigos(trozo(b, 0, largo(b)))
+    c = ""
+    i = 0
+    mientras i < largo(cs):
+        si no (es_letra(cs[i]) o es_alfanumerico(cs[i])):
+            i += 1
+            continuar
+        # Un trozo: el primer carácter en mayúscula (JS solo cambia los del plano básico).
+        primero = cp_texto(cs[i])
+        si cs[i] < 65536:
+            primero = mayusculas(primero)
+        c = c + primero
+        i += 1
+        mientras i < largo(cs) y (es_letra(cs[i]) o es_alfanumerico(cs[i])):
+            c = c + cp_texto(cs[i])
+            i += 1
+    cc = codigos(c)
+    si largo(cc) == 0 o no es_letra(cc[0]):
+        c = "B" + c
+    devolver c + "Bp"
+
+func cp_texto(c: entero) -> texto:
+    r: lista[entero] = []
+    si c < 128:
+        r = [c]
+    sino si c < 2048:
+        r = [192 + c // 64, 128 + c % 64]
+    sino si c < 65536:
+        r = [224 + c // 4096, 128 + (c // 64) % 64, 128 + c % 64]
+    sino:
+        r = [240 + c // 262144, 128 + (c // 4096) % 64, 128 + (c // 64) % 64, 128 + c % 64]
+    devolver texto_de_bytes(r, 0, largo(r))
+
+func buscar_pin(ps: lista[Pin], n: texto) -> entero:
+    para i en rango(largo(ps)):
+        si ps[i].n == n:
+            devolver i
+    devolver -1
+
+clase Blueprints extiende Anfitrion:
+    # Conjuntos fijos: palabras de Ara (`PALABRAS_ARA`) y bloques de `DATOS` y de `ACCIONES`.
+    palabras: diccionario[texto, booleano] = {"importar": verdadero, "const": verdadero, "global": verdadero, "func": verdadero, "estructura": verdadero, "enumeracion": verdadero, "externa": verdadero, "clase": verdadero, "extiende": verdadero, "cuando": verdadero, "exportar": verdadero, "segun": verdadero, "caso": verdadero, "devolver": verdadero, "si": verdadero, "sino": verdadero, "mientras": verdadero, "para": verdadero, "en": verdadero, "romper": verdadero, "continuar": verdadero, "pasar": verdadero, "verdadero": verdadero, "falso": verdadero, "y": verdadero, "o": verdadero, "no": verdadero, "yo": verdadero, "este": verdadero}
+    datos_c: diccionario[texto, booleano] = {"in_pulsada": verdadero, "in_mantenida": verdadero, "in_eje": verdadero, "in_raton": verdadero, "in_clic": verdadero, "mv_suelo": verdadero, "mv_posicion": verdadero, "lg_y": verdadero, "lg_o": verdadero, "lg_no": verdadero, "lg_comparar": verdadero, "lg_es": verdadero, "mt_numero": verdadero, "mt_sumar": verdadero, "mt_restar": verdadero, "mt_multiplicar": verdadero, "mt_dividir": verdadero, "mt_aleatorio": verdadero, "mt_limitar": verdadero, "mt_distancia": verdadero, "var_obtener": verdadero, "ob_leer": verdadero, "ob_consultar": verdadero, "es_yo": verdadero, "es_nodo": verdadero, "tx_texto": verdadero, "tx_unir": verdadero}
+    acciones_c: diccionario[texto, booleano] = {"mv_mover": verdadero, "mv_saltar": verdadero, "mv_fijar": verdadero, "mv_desplazar": verdadero, "mv_empujar": verdadero, "lg_esperar": verdadero, "var_fijar": verdadero, "var_sumar": verdadero, "fn_llamar": verdadero, "fn_devolver": verdadero, "ob_fijar": verdadero, "ob_llamar": verdadero, "es_mostrar": verdadero, "es_eliminar": verdadero, "es_crear": verdadero, "es_ganar": verdadero, "es_perder": verdadero, "es_reiniciar": verdadero, "es_puntos": verdadero, "es_emitir": verdadero, "es_escena": verdadero, "es_temblar": verdadero, "tx_fijar": verdadero, "au_sonar": verdadero, "au_musica": verdadero, "au_parar": verdadero}
+    # Catálogo (NODOS) y API del motor (API_MOTOR), los manda JS una vez.
+    cat: diccionario[texto, Def] = {}
+    ultimo_def = ""
+    a_tipos: diccionario[texto, texto] = {}
+    a_props: diccionario[texto, texto] = {}
+    a_mets: diccionario[texto, lista[Firma]] = {}
+    a_evs: diccionario[texto, lista[texto]] = {}
+    ultima_firma = ""
+    ultimo_ev = ""
+    esc = texto_de_bytes([27], 0, 1)
+    us = texto_de_bytes([31], 0, 1)
+
+    # El Blueprint que se compila.
+    archivo_v: Val = Val(1, "", 0.0)
+    base_v: Val = Val(1, "", 0.0)
+    vars: lista[Variable] = []
+    funs: lista[Funcion] = []
+    grafos: lista[Grafo] = []
+    bloques: lista[Bloque] = []
+
+    # Estado de la compilación.
+    base = "Nodo"
+    variables: diccionario[texto, texto] = {}
+    funciones: diccionario[texto, FInfo] = {}
+    errores: lista[Err] = []
+    avisos: lista[Err] = []
+    errores_gen: lista[Err] = []
+    sal: lista[texto] = []
+    sangrias = ["", "    ", "        ", "            ", "                ", "                    ", "                        "]
+    lineas: diccionario[texto, entero] = {}
+
+    # Estado de un grafo.
+    g_nodos: diccionario[texto, entero] = {}
+    g_ent: diccionario[texto, Con] = {}
+    g_sal: diccionario[texto, lista[Con]] = {}
+    usados: diccionario[texto, booleano] = {}
+    locales: diccionario[texto, texto] = {}
+    contador_bucle = 0
+    fn_actual = ""
+
+    # ---------- Lo que manda JS ----------
+
+    func cat_nodo(id: texto, titulo: texto, evento: texto, filtro: texto, es_evento: booleano):
+        sin_params: lista[texto] = []
+        sin_pines: lista[Pin] = []
+        cat[id] = Def(titulo, evento, filtro, es_evento, sin_params, sin_pines, [] + sin_pines)
+        ultimo_def = id
+
+    func cat_param(nombre: texto):
+        agregar(cat[ultimo_def].params, nombre)
+
+    func cat_entrada(n: texto, t: texto, etq: texto, dk: decimal, dt: texto, dn: decimal):
+        agregar(cat[ultimo_def].entradas, Pin(n, t, etq, Val(entero(dk), dt, dn)))
+
+    func cat_salida(n: texto, t: texto):
+        agregar(cat[ultimo_def].salidas, Pin(n, t, n, vnulo()))
+
+    func api_tipo(nombre: texto, base_tipo: texto):
+        a_tipos[nombre] = base_tipo
+
+    func api_propiedad(clave: texto, tipo: texto):
+        a_props[clave] = tipo
+
+    func api_firma(clave: texto, retorno: texto):
+        si no tiene(a_mets, clave):
+            vacia: lista[Firma] = []
+            a_mets[clave] = vacia
+        sin_params: lista[texto] = []
+        agregar(a_mets[clave], Firma(sin_params, retorno))
+        ultima_firma = clave
+
+    func api_param(tipo: texto):
+        fs = a_mets[ultima_firma]
+        agregar(fs[largo(fs) - 1].params, tipo)
+
+    func api_evento(nombre: texto):
+        vacia: lista[texto] = []
+        a_evs[nombre] = vacia
+        ultimo_ev = nombre
+
+    func api_evento_param(tipo: texto):
+        agregar(a_evs[ultimo_ev], tipo)
+
+    # El `.bp` llega en un solo texto (cruzar un texto por campo costaba más que compilar): campos separados por el
+    # carácter 31, cada registro empieza por su letra y tiene un número fijo de campos. En los textos, 27 escapa al 31
+    # y a sí mismo (27 2, 27 0). Los números van con `String(x)` de JS, que `decimal` lee igual (también NaN e Infinity).
+    func campo(t: texto) -> texto:
+        si no contiene(t, esc):
+            devolver t
+        partes = dividir(t, esc)
+        r = partes[0]
+        para i en rango(1, largo(partes)):
+            b = bytes(partes[i])
+            c = esc
+            si b[0] == 50:
+                c = us
+            r = r + c + trozo(b, 1, largo(b))
+        devolver r
+
+    func val(c: lista[texto], i: entero) -> Val:
+        devolver Val(entero(c[i]), campo(c[i + 1]), decimal(c[i + 2]))
+
+    func leer_bp(entrada: texto):
+        vars = []
+        funs = []
+        grafos = []
+        bloques = []
+        c = dividir(entrada, us)
+        i = 0
+        mientras i < largo(c):
+            tag = c[i]
+            si tag == "N":
+                sin_valores: diccionario[texto, Val] = {}
+                agregar(bloques, Bloque(campo(c[i + 1]), campo(c[i + 2]), val(c, i + 3), val(c, i + 6), decimal(c[i + 9]), decimal(c[i + 10]), sin_valores, ""))
+                agregar(grafos[largo(grafos) - 1].bloques, largo(bloques) - 1)
+                i += 11
+            sino si tag == "v":
+                bloques[largo(bloques) - 1].valores[campo(c[i + 1])] = val(c, i + 2)
+                i += 5
+            sino si tag == "C":
+                agregar(grafos[largo(grafos) - 1].cons, Con(campo(c[i + 1]), campo(c[i + 2]), campo(c[i + 3]), campo(c[i + 4])))
+                i += 5
+            sino si tag == "G":
+                sin_bloques: lista[entero] = []
+                sin_cons: lista[Con] = []
+                agregar(grafos, Grafo(campo(c[i + 1]), sin_bloques, sin_cons))
+                i += 2
+            sino si tag == "V":
+                agregar(vars, Variable(val(c, i + 1), campo(c[i + 4]), val(c, i + 5), c[i + 8] == "1"))
+                i += 9
+            sino si tag == "F":
+                sin_params: lista[Param] = []
+                agregar(funs, Funcion(val(c, i + 1), sin_params))
+                i += 4
+            sino si tag == "P":
+                agregar(funs[largo(funs) - 1].params, Param(val(c, i + 1), campo(c[i + 4])))
+                i += 5
+            sino:
+                # E: el archivo y la base
+                archivo_v = val(c, i + 1)
+                base_v = val(c, i + 4)
+                i += 7
+
+    # ---------- Ayudantes ----------
+
+    func es_palabra(n: texto) -> booleano:
+        devolver tiene(palabras, n)
+
+    # `nombreValido`
+    func nombre_valido(v: Val) -> booleano:
+        devolver es_ident(txt_o(v)) y no (v.k == TXT y es_palabra(v.t))
+
+    func grafo_de(nombre: texto) -> entero:
+        para i en rango(largo(grafos)):
+            si grafos[i].nombre == nombre:
+                devolver i
+        devolver -1
+
+    func titulo(b: Bloque) -> texto:
+        si no tiene(cat, b.def):
+            devolver b.def
+        si b.def == "var_obtener":
+            si verdad(b.variable):
+                devolver b.variable.t
+            devolver "variable"
+        si b.def == "var_fijar":
+            si verdad(b.variable):
+                devolver "Fijar " + b.variable.t
+            devolver "Fijar variable"
+        si b.def == "var_sumar":
+            si verdad(b.variable):
+                devolver "Sumar a " + b.variable.t
+            devolver "Sumar a variable"
+        si b.def == "fn_llamar":
+            si verdad(b.funcion):
+                devolver b.funcion.t
+            devolver "Llamar función"
+        si b.def == "fn_entrada":
+            si verdad(b.funcion):
+                devolver b.funcion.t
+            devolver "Función"
+        devolver cat[b.def].titulo
+
+    func variable_de(b: Bloque) -> entero:
+        para i en rango(largo(vars)):
+            si val_igual(vars[i].nombre, b.variable):
+                devolver i
+        devolver -1
+
+    func funcion_de(b: Bloque) -> entero:
+        para i en rango(largo(funs)):
+            si val_igual(funs[i].nombre, b.funcion):
+                devolver i
+        devolver -1
+
+    # `pinesDe(nodo, bp).entradas`
+    func entradas_de(b: Bloque) -> lista[Pin]:
+        r: lista[Pin] = []
+        si no tiene(cat, b.def):
+            devolver r
+        d = cat[b.def]
+        si b.def == "ob_llamar" o b.def == "ob_consultar":
+            cantidad = d.entradas[buscar_pin(d.entradas, "cantidad")].def.n
+            si tiene(b.valores, "cantidad") y b.valores["cantidad"].k != NULO:
+                cantidad = b.valores["cantidad"].n
+            para p en d.entradas:
+                k = -1
+                si p.n == "a":
+                    k = 0
+                sino si p.n == "b":
+                    k = 1
+                sino si p.n == "c":
+                    k = 2
+                si k < 0 o decimal(k) < cantidad:
+                    agregar(r, p)
+            devolver r
+        si b.def == "var_fijar":
+            vi = variable_de(b)
+            si vi >= 0:
+                devolver [Pin("entrada", "exec", "", vnulo()), Pin("valor", vars[vi].tipo, "valor", vars[vi].valor)]
+            devolver [Pin("entrada", "exec", "", vnulo()), Pin("valor", "cualquiera", "valor", vnum(0.0))]
+        si b.def == "fn_llamar":
+            agregar(r, Pin("entrada", "exec", "", vnulo()))
+            fi = funcion_de(b)
+            si fi >= 0:
+                para fp en funs[fi].params:
+                    t = fp.tipo
+                    si t == "":
+                        t = "cualquiera"
+                    agregar(r, Pin(fp.nombre.t, t, fp.nombre.t, vnum(0.0)))
+            devolver r
+        devolver d.entradas
+
+    # `pinesDe(nodo, bp).salidas`
+    func salidas_de(b: Bloque) -> lista[Pin]:
+        r: lista[Pin] = []
+        si no tiene(cat, b.def):
+            devolver r
+        si b.def == "var_obtener":
+            t = "cualquiera"
+            vi = variable_de(b)
+            si vi >= 0:
+                t = vars[vi].tipo
+            devolver [Pin("valor", t, "", vnulo())]
+        si b.def == "fn_entrada":
+            agregar(r, Pin("salida", "exec", "", vnulo()))
+            fi = funcion_de(b)
+            si fi >= 0:
+                para fp en funs[fi].params:
+                    t = fp.tipo
+                    si t == "":
+                        t = "cualquiera"
+                    agregar(r, Pin(fp.nombre.t, t, fp.nombre.t, vnulo()))
+            devolver r
+        devolver cat[b.def].salidas
+
+    # El valor escrito en una entrada (o el de la definición).
+    func valor_de(b: Bloque, ents: lista[Pin], pin: texto) -> Val:
+        si tiene(b.valores, pin):
+            devolver b.valores[pin]
+        i = buscar_pin(ents, pin)
+        si i >= 0:
+            devolver ents[i].def
+        devolver vnulo()
+
+    # El nombre de una variable del Blueprint a la que apunta un bloque, o "" si no lo es.
+    func var_bloque(b: Bloque) -> texto:
+        si verdad(b.variable) y tiene(variables, b.variable.t):
+            devolver b.variable.t
+        devolver ""
+
+    func es_variable(v: Val) -> booleano:
+        devolver v.k == TXT y tiene(variables, v.t)
+
+    func es_funcion(v: Val) -> booleano:
+        devolver v.k == TXT y tiene(funciones, v.t)
+
+    func miembro(tipo: texto, nombre: texto) -> Miembro:
+        t = tipo
+        mientras t != "":
+            k = t + "." + nombre
+            si tiene(a_props, k):
+                sin: lista[Firma] = []
+                devolver Miembro(1, a_props[k], sin)
+            si tiene(a_mets, k):
+                devolver Miembro(2, "", a_mets[k])
+            si tiene(a_tipos, t):
+                t = a_tipos[t]
+            sino:
+                t = ""
+        nada: lista[Firma] = []
+        devolver Miembro(0, "", nada)
+
+    func L(t: texto, nivel: entero, id: texto):
+        si nivel < largo(sangrias):
+            agregar(sal, sangrias[nivel] + t)
+        sino:
+            agregar(sal, repetir_texto("    ", nivel) + t)
+        si id != "" y no tiene(lineas, id):
+            lineas[id] = largo(sal)
+
+    func fallo(mensaje: texto, nodo: texto):
+        para e en errores_gen:
+            si e.mensaje == mensaje y e.nodo == nodo:
+                devolver
+        agregar(errores_gen, Err(mensaje, nodo, verdadero))
+
+    # `conv`: el dato al tipo que pide una entrada ("" = cualquiera).
+    func conv(r: R, destino: texto, id: texto, que: texto) -> R:
+        si destino == "" o r.tipo == "" o r.tipo == destino:
+            devolver r
+        si destino == "decimal" y r.tipo == "entero":
+            devolver R(r.codigo, "decimal", r.prec)
+        si destino == "entero" y r.tipo == "decimal":
+            devolver ra("entero(" + r.codigo + ")", "entero")
+        si destino == "texto":
+            si r.tipo == "Nodo":
+                devolver ra(par(r, ATOMO) + ".nombre", "texto")
+            devolver ra("texto(" + r.codigo + ")", "texto")
+        si destino == "booleano":
+            si es_numero(r.tipo):
+                devolver R(par(r, COMP + 1) + " != 0", "booleano", COMP)
+            si r.tipo == "texto":
+                devolver R(par(r, COMP + 1) + " != \"\"", "booleano", COMP)
+            si r.tipo == "Nodo":
+                devolver ra(par(r, ATOMO) + ".existe()", "booleano")
+            si empieza(r.tipo, "lista"):
+                devolver R("largo(" + r.codigo + ") > 0", "booleano", COMP)
+        inicio = "Aquí hace falta"
+        si que != "":
+            inicio = "«" + que + "» necesita"
+        fallo(inicio + " " + nombre_tipo(destino) + ", pero llega " + nombre_tipo(r.tipo) + ".", id)
+        devolver ra(por_defecto(destino), destino)
+
+    func conectado(b: Bloque, pin: texto) -> booleano:
+        devolver tiene(g_ent, b.id + ":" + pin)
+
+    # `c.e(pin, destino)`: el dato de una entrada, convertido a `destino` ("?" = el tipo de la entrada, "" = cualquiera).
+    func ent(bi: entero, pila: lista[texto], pin: texto, destino: texto) -> R:
+        nodo = bloques[bi]
+        ents = entradas_de(nodo)
+        pi = buscar_pin(ents, pin)
+        tipo = destino
+        si destino == "?":
+            tipo = ""
+            si pi >= 0:
+                tipo = tipo_ara(ents[pi].t)
+        clave = nodo.id + ":" + pin
+        r = ra("", "")
+        si tiene(g_ent, clave):
+            con = g_ent[clave]
+            r = expr(con.de, con.salida, pila, tipo)
+        sino:
+            v = valor_de(nodo, ents, pin)
+            prec = ATOMO
+            si v.n < 0.0:
+                prec = NO
+            si pi >= 0 y ents[pi].t == "objeto":
+                r = ra("yo", "Nodo")
+            sino si tipo == "texto":
+                r = ra(texto_ara(txt(v)), "texto")
+            sino si tipo == "booleano":
+                r = ra(si_no(verdad(v)), "booleano")
+            sino si es_numero(tipo):
+                r = R(numero_ara(v, tipo), tipo, prec)
+            sino si v.k == BOOL:
+                r = ra(si_no(v.t == "true"), "booleano")
+            sino si v.k == NUM o (v.k == TXT y es_numero_texto(v.t)):
+                r = R(numero_ara(v, "decimal"), "decimal", prec)
+            sino si v.k == NULO:
+                si tipo != "":
+                    r = ra(por_defecto(tipo), tipo)
+                sino:
+                    r = ra("\"\"", "texto")
+            sino:
+                r = ra(texto_ara(v.t), "texto")
+        que = ""
+        si pi >= 0:
+            que = ents[pi].etq
+        devolver conv(r, tipo, nodo.id, que)
+
+    func si_no(b: booleano) -> texto:
+        si b:
+            devolver "verdadero"
+        devolver "falso"
+
+    func objeto(bi: entero, pila: lista[texto]) -> R:
+        si conectado(bloques[bi], "objeto"):
+            devolver ent(bi, pila, "objeto", "Nodo")
+        devolver ra("yo", "Nodo")
+
+    # `c.args()`: los pines a, b, c según «cantidad».
+    func args(bi: entero) -> lista[texto]:
+        b = bloques[bi]
+        n = valor_de(b, entradas_de(b), "cantidad").n
+        si n != n:
+            n = 0.0
+        si n > 3.0:
+            n = 3.0
+        si n < 0.0:
+            n = 0.0
+        todos = ["a", "b", "c"]
+        r: lista[texto] = []
+        para i en rango(entero(n)):
+            agregar(r, todos[i])
+        devolver r
+
+    func ocupado(n: texto) -> booleano:
+        devolver tiene(variables, n) o tiene(funciones, n) o tiene(locales, n) o es_palabra(n)
+
+    func en_yo(nombre: texto, obj: R) -> texto:
+        si obj.codigo == "yo" y no ocupado(nombre):
+            devolver nombre
+        devolver par(obj, ATOMO) + "." + nombre
+
+    # Llamar a un método: del motor, una función de este Blueprint o (en otro nodo) una función de su script.
+    func metodo(bi: entero, pila: lista[texto], obj: R, nombre: Val, pins: lista[texto], con_valor: booleano) -> R:
+        id = bloques[bi].id
+        si no es_ident(txt_o(nombre)):
+            si con_valor:
+                devolver ra("0.0", "decimal")
+            devolver ra("pasar", "nada")
+        nt = nombre.t
+        si obj.codigo == "yo" y es_funcion(nombre):
+            f = funciones[nt]
+            si largo(pins) != largo(f.params):
+                fallo("La función «" + nt + "» recibe " + texto(largo(f.params)) + " dato(s), no " + texto(largo(pins)) + ".", id)
+            cs: lista[texto] = []
+            para i en rango(largo(f.params)):
+                si i < largo(pins):
+                    agregar(cs, ent(bi, pila, pins[i], f.params[i].tipo).codigo)
+                sino:
+                    agregar(cs, por_defecto(f.params[i].tipo))
+            devolver ra(nt + "(" + unir(cs, ", ") + ")", f.retorno)
+        donde = "Nodo"
+        si obj.codigo == "yo":
+            donde = base
+        m = miembro(donde, nt)
+        si m.k == 2:
+            fi = -1
+            para i en rango(largo(m.firmas)):
+                si fi < 0 y largo(m.firmas[i].params) == largo(pins):
+                    fi = i
+            si fi < 0:
+                cuentas: lista[texto] = []
+                para fm en m.firmas:
+                    cuenta = texto(largo(fm.params))
+                    si no contiene(cuentas, cuenta):
+                        agregar(cuentas, cuenta)
+                fallo("«" + nt + "» recibe " + unir(cuentas, " o ") + " dato(s), no " + texto(largo(pins)) + ".", id)
+                devolver ra(por_defecto(m.firmas[0].retorno), m.firmas[0].retorno)
+            firma = m.firmas[fi]
+            cs2: lista[texto] = []
+            para i en rango(largo(firma.params)):
+                agregar(cs2, ent(bi, pila, pins[i], firma.params[i]).codigo)
+            devolver ra(en_yo(nt, obj) + "(" + unir(cs2, ", ") + ")", firma.retorno)
+        si m.k == 1:
+            fallo("«" + nt + "» es una propiedad, no un método: usa «Leer propiedad» o «Cambiar propiedad».", id)
+            devolver ra(por_defecto(m.propiedad), m.propiedad)
+        si obj.codigo == "yo":
+            fallo("Este nodo no tiene ningún método ni función «" + nt + "».", id)
+            devolver ra("0.0", "decimal")
+        # Una función del script de otro nodo: solo con números (Ara necesita saber los tipos al compilar).
+        cs3: lista[texto] = [texto_ara(nt)]
+        para p en pins:
+            r = ent(bi, pila, p, "")
+            si es_numero(r.tipo) o r.tipo == "booleano":
+                agregar(cs3, conv(r, "decimal", id, "").codigo)
+            sino:
+                fallo("Para llamar a «" + nt + "» de otro nodo, los datos tienen que ser números.", id)
+                agregar(cs3, "0.0")
+        si con_valor:
+            devolver ra(par(obj, ATOMO) + ".consultar(" + unir(cs3, ", ") + ")", "decimal")
+        devolver ra(par(obj, ATOMO) + ".llamar(" + unir(cs3, ", ") + ")", "nada")
+
+    # Leer una propiedad del nodo o una variable de su Blueprint o script.
+    func leer_prop(bi: entero, obj: R, nombre: Val, esperado: texto) -> R:
+        id = bloques[bi].id
+        si no es_ident(txt_o(nombre)):
+            devolver ra(por_defecto(esperado), o_decimal(esperado))
+        nt = nombre.t
+        si obj.codigo == "yo" y es_variable(nombre):
+            devolver ra(nt, variables[nt])
+        m = miembro(base, nt)
+        si m.k == 1:
+            si obj.codigo == "yo":
+                devolver ra("yo." + nt, m.propiedad)
+            devolver ra(par(obj, ATOMO) + "." + nt, m.propiedad)
+        si obj.codigo == "yo":
+            fallo("Este nodo no tiene la propiedad ni la variable «" + nt + "».", id)
+            devolver ra(por_defecto(esperado), o_decimal(esperado))
+        que = "numero"
+        tipo = "decimal"
+        si esperado == "texto":
+            que = "texto"
+            tipo = "texto"
+        sino si esperado == "booleano":
+            que = "booleano"
+            tipo = "booleano"
+        sino si esperado == "Nodo":
+            que = "nodo"
+            tipo = "Nodo"
+        devolver ra(par(obj, ATOMO) + ".leer_" + que + "(" + texto_ara(nt) + ")", tipo)
+
+    # Cambiar una propiedad del nodo o una variable de su Blueprint o script.
+    func fijar_prop(bi: entero, pila: lista[texto], obj: R, nombre: Val) -> texto:
+        id = bloques[bi].id
+        si no es_ident(txt_o(nombre)):
+            devolver "pasar"
+        nt = nombre.t
+        si obj.codigo == "yo" y es_variable(nombre):
+            devolver nt + " = " + ent(bi, pila, "valor", variables[nt]).codigo
+        m = miembro(base, nt)
+        si m.k == 1:
+            quien = "yo"
+            si obj.codigo != "yo":
+                quien = par(obj, ATOMO)
+            devolver quien + "." + nt + " = " + ent(bi, pila, "valor", m.propiedad).codigo
+        si obj.codigo == "yo":
+            fallo("Este nodo no tiene la propiedad ni la variable «" + nt + "».", id)
+            devolver "pasar"
+        r = ent(bi, pila, "valor", "")
+        que = "texto"
+        destino = "texto"
+        si es_numero(r.tipo):
+            que = "numero"
+            destino = "decimal"
+        sino si r.tipo == "booleano":
+            que = "booleano"
+            destino = "booleano"
+        sino si r.tipo == "Nodo":
+            que = "nodo"
+            destino = "Nodo"
+        devolver par(obj, ATOMO) + ".cambiar_" + que + "(" + texto_ara(nt) + ", " + conv(r, destino, id, "").codigo + ")"
+
+    func valor(bi: entero, pin: texto) -> Val:
+        b = bloques[bi]
+        devolver valor_de(b, entradas_de(b), pin)
+
+    func aritmetica(bi: entero, pila: lista[texto], op: texto, prec: entero) -> R:
+        id = bloques[bi].id
+        a = ent(bi, pila, "a", "")
+        b = ent(bi, pila, "b", "")
+        # Entero con entero sigue siendo entero (salvo al dividir); con un decimal, decimal.
+        tipo = "decimal"
+        si a.tipo == "entero" y b.tipo == "entero" y op != "/":
+            tipo = "entero"
+        a = conv(a, tipo, id, "a")
+        b = conv(b, tipo, id, "b")
+        extra = 0
+        si op == "-" o op == "/":
+            extra = 1
+        devolver R(par(a, prec) + " " + op + " " + par(b, prec + extra), tipo, prec)
+
+    func es_dato(d: texto) -> booleano:
+        devolver tiene(datos_c, d)
+
+    # Lo que da cada bloque de datos (`DATOS`).
+    func dato(bi: entero, pin: texto, esperado: texto, pila: lista[texto]) -> R:
+        nodo = bloques[bi]
+        d = nodo.def
+        id = nodo.id
+        yo_r = ra("yo", "Nodo")
+        si d == "in_pulsada":
+            devolver ra("se_pulsa(" + ent(bi, pila, "accion", "?").codigo + ")", "booleano")
+        si d == "in_mantenida":
+            devolver ra("se_mantiene(" + ent(bi, pila, "accion", "?").codigo + ")", "booleano")
+        si d == "in_eje":
+            neg = ent(bi, pila, "negativa", "?").codigo
+            devolver ra("eje(" + neg + ", " + ent(bi, pila, "positiva", "?").codigo + ")", "decimal")
+        si d == "in_raton":
+            si pin == "y":
+                devolver ra("raton_y()", "decimal")
+            devolver ra("raton_x()", "decimal")
+        si d == "in_clic":
+            devolver ra("raton_pulsado()", "booleano")
+        si d == "mv_suelo":
+            sin: lista[texto] = []
+            devolver metodo(bi, pila, yo_r, vtexto("en_el_suelo"), sin, verdadero)
+        si d == "mv_posicion":
+            eje_n = "x"
+            si pin == "y":
+                eje_n = "y"
+            devolver leer_prop(bi, objeto(bi, pila), vtexto(eje_n), "")
+        si d == "lg_y":
+            a = ent(bi, pila, "a", "?")
+            b = ent(bi, pila, "b", "?")
+            devolver R(par(a, PY) + " y " + par(b, PY + 1), "booleano", PY)
+        si d == "lg_o":
+            a = ent(bi, pila, "a", "?")
+            b = ent(bi, pila, "b", "?")
+            devolver R(par(a, PO) + " o " + par(b, PO + 1), "booleano", PO)
+        si d == "lg_no":
+            devolver R("no " + par(ent(bi, pila, "valor", "?"), NO), "booleano", NO)
+        si d == "lg_comparar":
+            vo = valor(bi, "op")
+            op = "=="
+            si vo.k == TXT y contiene(["==", "!=", "<", ">", "<=", ">="], vo.t):
+                op = vo.t
+            a = ent(bi, pila, "a", "")
+            b = ent(bi, pila, "b", "")
+            igualdad = op == "==" o op == "!="
+            si igualdad y (a.tipo == "texto" o b.tipo == "texto"):
+                a = conv(a, "texto", id, "")
+                b = conv(b, "texto", id, "")
+            sino si no (igualdad y a.tipo == b.tipo y (a.tipo == "booleano" o a.tipo == "Nodo")):
+                a = conv(a, "decimal", id, "a")
+                b = conv(b, "decimal", id, "b")
+            devolver R(par(a, COMP + 1) + " " + op + " " + par(b, COMP + 1), "booleano", COMP)
+        si d == "lg_es":
+            ob = par(ent(bi, pila, "objeto", "Nodo"), ATOMO)
+            devolver ra(ob + ".es(" + ent(bi, pila, "nombre", "?").codigo + ")", "booleano")
+        si d == "mt_numero" o d == "tx_texto":
+            devolver ent(bi, pila, "valor", "?")
+        si d == "mt_sumar":
+            devolver aritmetica(bi, pila, "+", SUMA)
+        si d == "mt_restar":
+            devolver aritmetica(bi, pila, "-", SUMA)
+        si d == "mt_multiplicar":
+            devolver aritmetica(bi, pila, "*", MUL)
+        si d == "mt_dividir":
+            devolver aritmetica(bi, pila, "/", MUL)
+        si d == "mt_aleatorio":
+            mn = ent(bi, pila, "min", "?")
+            mx = ent(bi, pila, "max", "?")
+            devolver R(par(mn, SUMA) + " + aleatorio() * (" + mx.codigo + " - " + par(mn, SUMA + 1) + ")", "decimal", SUMA)
+        si d == "mt_limitar":
+            v = ent(bi, pila, "valor", "?").codigo
+            lo = ent(bi, pila, "min", "?").codigo
+            devolver ra("limitar(" + v + ", " + lo + ", " + ent(bi, pila, "max", "?").codigo + ")", "decimal")
+        si d == "mt_distancia":
+            da = ent(bi, pila, "a", "Nodo").codigo
+            devolver ra("distancia(" + da + ", " + ent(bi, pila, "b", "Nodo").codigo + ")", "decimal")
+        si d == "var_obtener":
+            vb = var_bloque(nodo)
+            si vb == "":
+                fallo(msg_variable(nodo), id)
+                devolver ra("0.0", "decimal")
+            devolver ra(vb, variables[vb])
+        si d == "ob_leer":
+            o1 = objeto(bi, pila)
+            devolver leer_prop(bi, o1, valor(bi, "miembro"), esperado)
+        si d == "ob_consultar":
+            o2 = objeto(bi, pila)
+            devolver metodo(bi, pila, o2, valor(bi, "miembro"), args(bi), verdadero)
+        si d == "es_yo":
+            devolver yo_r
+        si d == "es_nodo":
+            devolver ra("nodo(" + ent(bi, pila, "nombre", "?").codigo + ")", "Nodo")
+        # tx_unir
+        ta = ent(bi, pila, "a", "texto")
+        tb = ent(bi, pila, "b", "texto")
+        devolver R(par(ta, SUMA) + " + " + par(tb, SUMA + 1), "texto", SUMA)
+
+    func msg_variable(nodo: Bloque) -> texto:
+        si verdad(nodo.variable):
+            devolver "La variable «" + nodo.variable.t + "» no existe."
+        devolver "Elige una variable."
+
+    func es_accion(d: texto) -> booleano:
+        devolver tiene(acciones_c, d)
+
+    # Lo que hace cada bloque de acción (`ACCIONES`): una línea de Ara.
+    func accion(bi: entero, pila: lista[texto]) -> texto:
+        nodo = bloques[bi]
+        d = nodo.def
+        id = nodo.id
+        yo_r = ra("yo", "Nodo")
+        si d == "mv_mover":
+            vy = valor(bi, "y")
+            si conectado(nodo, "y") o (vy.k != NULO y no (vy.k == TXT y vy.t == "")):
+                devolver metodo(bi, pila, yo_r, vtexto("mover"), ["x", "y"], falso).codigo
+            devolver metodo(bi, pila, yo_r, vtexto("mover"), ["x"], falso).codigo
+        si d == "mv_saltar":
+            devolver metodo(bi, pila, yo_r, vtexto("saltar"), ["fuerza"], falso).codigo
+        si d == "mv_fijar":
+            devolver metodo(bi, pila, yo_r, vtexto("mover_a"), ["x", "y"], falso).codigo
+        si d == "mv_desplazar":
+            devolver metodo(bi, pila, yo_r, vtexto("desplazar"), ["x", "y"], falso).codigo
+        si d == "mv_empujar":
+            devolver metodo(bi, pila, yo_r, vtexto("empujar"), ["x", "y"], falso).codigo
+        si d == "lg_esperar":
+            devolver "esperar(" + ent(bi, pila, "segundos", "?").codigo + ")"
+        si d == "var_fijar":
+            vf = var_bloque(nodo)
+            si vf == "":
+                fallo(msg_variable(nodo), id)
+                devolver "pasar"
+            devolver vf + " = " + ent(bi, pila, "valor", variables[vf]).codigo
+        si d == "var_sumar":
+            vs = var_bloque(nodo)
+            si vs == "":
+                fallo(msg_variable(nodo), id)
+                devolver "pasar"
+            t = variables[vs]
+            si no es_numero(t):
+                fallo("«" + vs + "» no es un número: no se le puede sumar.", id)
+                devolver "pasar"
+            devolver vs + " += " + ent(bi, pila, "cantidad", t).codigo
+        si d == "fn_llamar":
+            si no es_funcion(nodo.funcion):
+                si verdad(nodo.funcion):
+                    fallo("La función «" + nodo.funcion.t + "» no existe.", id)
+                sino:
+                    fallo("Elige una función.", id)
+                devolver "pasar"
+            f = funciones[nodo.funcion.t]
+            cs: lista[texto] = []
+            para p en f.params:
+                agregar(cs, ent(bi, pila, p.nombre, p.tipo).codigo)
+            devolver nodo.funcion.t + "(" + unir(cs, ", ") + ")"
+        si d == "fn_devolver":
+            si fn_actual == "":
+                si conectado(nodo, "valor"):
+                    fallo("En un evento, «Devolver» no lleva valor: solo termina el evento.", id)
+                devolver "devolver"
+            si no conectado(nodo, "valor"):
+                devolver "devolver"
+            fi = funciones[fn_actual]
+            destino = fi.retorno
+            si destino == "nada":
+                destino = ""
+            r = ent(bi, pila, "valor", destino)
+            si fi.retorno == "nada" y fi.visto == "":
+                fi.visto = r.tipo
+            devolver "devolver " + r.codigo
+        si d == "ob_fijar":
+            o1 = objeto(bi, pila)
+            devolver fijar_prop(bi, pila, o1, valor(bi, "miembro"))
+        si d == "ob_llamar":
+            o2 = objeto(bi, pila)
+            devolver metodo(bi, pila, o2, valor(bi, "miembro"), args(bi), falso).codigo
+        si d == "es_mostrar":
+            rm = ent(bi, pila, "texto", "")
+            si rm.tipo == "Nodo" o empieza(rm.tipo, "lista"):
+                rm = conv(rm, "texto", id, "")
+            devolver "imprimir(" + rm.codigo + ")"
+        si d == "es_eliminar":
+            si conectado(nodo, "objeto"):
+                devolver par(ent(bi, pila, "objeto", "Nodo"), ATOMO) + ".eliminar()"
+            devolver en_yo("eliminar", yo_r) + "()"
+        si d == "es_crear":
+            pl = ent(bi, pila, "plantilla", "?").codigo
+            cx = ent(bi, pila, "x", "?").codigo
+            devolver "crear(" + pl + ", " + cx + ", " + ent(bi, pila, "y", "?").codigo + ")"
+        si d == "es_ganar":
+            devolver "ganar_partida()"
+        si d == "es_perder":
+            devolver "perder_partida()"
+        si d == "es_reiniciar":
+            devolver "reiniciar_nivel()"
+        si d == "es_puntos":
+            devolver "ganar_puntos(" + ent(bi, pila, "cantidad", "?").codigo + ")"
+        si d == "es_emitir":
+            devolver "emitir(" + ent(bi, pila, "senal", "?").codigo + ")"
+        si d == "es_escena":
+            devolver "cambiar_escena(" + ent(bi, pila, "escena", "?").codigo + ")"
+        si d == "es_temblar":
+            fz = ent(bi, pila, "fuerza", "?").codigo
+            devolver "temblar_camara(" + fz + ", " + ent(bi, pila, "segundos", "?").codigo + ")"
+        si d == "tx_fijar":
+            nd = ent(bi, pila, "nodo", "?").codigo
+            devolver "nodo(" + nd + ").texto = " + ent(bi, pila, "texto", "texto").codigo
+        si d == "au_sonar":
+            so = ent(bi, pila, "sonido", "?").codigo
+            devolver "sonar(" + so + ", " + ent(bi, pila, "volumen", "?").codigo + ")"
+        si d == "au_musica":
+            devolver "musica(" + ent(bi, pila, "musica", "?").codigo + ")"
+        # au_parar
+        devolver "parar_musica()"
+
+    func expr(id: texto, pin: texto, pila: lista[texto], esperado: texto) -> R:
+        bi = g_nodos[id]
+        nodo = bloques[bi]
+        usados[id] = verdadero
+        hay_def = tiene(cat, nodo.def)
+        si contiene(pila, id):
+            fallo("El bloque «" + titulo(nodo) + "» está conectado en círculo consigo mismo.", id)
+            devolver ra(por_defecto(esperado), o_decimal(esperado))
+        # Datos de los eventos, de la entrada de la función y del índice de los bucles: variables locales.
+        si hay_def y (cat[nodo.def].es_evento o nodo.def == "lg_repetir") y pin != "salida":
+            local = pin
+            donde = "evento"
+            si nodo.def == "lg_repetir":
+                local = nodo.vbucle
+                donde = "bucle"
+            si local != "" y tiene(locales, local):
+                devolver ra(local, locales[local])
+            fallo("El dato «" + pin + "» de «" + titulo(nodo) + "» solo se puede usar dentro de su " + donde + ".", id)
+            devolver ra(por_defecto(esperado), o_decimal(esperado))
+        si no (hay_def y es_dato(nodo.def)):
+            fallo("El bloque «" + titulo(nodo) + "» no da un valor.", id)
+            devolver ra(por_defecto(esperado), o_decimal(esperado))
+        devolver dato(bi, pin, esperado, pila + [id])
+
+    func siguiente(id: texto, pin: texto) -> texto:
+        k = id + ":" + pin
+        si tiene(g_sal, k):
+            devolver g_sal[k][0].a
+        devolver ""
+
+    func cadena(inicio: texto, nivel: entero, visitados: lista[texto]) -> entero:
+        id = inicio
+        n = 0
+        mientras id != "":
+            si contiene(visitados, id):
+                fallo("Hay un círculo en las flechas de ejecución.", id)
+                devolver n
+            agregar(visitados, id)
+            usados[id] = verdadero
+            bi = g_nodos[id]
+            nodo = bloques[bi]
+            pila = [id]
+            n += 1
+            si nodo.def == "lg_si":
+                L("si " + ent(bi, pila, "condicion", "?").codigo + ":", nivel, id)
+                v = siguiente(id, "verdadero")
+                si v == "" o cadena(v, nivel + 1, visitados + []) == 0:
+                    L("pasar", nivel + 1, "")
+                f = siguiente(id, "falso")
+                si f != "":
+                    L("sino:", nivel, "")
+                    cadena(f, nivel + 1, visitados + [])
+                devolver n
+            si nodo.def == "lg_secuencia":
+                a = siguiente(id, "primero")
+                b = siguiente(id, "despues")
+                hecho = 0
+                si a != "":
+                    hecho += cadena(a, nivel, visitados + [])
+                si b != "":
+                    hecho += cadena(b, nivel, visitados + [])
+                si hecho == 0:
+                    L("pasar", nivel, id)
+                devolver n
+            si nodo.def == "lg_repetir":
+                nodo.vbucle = "vuelta"
+                si contador_bucle != 0:
+                    nodo.vbucle = "vuelta" + texto(contador_bucle + 1)
+                contador_bucle += 1
+                L("para " + nodo.vbucle + " en rango(" + ent(bi, pila, "veces", "?").codigo + "):", nivel, id)
+                anterior = ""
+                si tiene(locales, nodo.vbucle):
+                    anterior = locales[nodo.vbucle]
+                locales[nodo.vbucle] = "entero"
+                cu = siguiente(id, "cuerpo")
+                si cu == "" o cadena(cu, nivel + 1, visitados + []) == 0:
+                    L("pasar", nivel + 1, "")
+                si anterior != "":
+                    locales[nodo.vbucle] = anterior
+                sino si tiene(locales, nodo.vbucle):
+                    quitar(locales, nodo.vbucle)
+                id = siguiente(id, "salida")
+                continuar
+            si nodo.def == "lg_mientras":
+                L("mientras " + ent(bi, pila, "condicion", "?").codigo + ":", nivel, id)
+                cm = siguiente(id, "cuerpo")
+                si cm == "" o cadena(cm, nivel + 1, visitados + []) == 0:
+                    L("pasar", nivel + 1, "")
+                id = siguiente(id, "salida")
+                continuar
+            si no (tiene(cat, nodo.def) y es_accion(nodo.def)):
+                fallo("El bloque «" + titulo(nodo) + "» no es una acción y no se puede encadenar con flechas.", id)
+                devolver n
+            L(accion(bi, pila), nivel, id)
+            si nodo.def == "fn_devolver":
+                devolver n
+            id = siguiente(id, "salida")
+        devolver n
+
+    # El comparador de `sort` de JS: `(a.y - b.y) || (a.x - b.x)` (NaN cuenta como 0).
+    func antes(a: Bloque, b: Bloque) -> decimal:
+        dy = a.py - b.py
+        si dy == dy y dy != 0.0:
+            devolver dy
+        dx = a.px - b.px
+        si dx == dx:
+            devolver dx
+        devolver 0.0
+
+    func firma_fn(nombre: texto, f: FInfo) -> texto:
+        ps: lista[texto] = []
+        para p en f.params:
+            agregar(ps, p.nombre + ": " + p.tipo)
+        devolver nombre + "(" + unir(ps, ", ") + ")"
+
+    func es_entrada_de(b: Bloque, funcion: texto) -> booleano:
+        devolver b.def == "fn_entrada" y b.funcion.k == TXT y b.funcion.t == funcion
+
+    func compilar_grafo(gi: entero, funcion: texto):
+        g_nodos = {}
+        g_ent = {}
+        g_sal = {}
+        usados = {}
+        locales = {}
+        contador_bucle = 0
+        fn_actual = funcion
+        si gi >= 0:
+            para bi en grafos[gi].bloques:
+                g_nodos[bloques[bi].id] = bi
+            para c en grafos[gi].cons:
+                si no (tiene(g_nodos, c.de) y tiene(g_nodos, c.a)):
+                    continuar
+                g_ent[c.a + ":" + c.entrada] = c
+                k = c.de + ":" + c.salida
+                si no tiene(g_sal, k):
+                    vacia: lista[Con] = []
+                    g_sal[k] = vacia
+                agregar(g_sal[k], c)
+        # Los eventos, de arriba abajo y de izquierda a derecha (orden estable, como `sort` de JS).
+        eventos: lista[entero] = []
+        para k en g_nodos:
+            bi = g_nodos[k]
+            si no (tiene(cat, bloques[bi].def) y cat[bloques[bi].def].es_evento):
+                continuar
+            agregar(eventos, bi)
+            j = largo(eventos) - 1
+            mientras j > 0 y antes(bloques[eventos[j - 1]], bloques[bi]) > 0.0:
+                eventos[j] = eventos[j - 1]
+                j -= 1
+            eventos[j] = bi
+        para bi en eventos:
+            ev = bloques[bi]
+            d = cat[ev.def]
+            usados[ev.id] = verdadero
+            locales = {}
+            cabecera = ""
+            si funcion != "":
+                si no es_entrada_de(ev, funcion):
+                    continuar
+                fi = funciones[funcion]
+                para p en fi.params:
+                    locales[p.nombre] = p.tipo
+                cabecera = "func " + firma_fn(funcion, fi)
+                si fi.retorno != "nada":
+                    cabecera = cabecera + " -> " + fi.retorno
+                cabecera = cabecera + ":"
+            sino:
+                si ev.def == "fn_entrada":
+                    continuar
+                datos_ev: lista[texto] = []
+                si tiene(a_evs, d.evento):
+                    datos_ev = a_evs[d.evento]
+                nombres = d.params
+                si d.filtro != "":
+                    nombres = [""] + d.params
+                para i en rango(largo(nombres)):
+                    si nombres[i] != "" y i < largo(datos_ev):
+                        locales[nombres[i]] = datos_ev[i]
+                a = unir(d.params, ", ")
+                si d.filtro != "":
+                    v = d.entradas[buscar_pin(d.entradas, d.filtro)].def
+                    si tiene(ev.valores, d.filtro) y ev.valores[d.filtro].k != NULO:
+                        v = ev.valores[d.filtro]
+                    a = unir([texto_ara(v.t)] + d.params, ", ")
+                cabecera = "cuando " + d.evento + "(" + a + "):"
+            agregar(sal, "")
+            L(cabecera, 1, ev.id)
+            primero = siguiente(ev.id, "salida")
+            n = 0
+            si primero != "":
+                n = cadena(primero, 2, [])
+            si n == 0:
+                L("pasar", 2, "")
+                agregar(avisos, Err("«" + titulo(ev) + "» no tiene nada conectado todavía.", ev.id, verdadero))
+        si funcion != "":
+            hay_entrada = falso
+            para bi en eventos:
+                si es_entrada_de(bloques[bi], funcion):
+                    hay_entrada = verdadero
+            si no hay_entrada:
+                agregar(sal, "")
+                agregar(sal, "    func " + firma_fn(funcion, funciones[funcion]) + ":")
+                agregar(sal, "        pasar")
+        para k en g_nodos:
+            b = bloques[g_nodos[k]]
+            si no tiene(usados, k) y tiene(cat, b.def):
+                agregar(avisos, Err("El bloque «" + titulo(b) + "» está suelto y no hace nada.", k, verdadero))
+
+    func tipo_literal(v: Val) -> texto:
+        si v.k == BOOL:
+            devolver "booleano"
+        si v.k == TXT y no es_numero_texto(v.t):
+            devolver "texto"
+        devolver "decimal"
+
+    func tipo_salida_simple(gi: entero, id: texto, pin: texto) -> texto:
+        para bi en grafos[gi].bloques:
+            n = bloques[bi]
+            si n.id != id:
+                continuar
+            si n.def == "var_obtener":
+                devolver var_bloque(n)
+            ps = salidas_de(n)
+            i = buscar_pin(ps, pin)
+            si i < 0:
+                devolver ""
+            devolver tipo_ara(ps[i].t)
+        devolver ""
+
+    # El tipo de un parámetro «cualquiera»: el del primer valor que le llega en una llamada.
+    func tipo_param(f: Funcion, i: entero) -> texto:
+        p = f.params[i]
+        tipo = tipo_ara(p.tipo)
+        para gi en rango(largo(grafos)):
+            g = grafos[gi]
+            para bi en g.bloques:
+                si tipo != "":
+                    romper
+                n = bloques[bi]
+                llamada = ""
+                si n.def == "fn_llamar" y val_igual(n.funcion, f.nombre):
+                    si p.nombre.k == TXT:
+                        llamada = p.nombre.t
+                sino si (n.def == "ob_llamar" o n.def == "ob_consultar") y tiene(n.valores, "miembro") y val_igual(n.valores["miembro"], f.nombre) y i < 3:
+                    llamada = ["a", "b", "c"][i]
+                si llamada == "":
+                    continuar
+                hallada = falso
+                para c en g.cons:
+                    si c.a == n.id y c.entrada == llamada:
+                        tipo = tipo_salida_simple(gi, c.de, c.salida)
+                        hallada = verdadero
+                        romper
+                si no hallada y tiene(n.valores, llamada):
+                    tipo = tipo_literal(n.valores[llamada])
+        devolver tipo
+
+    func valor_inicial(v: Variable, t: texto) -> texto:
+        si t == "Nodo":
+            devolver "nodo(" + texto_ara(txt_o(v.valor)) + ")"
+        si t == "lista[Nodo]":
+            devolver "[]"
+        si t == "booleano":
+            devolver si_no(verdad(v.valor))
+        si t == "texto":
+            devolver texto_ara(txt(v.valor))
+        devolver numero_ara(v.valor, t)
+
+    # Compila un Blueprint (ver `leer_bp`) y devuelve el resultado por las externas.
+    func bp_compilar(entrada: texto):
+        leer_bp(entrada)
+        variables = {}
+        funciones = {}
+        errores = []
+        avisos = []
+        archivo = archivo_v.t
+        rel = archivo
+        si no verdad(archivo_v):
+            rel = "blueprint"
+        nombre_clase = clase_bp(rel)
+        base = "Nodo"
+        si verdad(base_v) y tiene(a_tipos, base_v.t):
+            base = base_v.t
+        para g en grafos:
+            para bi en g.bloques:
+                n = bloques[bi]
+                si no empieza(n.def, "ob_"):
+                    continuar
+                m = vnulo()
+                si tiene(cat, n.def):
+                    m = cat[n.def].entradas[buscar_pin(cat[n.def].entradas, "miembro")].def
+                si tiene(n.valores, "miembro") y n.valores["miembro"].k != NULO:
+                    m = n.valores["miembro"]
+                si no es_ident(txt_o(m)):
+                    agregar(errores, Err("Escribe un nombre de propiedad o método válido, sin puntos ni paréntesis.", n.id, verdadero))
+                para c en g.cons:
+                    si c.a == n.id y c.entrada == "miembro":
+                        agregar(errores, Err("El nombre de miembro debe ser constante. Escribe el nombre en el bloque.", n.id, verdadero))
+                        romper
+        si verdad(base_v) y no tiene(a_tipos, base_v.t):
+            agregar(errores, Err("«" + base_v.t + "» no es un tipo de nodo.", "", falso))
+        para v en vars:
+            si no nombre_valido(v.nombre):
+                si v.nombre.k == TXT y es_palabra(v.nombre.t):
+                    agregar(errores, Err("La variable «" + v.nombre.t + "» no puede llamarse así: es una palabra de Ara. Cámbiale el nombre.", "", falso))
+                sino:
+                    agregar(errores, Err("«" + v.nombre.t + "» no es un nombre válido para una variable.", "", falso))
+                continuar
+            t = tipo_ara(v.tipo)
+            si t == "":
+                t = "texto"
+                si v.valor.k == BOOL:
+                    t = "booleano"
+                sino si v.valor.k == NUM:
+                    t = "decimal"
+            variables[v.nombre.t] = t
+        para f en funs:
+            si no nombre_valido(f.nombre):
+                agregar(errores, Err("«" + f.nombre.t + "» no es un nombre válido para una función.", "", falso))
+                continuar
+            ps: lista[PT] = []
+            para i en rango(largo(f.params)):
+                tipo = tipo_param(f, i)
+                p = f.params[i]
+                si no nombre_valido(p.nombre):
+                    agregar(errores, Err("«" + p.nombre.t + "» no es un nombre válido para un parámetro de «" + f.nombre.t + "».", "", falso))
+                agregar(ps, PT(p.nombre.t, o_decimal(tipo)))
+            funciones[f.nombre.t] = FInfo(ps, "nada", "")
+        # Dos pasadas: la primera averigua qué devuelve cada función (el tipo de lo que llega a «Devolver»).
+        para pasada en rango(1, 3):
+            sal = []
+            lineas = {}
+            errores_gen = []
+            avisos = []
+            L("# Generado desde " + archivo + " · no editar a mano", 0, "")
+            L("clase " + nombre_clase + " extiende " + base + ":", 0, "")
+            para v en vars:
+                si no (nombre_valido(v.nombre) y tiene(variables, v.nombre.t)):
+                    continuar
+                t = variables[v.nombre.t]
+                si pasada == 2 y v.exporta y no contiene(["decimal", "entero", "texto", "booleano"], t):
+                    agregar(errores, Err("«" + v.nombre.t + "» no se puede exportar: el Inspector solo cambia números, textos y sí / no.", "", falso))
+                pre = ""
+                si v.exporta:
+                    pre = "exportar "
+                L(pre + v.nombre.t + ": " + t + " = " + valor_inicial(v, t), 1, "")
+            compilar_grafo(grafo_de("eventos"), "")
+            para k en funciones:
+                compilar_grafo(grafo_de("fn:" + k), k)
+            si largo(sal) == 2:
+                L("pasar", 1, "")
+            si pasada == 1:
+                para k en funciones:
+                    fi = funciones[k]
+                    si fi.visto != "":
+                        si fi.visto == "lista[Nodo]":
+                            fi.retorno = "nada"
+                        sino:
+                            fi.retorno = fi.visto
+                        fi.visto = ""
+        bp_clase(nombre_clase)
+        bp_codigo(unir(sal, "\n") + "\n")
+        para e en errores + errores_gen:
+            bp_error(e.mensaje, e.nodo, e.hay, falso)
+        para e2 en avisos:
+            bp_error(e2.mensaje, e2.nodo, e2.hay, verdadero)
+        para k en lineas:
+            bp_linea(k, lineas[k])

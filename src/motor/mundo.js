@@ -1,7 +1,7 @@
 // El mundo del juego en ejecución: nodos vivos, scripts (Ara y Águila), física, eventos y la API que usan los dos.
 
 import { crearInterprete, InstanciaScript, aTexto, tipoDe, ErrorAguila, FuncionAguila, analizar } from '../aguila/index.js';
-import { compilarBlueprint, claseBlueprint, generadoDe } from './blueprints.js';
+import { claseBlueprint, generadoDe } from './blueprints.js';
 import { tipo as tipoNodo, nombresMiembros } from './tipos.js';
 import { normalizarEscena, tipoRecurso, sinExtension } from './proyecto.js';
 import { matrizLocal, tamanoNodo, Render2D, CacheImagenes, recorrerConMatriz } from './render2d.js';
@@ -10,6 +10,7 @@ import { Audio } from './audio.js';
 import { EQUIPO_CQB } from './tactico3d.js';
 import { ProgramaAra, InstanciaAra, claseDe, errorDeCompilacion } from '../ara/puente.js';
 import { nucleoAra } from './nucleo-ara.js';
+import { compiladorBlueprints } from './blueprints-ara.js';
 
 // Los nombres se comparan sin tildes ni mayúsculas. Se normalizan muchas veces por fotograma (`nodo("Jugador")`,
 // `hijo("Destino")`) y casi siempre los mismos: se guardan (con un tope, por si un juego crea nombres sin fin).
@@ -433,17 +434,19 @@ export class Mundo {
 
   /**
    * Compila juntos todos los scripts .ara del proyecto y los Blueprints (cada uno es una clase de Ara, ver
-   * `compilarBlueprint`), con la API de src/ara/motor.ara. Lo que haya en generado/ no cuenta: los Blueprints
+   * `compilarBlueprint`; aquí los traduce su versión en Ara, src/motor/blueprints-ara.js), con la API de
+   * src/ara/motor.ara. Lo que haya en generado/ no cuenta: los Blueprints
    * se compilan aquí desde su .bp, así nunca se ejecuta una versión vieja.
    */
   async compilarAra() {
     const aras = [...this.textos].filter(([a]) => /\.ara$/i.test(a) && !a.startsWith('generado/'));
     this.programaAra = null;
     this.erroresBlueprint = new Map();
+    const compilar = await compiladorBlueprints(); // en Ara, con JS de respaldo
     for (const [rel, texto] of this.textos) {
       if (!/\.bp$/i.test(rel)) continue;
       let r;
-      try { r = compilarBlueprint(JSON.parse(texto), rel); }
+      try { r = compilar(JSON.parse(texto), rel); }
       catch (e) { r = { errores: [{ mensaje: `el Blueprint no se puede leer: ${e.message}` }] }; }
       if (r.errores.length) {
         const e = new ErrorAguila(r.errores[0].mensaje, { archivo: rel, explicacion: 'Revisa ese bloque en el editor de Blueprints.', fase: 'sintaxis' });

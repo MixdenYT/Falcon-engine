@@ -157,6 +157,38 @@
 - `herramientas/medir-ara.mjs` (shooter 6/60/300 drones, tres ejecuciones): Ara 0,020–0,021 / 0,046–0,047 / 0,186–0,194 ms por fotograma, Águila 0,025–0,026 / 0,058–0,061 / 0,246–0,262. Igual que antes del bloque, como se esperaba: esa medida sustituye `Mundo3D` por un objeto de mentira (`lineaVision` fija), así que no pasa por los rayos ni por el A*.
 - Sin trigonometría en estas cuentas: solo `+ − × ÷` y `raiz`, que son IEEE-754 exactas en V8 y en wasm. Por eso las pruebas exigen igualdad exacta y no tolerancia. Ara no divide entre cero: el `1 / 0` de three.js (±∞ según el signo del cero) se escribe aparte (`inverso`).
 
+## Compilador de Blueprints en Ara (fase 2, bloque 5)
+
+`src/motor/ara-blueprints/blueprints.ara` (vía `src/motor/blueprints-ara.js`) contra `compilarBlueprint` de `src/motor/blueprints.js`. Los dos dan el mismo resultado: mismo texto, errores, avisos y líneas (`pruebas/blueprints-ara.test.js`).
+
+### Metodología
+
+- `node herramientas/medir-blueprints.mjs [vueltas]` (por defecto 200; aquí 300). Fecha 21-11-2026, mismo equipo y Node de arriba (v26.13.1, `arm64`).
+- Una vuelta compila los 76 Blueprints que existen (`pruebas/corpus-blueprints.js`): los que escriben las plantillas, los 67 de la Academia y los del CQB. Antes hay 20 vueltas de calentamiento.
+- La ruta de Ara incluye todo lo que paga quien la usa:
+  - aplanar el `.bp` a un texto en JS;
+  - cruzarlo a wasm;
+  - leerlo, compilarlo y devolver el resultado por las externas.
+- Cargar `blueprints.wasm` (259 KB) se hace una vez y se mide aparte: entre 7 y 13 ms.
+
+### Resultados (ms por vuelta; ejecuciones 1 / 2 / 3)
+
+| JS | Ara | Ara es… |
+|---|---|---|
+| 2,02 / 1,84 / 1,85 | 3,20 / 3,16 / 3,16 | 0,58–0,63× (más lento) |
+
+### Lectura
+
+- **Ara tarda 1,6–1,7× lo que JS.** Por Blueprint son unos 42 µs en Ara y 24 µs en JS. En un proyecto se compilan una vez al empezar el juego y en cada cambio del editor, así que no se nota.
+- **Desglose de la ruta de Ara**, midiendo cada parte por separado:
+  - aplanar en JS: 0,56 ms;
+  - leer el texto en Ara (`dividir`, `decimal`, estructuras): unos 0,9 ms;
+  - compilar en Ara: unos 1,7 ms, más o menos lo que tarda JS en total.
+- **La frontera es la mitad del coste.** La primera versión cruzaba cada campo como un texto propio: unos 5.900 textos por vuelta, 4,4 ms. Con un solo texto por Blueprint baja a 3,2 ms.
+- **Qué faltaría para ganar a JS:**
+  - leer el `.bp` sin crear un texto por campo, por ejemplo cruzando una lista o un búfer;
+  - que Ara cree menos objetos con conteo de referencias por expresión (`R`, listas temporales).
+
 ## Ara contra Rust (`ara-etapa5/ara/bench/contra-rust.sh`)
 
 - No se ha vuelto a medir en esta sesión, porque otro agente estaba usando la batería de Ara.

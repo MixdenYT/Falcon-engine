@@ -2,7 +2,7 @@
 
 Auditoría del 21-11-2026 (agente 08, ciberseguridad), sobre Falcon Engine 1.3.0 con Electron 44.9.0. El trabajo consistió en leer el código. No se ejecutaron pruebas de concepto contra la aplicación. Los números de línea corresponden al árbol de trabajo de esa fecha (commit `db8923f` y los cambios locales sin confirmar).
 
-> **Estado (21-11-2026, commits `5f79601` y `be4429d`):** C1, A1, A2 (también `falcon://fs`) y la parte de CSP de M2 están corregidos. Quedan abiertos M1 (`sandbox: false` y ningún gestor de permisos), M3 (actualizaciones sin firma), M4 (Electron 44.9.0) y los hallazgos B. Una XSS nueva ya no da acceso al disco fuera del proyecto abierto ni a `shell`, pero sí deja leer y escribir **dentro** de ese proyecto. Como M1 sigue abierto, el renderer tampoco está aislado del sistema por el sandbox.
+> **Estado (21-11-2026, commits `5f79601`, `be4429d` y `ee249af`):** C1, A1, A2 (también `falcon://fs`), la parte de CSP de M2, M1 (sandbox y gestor de permisos) y M4 (Electron 44.11.5) están corregidos. Quedan abiertos M3 (actualizaciones sin firma) y los hallazgos B. Una XSS nueva ya no da acceso al disco fuera del proyecto abierto ni a `shell`, pero sí deja leer y escribir **dentro** de ese proyecto. El renderer corre con el sandbox de Chromium y no puede pedir cámara, micrófono, ubicación ni avisos.
 >
 > Comprobación en ejecución (Electron, modo `--captura` con un guion): un proyecto con HTML en `velocidad`, `posicion`, `ancho`, `gravedad` y en el `id` de un nodo abre en modo Sencillo sin ejecutar nada; `falcon://app/..%2f…` daba 200 antes del arreglo y ahora da 404; las texturas de `falcon://fs/` siguen cargando con CORS; el import map carga con la CSP nueva y un `onerror=` inyectado queda bloqueado (`script-src-attr`).
 
@@ -118,7 +118,7 @@ Comprobado en Electron (modo `--captura` con guiones):
 - Los diálogos nativos (abrir proyecto, importar recursos, «Examinar») y arrastrar y soltar no se pueden automatizar. Se revisó a mano que concedan la raíz, pero no se ejecutaron.
 - Entre la comprobación y el uso hay una carrera (TOCTOU): un enlace que se cambie en ese intervalo escapa. Para aprovecharla hace falta poder escribir enlaces en el proyecto de forma concurrente.
 - `ventana:maximizada` no comprueba el remitente, porque solo lee un booleano.
-- Las raíces concedidas por diálogo duran hasta que la ventana cambia de página desde el proceso principal (gestor y editor). `will-navigate` sigue dejando que la página navegue a otra URL `falcon://`, pero conserva sus permisos y no gana ninguno.
+- Las raíces concedidas por diálogo duran hasta que la ventana cambia de página desde el proceso principal (gestor y editor). `will-navigate` deja que la página navegue a otra URL `falcon://app/` (desde `ee249af`, ya no a `falcon://fs/`), pero conserva sus permisos y no gana ninguno.
 - `jugador.js` sigue sin `realpath`: la carpeta del juego exportado no la controla un proyecto ajeno.
 
 ### A2 · Alta: `falcon://fs/` sirve cualquier archivo del disco y `falcon://app/` permite path traversal
@@ -145,6 +145,22 @@ Comprobado en Electron (modo `--captura` con guiones):
 **Escenario.** Una XSS (C1), o un juego exportado que muestre contenido inesperado, tiene el renderer completo de Chromium sin sandbox de proceso y puede pedir la cámara o el micrófono sin que aparezca ningún aviso.
 
 **Corrección.** Usar `sandbox: true`. El preload solo usa `contextBridge`, `ipcRenderer`, `webUtils` y `process.platform`, y todo eso está disponible en un preload con sandbox. Añadir `session.defaultSession.setPermissionRequestHandler((wc, permiso, cb) => cb(false))`, con excepciones explícitas si alguna función las necesita (por ejemplo, gamepad no requiere permiso).
+
+**Estado: corregido en `ee249af`.**
+- `sandbox: true` en todas las ventanas: gestor, editor y prueba del juego (`preferenciasWeb` de `main.js`) y juego exportado (`jugador.js`). No hizo falta mover nada al proceso principal: `preload.js` y `preload-juego.js` solo hacen `require('electron')`. `pruebas/seguridad.test.js` lo comprueba.
+- Gestor de permisos en `main.js` y `jugador.js`: `setPermissionRequestHandler` y `setPermissionCheckHandler` llaman a `permisoWeb` (`src/principal/rutas.js`). Solo concede lo que Falcon usa, y solo a páginas de `falcon://app`:
+  - `pointerLock`: cámara en primera persona (`control3d.js`, `mundo3d.js`) y vuelo del visor 3D (`visor3d.js`).
+  - `clipboard-sanitized-write`: «Compartir» copia un enlace en el gestor (`comunidad.js`).
+  - El mando (`navigator.getGamepads`, `entrada.js`) no pide permiso. La pantalla completa la pone el proceso principal (`setFullScreen`), así que el permiso web `fullscreen` se niega.
+  - Todo lo demás se niega: `media` (cámara y micrófono), `geolocation`, `notifications`, `midi`, `clipboard-read`, `display-capture`, `hid`, `usb`, `serial`, `openExternal`, etc.
+- `will-navigate` solo deja `falcon://app/` (antes cualquier `falcon://`) y ahora también está en el juego exportado. `setWindowOpenHandler` ya solo abría `https:` y `http:` (A1).
+
+Comprobado en Electron 44.11.5 (modo `--captura` con guiones, y el `.exe` exportado con `FALCON_GUION`):
+- En el gestor, la prueba del juego y el `.exe` exportado: `window.require` y `window.process` son `undefined` y `window.falcon` funciona. `getUserMedia` de audio y de vídeo da `NotAllowedError`, la geolocalización da «User denied Geolocation», `Notification.requestPermission()` da `denied`, y `navigator.permissions.query` da `denied` para `geolocation`, `notifications`, `camera`, `microphone`, `midi` y `clipboard-read`, y `granted` para `clipboard-write`.
+- `pointerLock`, con una ventana visible y un clic real (`sendInputEvent`) en una página `falcon://app` con sandbox: con `permisoWeb` se bloquea el ratón; si se niega el permiso, da `SecurityError`. En el modo `--captura` (ventana fuera de pantalla) no se puede probar: da `WrongDocumentError`.
+- La escritura en el portapapeles no se pudo ejecutar: en el modo `--captura` la página no tiene el foco (`Document is not focused`). El permiso sí se concede (`query` da `granted`).
+
+**Queda.** El sandbox no cambia lo que ya da el IPC: una XSS en el editor sigue pudiendo leer y escribir dentro del proyecto abierto (ver A1).
 
 ### M2 · Media: CSP con `'unsafe-inline'` y sin `object-src` ni `base-uri`
 
@@ -176,6 +192,10 @@ La integridad depende **solo** del `sha512` de `latest.yml`, que se sirve desde 
 **Escenario.** Las conexiones TLS de la app (GitHub API y descarga de actualizaciones) confían en certificados intermedios que se sabe que están comprometidos. Los juegos ya exportados se quedan con el runtime viejo para siempre.
 
 **Corrección.** Actualizar a la versión de Electron 44 que corrige el aviso, revisando primero el changelog. Hacer que `npm audit` sin `--omit=dev` sea obligatorio en CI, porque aquí Electron es una dependencia de ejecución.
+
+**Estado: corregido en `ee249af`.** El aviso está corregido desde la 44.9.1 (rango afectado `>=44.0.0-alpha.1 <44.9.1`). Se sube a **44.11.5**, la última de la rama 44 (`npm view electron dist-tags`: `44-x-y` = 44.11.5; `latest` es 45.4.1). Son versiones de parche de la misma rama, así que no hace falta saltar de versión mayor. `package.json` pasa a `^44.11.5`. `npm audit` ya no muestra Electron (ver `docs/DEPENDENCIES.md`).
+- `exportar.js` usa `process.versions.electron`, así que el runtime que copia o descarga va siempre con la versión del editor. Comprobado: en este equipo `npm install` instaló Electron arm64, así que la exportación a `win32-x64` descargó con `@electron/get` (validado con `SHASUMS256.txt`) el runtime x64 44.11.5. El `Plat.exe` exportado es PE x86-64, su archivo `version` dice `44.11.5` y arranca (escena `nivel1`, núcleo de Ara cargado, 0 errores).
+- **Queda.** CI no ejecuta `npm audit` sin `--omit=dev`. Los juegos exportados antes de este commit llevan Electron 44.9.0: hay que volver a exportarlos.
 
 ### B1 · Baja: la exportación sigue enlaces simbólicos del proyecto
 
@@ -230,7 +250,7 @@ La integridad depende **solo** del `sha512` de `latest.yml`, que se sirve desde 
 ## Comprobado sin hallazgos
 
 - **`contextIsolation: true` y `nodeIntegration: false`** en todas las ventanas (`main.js:98`, `jugador.js:171`). El preload solo expone funciones, nunca `ipcRenderer` en crudo (`preload.js:10-76`).
-- **Navegación del editor:** `will-navigate` bloquea todo lo que no sea `falcon://` (`main.js:118`). El juego exportado no tiene `will-navigate`, pero los scripts no pueden navegar (ver Águila).
+- **Navegación:** `will-navigate` bloquea todo lo que no sea `falcon://app/`, en `main.js` y, desde `ee249af`, también en el juego exportado (`jugador.js`). Además, los scripts no pueden navegar (ver Águila).
 - **Águila no puede salir del sandbox.** El acceso a miembros pasa por `miembro`, `indice` y `asignarMiembro` (`interprete.js:403-414` y `520-563`). Solo admite `ObjetoAguila`, `Map` y los objetos con `aguilaObtener` y `aguilaAsignar`, que usan listas blancas con `switch` y `hasOwnProperty` (`mundo.js:194-226`), además de los métodos fijos de listas y textos (`biblioteca.js:242-297`). No hay manera de llegar a `constructor`, `__proto__`, `window` ni `Function`. Hay límites de 2.000.000 de pasos y 250 niveles de recursión.
 - **Ara (wasm) solo ve las importaciones del anfitrión** (`puente.js:251-366`): propiedades y métodos de nodo con la misma lista blanca que Águila, y globales del intérprete de Águila. WebAssembly no tiene otra salida. En los juegos exportados, el `.falcon/ara.wasm` precompilado tiene la misma superficie.
 - **Zip-slip al descomprimir Electron** (`exportar.js:120-164`). Se rechazan las entradas con `..` (línea 136), se usa `path.join` (las rutas absolutas no salen del destino) y yauzl 2.10 valida los nombres por defecto. Los symlinks no se crean en disco: se anotan y se reproducen dentro del `.tar.gz`. `@electron/get` 5.1.0 valida contra `SHASUMS256.txt` (`dist/index.js:20-31`) salvo que se pase `unsafelyDisableChecksums`, y aquí no se pasa.
@@ -241,7 +261,7 @@ La integridad depende **solo** del `sha512` de `latest.yml`, que se sirve desde 
 ## Riesgos conocidos y aceptados
 
 - Los scripts de un proyecto se ejecutan al pulsar «Jugar». Están limitados a la API del motor (ver arriba), pero **un proyecto ajeno sigue siendo código ajeno**: puede gastar CPU (B6) y manipular sus propias partidas.
-- `node_modules` está versionado en git (3.383 archivos rastreados). CI instala desde el lockfile con `npm ci`, pero el árbol versionado no se verifica contra el lockfile. Ver `docs/DEPENDENCIES.md`.
+- Los scripts de instalación de las dependencias se ejecutan en `npm ci` (ver `docs/DEPENDENCIES.md`). `node_modules` ya no está versionado en git (desde `6ca1704`).
 - `asar: false` y la instalación por usuario (`perMachine: false`): cualquier proceso del usuario puede modificar los archivos de la app. Es lo normal en una instalación por usuario.
 - Los juegos exportados llevan el Electron del editor y no se actualizan solos.
 
@@ -249,8 +269,8 @@ La integridad depende **solo** del `sha512` de `latest.yml`, que se sirve desde 
 
 1. ~~C1: escapar los siete sumideros y validar tipos al cargar.~~ Hecho en `5f79601`.
 2. ~~A1 y lo que queda de A2: rutas permitidas en el IPC y en `falcon://fs`, y `abrirUrl` solo con `https:`.~~ Hecho en `be4429d`.
-3. M1: `sandbox: true` y gestor de permisos. (La parte de CSP de M2 ya está hecha.)
-4. M4: subir Electron. M3: firma de código.
+3. ~~M1: `sandbox: true` y gestor de permisos.~~ Hecho en `ee249af`. (La parte de CSP de M2 ya está hecha.)
+4. ~~M4: subir Electron.~~ Hecho en `ee249af`. M3: firma de código.
 5. Los hallazgos B.
 
 ## Política de divulgación

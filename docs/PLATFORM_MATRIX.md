@@ -1,6 +1,6 @@
 # Matriz de plataformas
 
-Estado del 21-11-2026, rama `motor-ara` (`db8923f`).
+Estado del 21-11-2026, rama `motor-ara` (`db8923f`; Electron y lo verificado en Electron, `ee249af`).
 
 **Qué se puede comprobar en este equipo:**
 - Windows 11 ARM64 (Snapdragon X Plus): binarios ARM64 nativos y x64 emulados con Prism.
@@ -14,7 +14,7 @@ Leyenda:
 - **Pendiente de verificación**: no se ha probado.
 - **No soportado**: no existe en el código.
 
-## Falcon Engine (Electron 44.9.0)
+## Falcon Engine (Electron 44.11.5)
 
 ### Qué genera cada herramienta
 
@@ -29,11 +29,11 @@ Leyenda:
 
 | Plataforma | Estado | Pruebas |
 |---|---|---|
-| Windows x64 | **Parcial:** el binario corre emulado. | `node_modules/electron/dist/electron.exe` es PE x86-64 y arranca en modo Node bajo Prism: `ELECTRON_RUN_AS_NODE=1` da `44.9.0 x64 node v24.22.0`. **No** se ha abierto el editor ni un juego exportado en esta sesión. NSIS e instalador: pendiente de verificación. Hay un job de CI configurado, pero aquí no se ha visto ninguna ejecución. |
+| Windows x64 | **Juego exportado verificado aquí (x64 emulado).** Editor, NSIS e instalador: pendiente de verificación en x64. | `ee249af`: el editor (Electron arm64, ver Windows ARM64) exportó «Plataformas» a `win32-x64` descargando con `@electron/get` el runtime x64 44.11.5. El `Plat.exe` es PE x86-64, corre bajo Prism con `sandbox: true` y el preload reducido, carga la escena con el núcleo de Ara y sin errores, y niega cámara, micrófono, ubicación y avisos. NSIS: hay un job de CI configurado, pero aquí no se ha visto ninguna ejecución. |
 | Linux x64 | Pendiente de verificación | Solo configurado (AppImage, `.tar.gz`, exportación `linux-x64`, CI `ubuntu-24.04`). |
-| Windows ARM64 | **No soportado de forma nativa.** Funciona en x64 emulado, sin abrir la GUI (ver Windows x64). | No hay objetivo ARM64 en electron-builder ni en `exportar.js`. Un juego exportado desde este equipo para «Windows x64» usa el Electron local, porque coinciden `platform` y `arch` del proceso x64 emulado. |
+| Windows ARM64 | **Editor verificado aquí en desarrollo (`npm start`), sin paquete.** | `npm install` en este equipo (Node arm64) instala Electron 44.11.5 **arm64**, y con él se verificó (modo `--captura` con guiones, `sandbox: true`): el gestor crea las plantillas «Plataformas», «Shooter · CQB» y «Pruebas de iluminación»; el editor edita, guarda y exporta; «Probar» juega la 2D a 60 fps y la CQB a 60 fps (WebGL 2); «Pruebas de iluminación» en calidad alta usa Lumbre (3376 sondas, 4 espejos) a unos 35 fps. No hay objetivo ARM64 en electron-builder ni en `exportar.js`. |
 | Linux ARM64 | Pendiente de verificación | Solo configurado (AppImage arm64, `.tar.gz`, exportación `linux-arm64`, CI `ubuntu-24.04-arm`). |
-| WebAssembly (scripts de Ara del juego) | **Verificado aquí en Node arm64**: las 50 pruebas de `node:test` (`npm test`) compilan y ejecutan Ara→wasm, también `esperar` con JSPI. | En el proceso de render de Electron 44, y con la CSP que exige `ara.test.js`: pendiente de verificación en esta sesión. |
+| WebAssembly (scripts de Ara del juego) | **Verificado aquí en Node arm64**: las pruebas de `node:test` (`npm test`: 79/79 con salida 0 el 21-11-2026; 85/85 tras `ee249af` y el trabajo en curso de otros agentes) compilan y ejecutan Ara→wasm, también `esperar` con JSPI. | **Verificado en el renderer de Electron 44.11.5** (arm64, con sandbox y la CSP de `ara.test.js`): los scripts de Ara de «Plataformas» y «CQB» corren en la prueba del juego y en el `.exe` exportado (x64). |
 | Motor headless (lógica, Blueprints, CQB) | **Verificado aquí en Node arm64 nativo** (`npm test`; ver `TESTING.md`) | No incluye render, audio, entrada ni DOM. |
 | macOS, navegador web, móvil | No soportado | No hay objetivos. |
 
@@ -47,7 +47,7 @@ Leyenda:
 | `compilador/nativo.ara` (x86-64 propio, sin enlazador) | Genera PE. `bench/README.md` lo mide en este equipo con Prism (19-11-2026). Prueba `el_codigo_maquina_propio_hace_lo_mismo_que_webassembly` (`cfg(windows)`). | Genera ELF con `herramientas/sistema_linux_x64.s`. La misma prueba existe con `cfg(linux, x86_64)`. Pendiente de verificación aquí. | Corre emulado (x64) | No soportado | — |
 | `compilador/arm64.ara` (ARM64 propio) | — | — | Genera PE ARM64 (`herramientas/sistema_windows_arm64.asm`). `bench/README.md` lo mide nativo en este equipo (19-11-2026). Prueba `el_codigo_arm64_hace_lo_mismo_que_webassembly` (`cfg(windows)`). | **No soportado:** no hay ELF ARM64 ni capa de sistema Linux ARM64. | — |
 | `ara wasm` y `compilador/wasm.ara` | — | — | — | — | Funciona y es lo que usa Falcon. **Verificado aquí** en Node arm64 a través de `npm test` (`src/ara/ara_web.wasm`, `ara_runtime.wasm`). |
-| FFI nativa (`externa` en ejecutables) | No soportado: rechazada en `nativo.ara`; solo hay imports fijos de KERNEL32 | No soportado | No soportado | No soportado | `externa` contra JS: funciona en Falcon |
+| FFI nativa (`externa` en ejecutables) | **Funciona** en el backend `nativo` (PE de Windows x64): `externa "x.dll" func` llama a funciones de DLL (Ara `b016792`), con los tipos de frontera `f32`, `i32` y `u32` (`0106860`), llamadas indirectas (`b8e8884`) y retrollamadas a funciones de Ara (`98634f6`). Ver `ara-etapa5/ara/docs/NATIVO.md`. No se ha repetido aquí | No soportado | Corre emulado (x64) con el mismo binario; no hay FFI en el backend ARM64 propio | No soportado | `externa` contra JS: funciona en Falcon |
 | Ventanas, GPU, audio | No soportado | No soportado | No soportado | No soportado | Mediante el motor JS de Falcon |
 
 **Notas:**
@@ -57,7 +57,7 @@ Leyenda:
 
 ## Qué falta para cerrar la matriz (fase 6)
 
-1. Abrir el editor y un juego exportado en este equipo (x64 emulado): plantillas 2D y 3D, audio, entrada.
+1. ~~Abrir el editor y un juego exportado en este equipo: plantillas 2D y 3D.~~ Hecho en `ee249af` (editor arm64, juego exportado x64). Quedan el audio y la entrada real (teclado, ratón y mando con una persona delante).
 2. Ejecutar `releases.yml` completo (`solo_windows: false`) y guardar las evidencias de `probar-instalado.cjs` para Windows x64, Linux x64 y Linux ARM64.
 3. Decidir si se añade un objetivo Windows ARM64 nativo: `win.target` arch `arm64`, `PLATAFORMAS['win32-arm64']` y `build:win-arm`. Electron suele publicar `win32-arm64`; no se ha comprobado para la 44.9.0.
 4. Ara:

@@ -10,9 +10,10 @@ const os = require('node:os');
 const { pathToFileURL } = require('node:url');
 
 const PLATAFORMAS = {
-  'win32-x64': { platform: 'win32', arch: 'x64', nombre: 'Windows x64' },
-  'linux-x64': { platform: 'linux', arch: 'x64', nombre: 'Linux x64' },
-  'linux-arm64': { platform: 'linux', arch: 'arm64', nombre: 'Linux ARM64' },
+  'win32-x64': { platform: 'win32', arch: 'x64', nombre: 'Windows x86_64' },
+  'win32-arm64': { platform: 'win32', arch: 'arm64', nombre: 'Windows arm64' },
+  'linux-x64': { platform: 'linux', arch: 'x64', nombre: 'Linux x86_64' },
+  'linux-arm64': { platform: 'linux', arch: 'arm64', nombre: 'Linux arm64' },
 };
 
 // Archivos de la aplicación que necesita el reproductor.

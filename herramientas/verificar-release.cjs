@@ -4,7 +4,11 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const yaml = require('js-yaml');
 const VERSION = require('../package.json').version;
-const METADATOS = { 'latest.yml': ['win-x64', 'exe'], 'latest-linux.yml': ['linux-x86_64', 'AppImage'], 'latest-linux-arm64.yml': ['linux-arm64', 'AppImage'] };
+// Un archivo de metadatos por sistema y arquitectura; cada uno apunta solo a su instalador.
+const METADATOS = {
+  'latest.yml': ['windows-x86_64', 'exe'], 'latest-arm64.yml': ['windows-arm64', 'exe'],
+  'latest-linux.yml': ['linux-x86_64', 'AppImage'], 'latest-linux-arm64.yml': ['linux-arm64', 'AppImage'],
+};
 
 function verificarDirectorio(directorio, version = VERSION) {
   const nombres = fs.readdirSync(directorio).sort();
@@ -28,4 +32,4 @@ function verificarDirectorio(directorio, version = VERSION) {
   return [...archivos, 'SHA256SUMS.txt'];
 }
 if (require.main === module) console.log('Verificados:', verificarDirectorio(process.argv[2] || 'instaladores').join(', '));
-module.exports = { verificarDirectorio };
+module.exports = { verificarDirectorio, METADATOS };

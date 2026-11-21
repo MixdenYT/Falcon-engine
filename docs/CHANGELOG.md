@@ -7,7 +7,13 @@ Aquí van los cambios de la rama `motor-ara` respecto a `main` (`66fea90`, Falco
 
 ## [Sin publicar]
 
+## [1.4.0] — 2026-11-21
+
+Sale en el canal Pruebas (prerelease de GitHub). Notas para usuarios: `notas/v1.4.0.md`.
+
 ### Añadido
+- **Windows arm64:** instalador NSIS nativo (`npm run release:win-arm`) con su canal de actualización `latest-arm64.yml`, job `windows-11-arm` en `releases.yml` y exportación de juegos a `win32-arm64`.
+- `releases.yml`: entrada `canal` (`pruebas` publica como prerelease; `estable`, como Latest).
 - **Núcleo del motor en Ara:**
   - física 2D (`src/motor/ara/fisica2d.ara`), precompilada a `src/motor/ara/nucleo.wasm` con `herramientas/compilar-nucleo-ara.mjs` y cargada por `src/motor/nucleo-ara.js` (`bf37180`, `2e4289b`);
   - transformaciones, cajas y pares de `contactos2d` en Ara, con envío al núcleo solo de lo que cambió (`c1b2b95`);
@@ -30,6 +36,8 @@ Aquí van los cambios de la rama `motor-ara` respecto a `main` (`66fea90`, Falco
   - anfitrión escrito en Ara: `externa func` con cuerpo, `Clase(yo)` y `avisar` (`e93ee0e`, fusión en `fced30d`).
 
 ### Cambiado
+- Versión 1.4.0. Los instaladores llevan la arquitectura explícita: `Falcon-Engine-<versión>-windows-x86_64.exe`, `-windows-arm64.exe`, `-linux-x86_64.AppImage` y `-linux-arm64.AppImage` (antes `win-x64`). Exportar juego muestra x86_64/arm64.
+- El actualizador rechaza metadatos de otra arquitectura y toma el tamaño del instalador de su plataforma, no del blockmap.
 - Ara al día desde `2ff41f0` (`abc24d9`):
   - `ara_web.wasm` (1.620.646 → 1.457.050 bytes);
   - `ara_runtime.wasm`, ahora el runtime escrito en Ara (96.279 → 87.758 bytes);
@@ -51,6 +59,7 @@ Aquí van los cambios de la rama `motor-ara` respecto a `main` (`66fea90`, Falco
 - El compilador de Blueprints en JS (unas 500 líneas de `blueprints.js`): lo sustituye el escrito en Ara (`1f17541`).
 
 ### Corregido
+- La prueba del instalador (`probar-instalado.cjs`, paso obligatorio de `releases.yml`) fallaba desde `be4429d`: el modo `--captura` no dejaba escribir los resultados fuera del proyecto. Ahora concede escritura a las carpetas de `--captura` y `--guion` (línea de comandos, de confianza) y una página de juego con guion usa el preload completo para guardar evidencias.
 - Exportar al destino por defecto (`<proyecto>/exportado`) metía los `.ara` exportados en el juego, y no arrancaba (`6117105`).
 - Los juegos exportados no arrancaban porque faltaban `src/ara/api.js` y `api-motor.js` en `ARCHIVOS_APP` (`be4429d`).
 - `cargarEscena` descartaba el núcleo de Ara que había precargado `iniciar` (`2e4289b`).

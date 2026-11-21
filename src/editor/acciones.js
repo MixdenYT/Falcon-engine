@@ -390,9 +390,10 @@ export async function dialogoExportar() {
   const info = est.info;
   const nativa = `${info.plataforma}-${info.arquitectura}`;
   const plats = [
-    { id: 'win32-x64', nombre: 'Windows x64', desc: 'Carpeta con un .exe listo para compartir' },
-    { id: 'linux-x64', nombre: 'Linux x64', desc: 'Archivo .tar.gz con el ejecutable' },
-    { id: 'linux-arm64', nombre: 'Linux ARM64', desc: 'Portátiles ARM, consolas portátiles, Raspberry Pi' },
+    { id: 'win32-x64', nombre: 'Windows x86_64', desc: 'Carpeta con un .exe listo para compartir' },
+    { id: 'win32-arm64', nombre: 'Windows arm64', desc: 'Carpeta con un .exe para portátiles Windows ARM (Snapdragon)' },
+    { id: 'linux-x64', nombre: 'Linux x86_64', desc: 'Archivo .tar.gz con el ejecutable' },
+    { id: 'linux-arm64', nombre: 'Linux arm64', desc: 'Portátiles ARM, consolas portátiles, Raspberry Pi' },
   ];
   const elegidas = new Set([plats.some(x => x.id === nativa) ? nativa : 'win32-x64']);
   const destinoDef = p.ruta + '/exportado';

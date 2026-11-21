@@ -13,13 +13,15 @@ function entorno(t, op = {}) {
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const handlers = {}, mensajes = [], consultas = [];
   const updater = new EventEmitter();
-  Object.assign(updater, { setFeedURL(x) { this.feed = x; }, checkForUpdates: async () => ({ updateInfo: { version: op.versionMetadata || '1.2.0', files: [{ size: 300 }] } }),
+  const plataforma = op.plataforma || 'linux', arquitectura = op.arquitectura || 'x64';
+  const url = op.urlMetadatos || `Falcon-Engine-1.2.0-${plataforma === 'win32' ? 'windows' : 'linux'}-${arquitectura === 'x64' ? 'x86_64' : arquitectura}.${plataforma === 'win32' ? 'exe' : 'AppImage'}`;
+  Object.assign(updater, { setFeedURL(x) { this.feed = x; }, checkForUpdates: async () => ({ updateInfo: { version: op.versionMetadata || '1.2.0', files: [{ url, size: 300 }] } }),
     downloadUpdate: async () => { if (op.fallaDescarga) throw new Error('sha512 mismatch; secret token must not leak'); updater.emit('download-progress', { percent: 50, transferred: 150, total: 300 }); updater.emit('update-downloaded'); },
     quitAndInstall(...args) { this.instalacion = args; } });
   const servicio = crearActualizaciones({
     app: { isPackaged: !!op.instalable, getVersion: () => '1.0.0', getAppPath: () => path.resolve(__dirname, '..'), getPath: () => dir },
     ipcMain: { handle: (nombre, fn) => { handlers[nombre] = fn; } }, esGestor: sender => sender === 'gestor', publicar: s => mensajes.push(s),
-    plataforma: 'linux', entorno: { ...(op.instalable ? { APPIMAGE: '/test/Falcon.AppImage' } : {}), ...(op.token ? { FALCON_UPDATE_TOKEN: op.token } : {}) }, updater,
+    plataforma, arquitectura, entorno: { ...(op.instalable ? { APPIMAGE: '/test/Falcon.AppImage' } : {}), ...(op.token ? { FALCON_UPDATE_TOKEN: op.token } : {}) }, updater,
     net: { fetch: async (url, opciones) => {
       consultas.push({ url, opciones });
       if (op.errorHTTP) return { ok: false, status: op.errorHTTP };
@@ -109,4 +111,35 @@ test('mismatched metadata and failed checksum never reach an installable state',
   f.llamar('instalar', false); assert.equal(f.updater.instalacion, undefined);
   assert.match(f.servicio.estado().error, /integridad/);
   assert.doesNotMatch(f.servicio.estado().error, /secret token/);
+});
+test('plain X.Y.Z release marked prerelease on GitHub is only offered in the Pruebas channel', async t => {
+  const e = entorno(t, { instalable: true, releases: [release('v1.2.0', { prerelease: true })] });
+  assert.equal((await e.llamar('comprobar', true)).fase, 'actualizada');
+  e.llamar('configurar', { canal: 'pruebas' });
+  assert.equal((await e.llamar('comprobar', true)).fase, 'disponible');
+  assert.equal(e.updater.allowPrerelease, true);
+});
+test('Windows metadata is split by architecture: x86_64 keeps latest.yml, arm64 reads latest-arm64.yml', async t => {
+  // El servicio comprueba app-update.yml junto a resources en Windows.
+  const recursos = fs.mkdtempSync(path.join(os.tmpdir(), 'falcon-recursos-'));
+  fs.writeFileSync(path.join(recursos, 'app-update.yml'), 'provider: github');
+  const anterior = process.resourcesPath; process.resourcesPath = recursos;
+  t.after(() => { process.resourcesPath = anterior; fs.rmSync(recursos, { recursive: true, force: true }); });
+  const x64 = entorno(t, { instalable: true, plataforma: 'win32', arquitectura: 'x64' });
+  assert.equal(x64.updater.feed.channel, undefined);
+  assert.equal((await x64.llamar('comprobar', true)).fase, 'disponible');
+  const arm = entorno(t, { instalable: true, plataforma: 'win32', arquitectura: 'arm64', releases: [release('v1.2.0', { assets: [
+    { name: 'Falcon-Engine-1.2.0-windows-x86_64.exe', size: 100 }, { name: 'Falcon-Engine-1.2.0-windows-arm64.exe.blockmap', size: 1 }, { name: 'Falcon-Engine-1.2.0-windows-arm64.exe', size: 200 }] })] });
+  assert.equal(arm.updater.feed.channel, 'latest-arm64');
+  const s = await arm.llamar('comprobar', true);
+  assert.equal(s.fase, 'disponible'); assert.equal(s.release.tamano, 300);
+  // Metadatos de otra arquitectura (p. ej. si se sirviera latest.yml a un equipo arm64): error, nunca instalable.
+  const mal = entorno(t, { instalable: true, plataforma: 'win32', arquitectura: 'arm64', urlMetadatos: 'Falcon-Engine-1.2.0-windows-x86_64.exe' });
+  assert.equal((await mal.llamar('comprobar', true)).fase, 'error');
+  assert.notEqual((await mal.llamar('descargar')).fase, 'descargada');
+});
+test('asset size comes from the installer of this platform and architecture, not its blockmap', async t => {
+  const e = entorno(t, { arquitectura: 'arm64', releases: [release('v1.2.0', { assets: [
+    { name: 'Falcon-Engine-1.2.0-linux-arm64.AppImage.blockmap', size: 1 }, { name: 'Falcon-Engine-1.2.0-windows-arm64.exe', size: 2 }, { name: 'Falcon-Engine-1.2.0-linux-arm64.AppImage', size: 3 }] })] });
+  assert.equal((await e.llamar('comprobar', true)).release.tamano, 3);
 });

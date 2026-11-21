@@ -1,6 +1,9 @@
 // Standard updater artifacts; portable build:* scripts remain available.
 const { repositorio } = require('./src/principal/actualizaciones');
 const destino = repositorio(process.env.FALCON_RELEASE_REPOSITORY || require('./package.json').falconUpdates.repository);
+// Windows usa latest.yml sin sufijo de arquitectura (electron-updater): ARM64 va en
+// su propio canal latest-arm64.yml para no pisar el de x86_64, que es el que leen las 1.3.0.
+const winArm64 = process.argv.includes('--arm64');
 module.exports = {
   appId: 'com.falcon.engine', productName: 'Falcon Engine', asar: false,
   directories: { output: 'dist-actualizaciones' },
@@ -12,7 +15,11 @@ module.exports = {
   extraFiles: [{ from: 'LICENSE', to: 'FALCON-LICENSE.txt' }, { from: 'THIRD_PARTY_NOTICES.md', to: 'FALCON-THIRD-PARTY-NOTICES.md' }],
   artifactName: 'Falcon-Engine-${version}-${os}-${arch}.${ext}',
   publish: [{ provider: 'github', ...destino, releaseType: 'release' }],
-  win: { target: [{ target: 'nsis', arch: ['x64'] }], icon: 'recursos/icono.ico', verifyUpdateCodeSignature: true },
+  win: {
+    target: [{ target: 'nsis', arch: ['x64'] }], icon: 'recursos/icono.ico', verifyUpdateCodeSignature: true,
+    artifactName: `Falcon-Engine-\${version}-windows-${winArm64 ? 'arm64' : 'x86_64'}.\${ext}`,
+    publish: [{ provider: 'github', ...destino, releaseType: 'release', ...(winArm64 ? { channel: 'latest-arm64' } : {}) }],
+  },
   nsis: { oneClick: false, allowToChangeInstallationDirectory: true, perMachine: false, deleteAppDataOnUninstall: false },
   linux: { target: ['AppImage'], icon: 'recursos/icono.png', category: 'Development', executableName: 'falcon-engine' },
 };

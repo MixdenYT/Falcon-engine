@@ -14,15 +14,15 @@ const ejecutar = (binario, args, opciones = {}) => {
   if (r.error || r.status !== 0) throw Error(`${binario}: ${r.error?.message || r.status}\n${r.stdout || ''}\n${r.stderr || ''}`);
   return r;
 };
+const arch = process.arch === 'x64' ? 'x86_64' : process.arch;
 let ejecutable;
 if (process.env.FALCON_QA_EXE) ejecutable = path.resolve(process.env.FALCON_QA_EXE);
 else if (process.platform === 'win32') {
   const instalado = path.join(trabajo, 'aplicacion');
   // NSIS exige /D como último argumento, sin comillas aunque la ruta contenga espacios.
-  ejecutar(path.resolve(`dist-actualizaciones/Falcon-Engine-${version}-win-x64.exe`), ['/S', '/D=' + instalado], { windowsVerbatimArguments: true });
+  ejecutar(path.resolve(`dist-actualizaciones/Falcon-Engine-${version}-windows-${arch}.exe`), ['/S', '/D=' + instalado], { windowsVerbatimArguments: true });
   ejecutable = path.join(instalado, 'Falcon Engine.exe');
 } else {
-  const arch = process.arch === 'x64' ? 'x86_64' : process.arch;
   const imagen = path.resolve(`dist-actualizaciones/Falcon-Engine-${version}-linux-${arch}.AppImage`);
   fs.chmodSync(imagen, 0o755); ejecutar(imagen, ['--appimage-extract'], { cwd: trabajo });
   ejecutable = path.join(trabajo, 'squashfs-root', 'falcon-engine');

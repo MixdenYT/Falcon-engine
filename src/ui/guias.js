@@ -106,9 +106,10 @@ cuando toca(otro):
     html: `
 <p>En el editor abre <b>Proyecto › Exportar juego…</b>. Elige las plataformas:</p>
 <table>
-<tr><td><b>Windows x64</b></td><td>Carpeta con <code>.exe</code>, lista para comprimir y compartir.</td></tr>
-<tr><td><b>Linux x64</b></td><td>Archivo <code>.tar.gz</code> con el ejecutable ya marcado para abrirse.</td></tr>
-<tr><td><b>Linux ARM64</b></td><td>Para equipos ARM como consolas portátiles o Raspberry Pi 4/5.</td></tr>
+<tr><td><b>Windows x86_64</b></td><td>Carpeta con <code>.exe</code>, lista para comprimir y compartir.</td></tr>
+<tr><td><b>Windows arm64</b></td><td>Igual, para portátiles Windows ARM (Snapdragon).</td></tr>
+<tr><td><b>Linux x86_64</b></td><td>Archivo <code>.tar.gz</code> con el ejecutable ya marcado para abrirse.</td></tr>
+<tr><td><b>Linux arm64</b></td><td>Para equipos ARM como consolas portátiles o Raspberry Pi 4/5.</td></tr>
 </table>
 <p>La primera vez que exportas para otra plataforma, Falcon descarga su motor de ejecución (unos 100 MB) y lo guarda para las siguientes veces.</p>`,
   },

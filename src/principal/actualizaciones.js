@@ -8,7 +8,7 @@ function repositorio(valor) {
   const [owner, repo] = valor.split('/');
   return { owner, repo };
 }
-function crearActualizaciones({ app, ipcMain, net, esGestor, publicar, plataforma = process.platform, entorno = process.env, updater: inyectado }) {
+function crearActualizaciones({ app, ipcMain, net, esGestor, publicar, plataforma = process.platform, arquitectura = process.arch, entorno = process.env, updater: inyectado }) {
   const archivo = path.join(app.getPath('userData'), 'falcon-actualizaciones.json');
   let preferencias = { canal: 'estable', avisar: true, copiaAjustes: true };
   try { const d = JSON.parse(fs.readFileSync(archivo, 'utf8')); preferencias = { canal: d.canal === 'pruebas' ? 'pruebas' : 'estable', avisar: d.avisar !== false, copiaAjustes: d.copiaAjustes !== false }; } catch {}
@@ -17,6 +17,8 @@ function crearActualizaciones({ app, ipcMain, net, esGestor, publicar, plataform
   const repo = repositorio(entorno.FALCON_RELEASE_REPOSITORY || paquete.falconUpdates?.repository || 'MixdenYT/Falcon-engine');
   // Token provisioned by the owner of this machine, main process only. Never serialize it.
   const token = entorno.FALCON_UPDATE_TOKEN;
+  // Nombre de arquitectura en los archivos publicados (Falcon-Engine-X.Y.Z-windows-x86_64.exe).
+  const arch = arquitectura === 'x64' ? 'x86_64' : arquitectura;
   const soportado = app.isPackaged && ((plataforma === 'win32' && fs.existsSync(path.join(process.resourcesPath, 'app-update.yml'))) || (plataforma === 'linux' && !!entorno.APPIMAGE));
   let updater = null;
   if (soportado) {
@@ -24,7 +26,8 @@ function crearActualizaciones({ app, ipcMain, net, esGestor, publicar, plataform
     updater.autoDownload = false;
     updater.autoInstallOnAppQuit = false;
     updater.allowDowngrade = false;
-    updater.setFeedURL({ provider: 'github', ...repo, ...(token ? { private: true, token } : {}) });
+    // Windows ARM64 lee latest-arm64.yml; Windows x86_64 sigue en latest.yml (Linux lleva la arquitectura en el nombre).
+    updater.setFeedURL({ provider: 'github', ...repo, ...(plataforma === 'win32' && arch === 'arm64' ? { channel: 'latest-arm64' } : {}), ...(token ? { private: true, token } : {}) });
   }
   let estado = { fase: 'reposo', versionActual: version, instalable: !!updater, preferencias, repositorio: `${repo.owner}/${repo.repo}`, release: null, progreso: null, error: null, alSalir: false };
   let tarea = null, ultimaComprobacion = 0;
@@ -72,15 +75,16 @@ function crearActualizaciones({ app, ipcMain, net, esGestor, publicar, plataform
         let release;
         if (r) {
           const v = r.tag_name.replace(/^v/, '');
-          const arquitecturas = process.arch === 'x64' ? ['x64', 'x86_64'] : [process.arch];
-          const asset = r.assets?.find(a => a.name?.includes(plataforma === 'win32' ? 'win' : 'linux') && arquitecturas.some(arch => a.name?.includes(arch)));
+          const sufijo = `-${plataforma === 'win32' ? 'windows' : 'linux'}-${arch}.${plataforma === 'win32' ? 'exe' : 'AppImage'}`;
+          const asset = r.assets?.find(a => a.name?.endsWith(sufijo));
           release = datosRelease(v, r.body, r.published_at, r.name, asset?.size);
           release.url = `https://github.com/${repo.owner}/${repo.repo}/releases/tag/${encodeURIComponent(r.tag_name)}`;
           if (updater) {
             updater.allowPrerelease = preferencias.canal === 'pruebas';
             const resultado = await updater.checkForUpdates();
             const i = resultado?.updateInfo;
-            if (!i || i.version !== v || !versionNueva(version, i.version, preferencias.canal === 'pruebas')) {
+            // También la arquitectura: nunca instalar un paquete de otra (p. ej. si faltara latest-arm64.yml).
+            if (!i || i.version !== v || !versionNueva(version, i.version, preferencias.canal === 'pruebas') || !i.files?.length || i.files.some(f => !String(f.url).endsWith(sufijo))) {
               throw new Error('Los metadatos de instalación no coinciden con la release seleccionada.');
             }
             if (Number.isFinite(i.files?.[0]?.size)) release.tamano = i.files[0].size;

@@ -6,13 +6,19 @@ on:
         description: 'Versión a compilar y verificar (por ejemplo 1.2.0)'
         required: true
         type: string
+      canal:
+        description: 'Canal: pruebas publica como prerelease (solo lo ve el canal Pruebas); estable la marca como Latest'
+        required: true
+        type: choice
+        options: [pruebas, estable]
+        default: pruebas
       publicar:
         description: 'Publicar release después de las pruebas; desactivado conserva solo instaladores y evidencias'
         required: true
         type: boolean
         default: false
       solo_windows:
-        description: 'Verificar solo Windows para una entrega de prueba (sin release pública)'
+        description: 'Verificar solo Windows x86_64 y arm64 para una entrega de prueba (sin release pública)'
         required: true
         type: boolean
         default: true
@@ -26,7 +32,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ fromJSON(inputs.solo_windows && '[{"os":"windows-latest","plataforma":"win-x64","script":"release:win"}]' || '[{"os":"windows-latest","plataforma":"win-x64","script":"release:win"},{"os":"ubuntu-24.04","plataforma":"linux-x64","script":"release:linux"},{"os":"ubuntu-24.04-arm","plataforma":"linux-arm64","script":"release:linux-arm"}]') }}
+        include: ${{ fromJSON(inputs.solo_windows && '[{"os":"windows-latest","plataforma":"windows-x86_64","script":"release:win"},{"os":"windows-11-arm","plataforma":"windows-arm64","script":"release:win-arm"}]' || '[{"os":"windows-latest","plataforma":"windows-x86_64","script":"release:win"},{"os":"windows-11-arm","plataforma":"windows-arm64","script":"release:win-arm"},{"os":"ubuntu-24.04","plataforma":"linux-x86_64","script":"release:linux"},{"os":"ubuntu-24.04-arm","plataforma":"linux-arm64","script":"release:linux-arm"}]') }}
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -106,11 +112,12 @@ jobs:
           merge-multiple: true
       - name: Verificar todos los instaladores, metadatos y hashes
         run: node herramientas/verificar-release.cjs instaladores
-      - name: Subir a borrador y publicar solo al completar los tres sistemas
+      - name: Subir a borrador y publicar solo al completar las cuatro plataformas
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
           RELEASE_VERSION: ${{ inputs.version }}
+          RELEASE_CHANNEL: ${{ inputs.canal }}
           RELEASE_COMMIT: ${{ github.sha }}
         run: node herramientas/publicar-release.cjs

@@ -982,10 +982,7 @@ export class Mundo {
       ranuras[i] = n;
       n._ara = v.slice();
       if (solido === 3 || (c && c[13] === 3)) celdasCambian = true;
-      // shortcut: seno y coseno con Math de JS (el Ara de Falcon aún no tiene trigonometría), como pruebas/dom.js;
-      // el DOMMatrix de Chromium puede redondear distinto en nodos girados: actualizar al pasar al compilador con `sen`/`cos`.
-      const r = v[4] * Math.PI / 180;
-      F.nodo(i, v[0], v[1], v[2], v[3], v[4] !== 0, Math.cos(r), Math.sin(r), esc, v[5], v[6], cajaTipo, ox, oy, w, h, solido, papel);
+      F.nodo(i, v[0], v[1], v[2], v[3], v[4], esc, v[5], v[6], cajaTipo, ox, oy, w, h, solido, papel);
     }
     if (celdasCambian) {
       F.vaciarCeldas();

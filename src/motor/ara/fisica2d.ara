@@ -22,7 +22,7 @@ clase Fisica2D extiende Nucleo:
     px: lista[decimal] = []  # props.posicion tal cual (NaN incluido): `mover` la actualiza como JS
     py: lista[decimal] = []
     hay_rot: lista[booleano] = []
-    rcos: lista[decimal] = []  # coseno y seno de la rotación: los calcula JS (el Ara de Falcon no tiene trigonometría)
+    rcos: lista[decimal] = []  # coseno y seno de la rotación (fdlibm, como Math.sin/cos de V8)
     rsen: lista[decimal] = []
     hay_esc: lista[booleano] = []
     ex: lista[decimal] = []
@@ -128,14 +128,15 @@ clase Fisica2D extiende Nucleo:
             agregar(tsol, 0)
             agregar(papel, 0)
 
-    func nodo(i: entero, p: entero, sin_matriz: booleano, x: decimal, y_: decimal, rot: booleano, c: decimal, s: decimal, esc: booleano, sx: decimal, sy: decimal, caja_tipo: entero, ox: decimal, oy: decimal, w: decimal, h: decimal, solido: entero, cl: entero):
+    func nodo(i: entero, p: entero, sin_matriz: booleano, x: decimal, y_: decimal, grados: decimal, esc: booleano, sx: decimal, sy: decimal, caja_tipo: entero, ox: decimal, oy: decimal, w: decimal, h: decimal, solido: entero, cl: entero):
         padre[i] = p
         salta[i] = sin_matriz
         px[i] = x
         py[i] = y_
-        hay_rot[i] = rot
-        rcos[i] = c
-        rsen[i] = s
+        hay_rot[i] = grados != 0.0
+        r = grados * PI / 180.0  # mismo orden que `g * Math.PI / 180` de rotateSelf
+        rcos[i] = cos(r)
+        rsen[i] = sen(r)
         hay_esc[i] = esc
         ex[i] = sx
         ey[i] = sy

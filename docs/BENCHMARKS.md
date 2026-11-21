@@ -97,6 +97,39 @@
   - en `contactos2d`, unos 100 µs del recorrido O(n²) de pares dentro de Ara, y otros 100 µs en JS para leer los ~300 pares y construir el `Map` de claves (esa parte también la hace la ruta JS).
 - Estas cifras son de Node con la `DOMMatrix` de `pruebas/dom.js`. En Electron, la ruta JS usa la `DOMMatrix` nativa de Chromium y no se ha medido aquí.
 
+## Compilador de Ara nuevo (Ara `motor-ara` 2ff41f0, con trigonometría)
+
+- Fecha: 21-11-2026. Falcon en `c8e2c05` más este bloque (compilador, runtime y `nucleo.wasm` nuevos; `sen`/`cos` en el núcleo).
+- «Antes» es `c1b2b95` (`git archive` en una carpeta aparte, con el compilador y el runtime anteriores); «después», el árbol de trabajo. Se alternan antes y después, tres veces cada uno.
+- Mismo equipo y Node de arriba. **El equipo estaba muy cargado** (otros agentes y Electron a la vez): todas las cifras salen de 4 a 15 veces más altas que las de las secciones anteriores y varían mucho entre ejecuciones. Solo sirven para comparar antes y después dentro de esta sección.
+
+### Scripts (`node herramientas/medir-ara.mjs`, Ara, ms por fotograma; ejecuciones 1 / 2 / 3)
+
+| Caso | Antes | Después |
+|---|---|---|
+| Shooter, 6 drones | 0,103 / 0,107 / 0,274 | 0,097 / 0,370 / 0,339 |
+| Shooter, 60 drones | 0,234 / 0,253 / 0,680 | 0,319 / 3,049 / 0,632 |
+| Shooter, 300 drones | 0,915 / 0,914 / 2,760 | 0,860 / 2,371 / 2,274 |
+| Bandada, 50 | 0,159 / 0,160 / 0,167 | 0,155 / 0,150 / 0,148 |
+| Bandada, 150 | 0,253 / 0,305 / 0,980 | 0,311 / 1,009 / 0,328 |
+| Bandada, 300 | 1,392 / 3,999 / 2,427 | 1,262 / 4,878 / 3,102 |
+
+### Física 2D (`node herramientas/medir-fisica2d.mjs`, ruta Ara, ms por paso; ejecuciones 1 / 2 / 3)
+
+| Escena | Antes | Después |
+|---|---|---|
+| 21 plataformas, fisica2d | 1,562 / 1,625 / 1,528 | 1,319 / 1,614 / 1,573 |
+| 21 plataformas, + contactos2d | 10,774 / 4,210 / 4,425 | 7,483 / 4,285 / 4,362 |
+| 450 celdas, fisica2d | 2,495 / 2,326 / 2,200 | 1,537 / 1,529 / 0,809 |
+| 450 celdas, + contactos2d | 5,211 / 5,479 / 6,055 | 4,817 / 4,732 / 5,399 |
+
+### Lectura
+
+- No hay empeoramiento que salga del ruido. En la ejecución más limpia (la 1), los scripts quedan igual o algo mejor, salvo el shooter con 60 drones (0,234 → 0,319), que en la 3 da lo contrario.
+- La física con mosaicos baja de forma repetida, de unos 2,3 a unos 1,5 ms. Es lo esperable de las listas de booleanos compactas del compilador nuevo: `fisica2d.ara` guarda varias por nodo.
+- Calcular `sen`/`cos` en Ara solo ocurre cuando un nodo cambia (`sincronizarAra`), así que no se nota en el paso.
+- Hay que repetir estas medidas con el equipo en reposo.
+
 ## Ara contra Rust (`ara-etapa5/ara/bench/contra-rust.sh`)
 
 - No se ha vuelto a medir en esta sesión, porque otro agente estaba usando la batería de Ara.

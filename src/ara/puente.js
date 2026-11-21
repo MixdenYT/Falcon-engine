@@ -40,8 +40,9 @@ export const compilado = (bytes) => {
   }
   return m;
 };
-// El runtime de Ara es la versión ligera para la web (herramientas/runtime-web.sh del repositorio de Ara: 96 KB en vez
-// de 226 KB); el mismo en el editor y en los juegos exportados. Se lee una vez.
+// El runtime de Ara es el escrito en Ara (crates/ara_wasm/runtime/ara_runtime.wasm del repositorio de Ara, unos 86 KB;
+// lo copia herramientas/copiar-a-falcon.sh); el mismo en el editor y en los juegos exportados. Va a la par con el
+// compilador: nucleo.wasm y .falcon/ara.wasm hay que recompilarlos al cambiarlo. Se lee una vez.
 let runtimePropio = null;
 export const runtimeAra = () => (runtimePropio ||= leerPropio('./ara_runtime.wasm', false).catch((e) => { runtimePropio = null; throw e; }));
 const PROGRAMAS_GUARDADOS = 4;

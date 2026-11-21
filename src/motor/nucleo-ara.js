@@ -27,8 +27,8 @@ async function crear() {
   return {
     fisica2d: {
       empezar: (n) => empezar(B(n)),
-      nodo: (i, padre, sinMatriz, x, y, rot, c, s, esc, sx, sy, cajaTipo, ox, oy, w, h, solido, papel) =>
-        nodo(B(i), B(padre), sinMatriz, x, y, rot, c, s, esc, sx, sy, B(cajaTipo), ox, oy, w, h, B(solido), B(papel)),
+      nodo: (i, padre, sinMatriz, x, y, grados, esc, sx, sy, cajaTipo, ox, oy, w, h, solido, papel) =>
+        nodo(B(i), B(padre), sinMatriz, x, y, grados, esc, sx, sy, B(cajaTipo), ox, oy, w, h, B(solido), B(papel)),
       preparar: () => Number(preparar()),
       solidoCx: (k) => solidoCx(B(k)),
       solidoCy: (k) => solidoCy(B(k)),

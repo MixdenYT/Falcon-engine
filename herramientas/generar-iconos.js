@@ -1,13 +1,11 @@
-// Genera recursos/icono.png e icono.ico a partir del logotipo SVG.
+// Genera recursos/icono.png e icono.ico a partir del logotipo (recursos/logo.png, 1000×1000 con transparencia).
 // Uso: npx electron herramientas/generar-iconos.js
 const { app, BrowserWindow } = require('electron');
 const fs = require('node:fs');
 const path = require('node:path');
 
 const raiz = path.resolve(__dirname, '..');
-const fuente = fs.readFileSync(path.join(raiz, 'src/ui/iconos.js'), 'utf8');
-const perfil = /const PERFIL = '([^']+)'/.exec(fuente)[1];
-const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 64 64"><rect width="64" height="64" rx="17" fill="#3DDC84"/><path d="${perfil}" fill="#06130B"/><circle cx="40.5" cy="21" r="2.6" fill="#3DDC84"/></svg>`;
+const logo = 'data:image/png;base64,' + fs.readFileSync(path.join(raiz, 'recursos/logo.png')).toString('base64');
 
 function crearIco(pngs) {
   // ICO con imágenes PNG embebidas (válido desde Windows Vista).
@@ -31,7 +29,7 @@ app.whenReady().then(async () => {
   const tamanos = [16, 24, 32, 48, 64, 128, 256, 512];
   const urls = await v.webContents.executeJavaScript(`(async () => {
     const img = new Image();
-    img.src = 'data:image/svg+xml;base64,' + btoa(${JSON.stringify(svg)});
+    img.src = ${JSON.stringify(logo)};
     await img.decode();
     const r = {};
     for (const t of ${JSON.stringify(tamanos)}) {
@@ -45,7 +43,6 @@ app.whenReady().then(async () => {
   fs.mkdirSync(path.join(raiz, 'recursos'), { recursive: true });
   fs.writeFileSync(path.join(raiz, 'recursos/icono.png'), png(512));
   fs.writeFileSync(path.join(raiz, 'recursos/icono.ico'), crearIco([16, 24, 32, 48, 64, 128, 256].map(t => ({ tam: t, datos: png(t) }))));
-  fs.writeFileSync(path.join(raiz, 'recursos/icono.svg'), svg);
   console.log('Iconos generados en recursos/');
   app.quit();
 });

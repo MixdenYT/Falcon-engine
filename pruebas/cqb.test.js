@@ -8,8 +8,10 @@ import { Mundo, NodoVivo } from '../src/motor/mundo.js';
 import { Mundo3D } from '../src/motor/mundo3d.js';
 import { crearNodo } from '../src/motor/tipos.js';
 import { datosProyecto } from '../src/motor/proyecto.js';
+import { nucleoAra } from '../src/motor/nucleo-ara.js';
 
 const archivos = blueprintsCQB();
+const nucleo = await nucleoAra(); // rayos y A* por el núcleo de Ara, como en el juego
 const N = (tipo, nombre, props = {}, hijos = [], extra = {}) => Object.assign(crearNodo(tipo, nombre, props, hijos), extra);
 async function mundo() {
   const m = new Mundo({ proyecto: { datos: { ...datosProyecto('CQB', '3D'), gravedad: 18 } }, lienzo: {} });
@@ -20,7 +22,7 @@ async function mundo() {
     N('Malla3D', 'Terminal', {}, [], { blueprint: 'blueprints/terminal_cqb.bp' }),
   ]), null);
   m.textos = new Map(Object.entries(archivos).map(([p, a]) => [p, typeof a === 'string' ? a : JSON.stringify(a)]));
-  m.audio = { sonar() {} }; m.d3 = new Mundo3D(m); m.d3.solidos = [];
+  m.audio = { sonar() {} }; m.nucleo = nucleo; m.d3 = new Mundo3D(m); m.d3.solidos = [];
   const j = m.buscarPorNombre('Jugador'), d = m.d3;
   for (const n of m.todos()) {
     const g = new THREE.Group(); g.position.fromArray(n.props.posicion || [0, 0, 0]); g.scale.fromArray(n.props.escala || [1, 1, 1]);
@@ -89,6 +91,7 @@ test('CQB: A* rodea obstáculos respetando el radio de colisión', async () => {
   const b = new THREE.Box3(new THREE.Vector3(-0.5, 0, -2), new THREE.Vector3(0.5, 3, 2)); m.d3.solidos = [{ n: {}, b }];
   const ruta = m.d3.tactico.calcularRuta(e, [3, 0, 0]); assert.ok(ruta.length > 12); assert.ok(ruta.some(p => Math.abs(p[2]) >= 2.5));
   assert.ok(ruta.every(p => !b.clone().expandByScalar(0.39).containsPoint(new THREE.Vector3(p[0], 1, p[2]))));
+  assert.equal(m.nucleo.espacio3d.dueno, m.d3, 'la ruta la calculó Ara');
 });
 test('CQB: un muro entre cámara y boca impide que el arma alcance un enemigo por el lateral', async () => {
   const m = await mundo(), e = m.buscarPorNombre('Enemigo0');

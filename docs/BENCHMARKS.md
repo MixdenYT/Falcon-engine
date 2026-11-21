@@ -130,6 +130,33 @@
 - Calcular `sen`/`cos` en Ara solo ocurre cuando un nodo cambia (`sincronizarAra`), así que no se nota en el paso.
 - Hay que repetir estas medidas con el equipo en reposo.
 
+## Núcleo en Ara: rayos y A* 3D (B4)
+
+`src/motor/ara/espacio3d.ara` contra el bucle de sólidos de `Mundo3D.primerImpacto` (three.js `Ray.intersectBox`) y `Tactico3D.calcularRuta`. Los dos dan lo mismo bit a bit (`pruebas/espacio3d-ara.test.js`: 3.000 rayos y unas 220 rutas).
+
+### Metodología
+
+- `node herramientas/medir-espacio3d.mjs [ejecuciones]` (por defecto 3). Fecha 21-11-2026, mismo equipo y Node de arriba (v26.13.1, `arm64`). Árbol en `6117105` más este bloque. El equipo estaba en reposo: `medir-ara.mjs` dio cifras como las de la primera sección.
+- Escena parecida al mapa CQB (18 × 24 m) con 20, 80 o 300 cajas al azar (muros, mesas, columnas) y 4 personajes, semilla fija.
+- **Rayo:** una llamada a `primerImpacto` (alcance 30, ignorando a un personaje, como `lineaVision`), con 4.096 orígenes y direcciones al azar a la altura de los ojos; 2.000 de calentamiento y 40.000 medidas. Incluye la parte que sigue en JS (los 4 personajes) en las dos rutas.
+- **A\*:** una llamada a `calcularRuta` entre 64 pares de puntos al azar con los límites por defecto (37 × 49 celdas de 50 cm); 400 de calentamiento y 400 medidas.
+
+### Resultados (µs por llamada, JS / Ara; ejecuciones 1 / 2 / 3)
+
+| Cajas | Rayo JS | Rayo Ara | Ara es… | A* JS | A* Ara | Ara es… |
+|---|---|---|---|---|---|---|
+| 20 | 0,89 / 0,66 / 0,66 | 0,72 / 0,78 / 0,56 | 0,8–1,2× | 157,3 / 158,1 / 158,2 | 40,2 / 39,1 / 39,2 | 3,9–4,0× |
+| 80 | 2,19 / 2,22 / 2,15 | 1,50 / 1,51 / 1,52 | 1,4–1,5× | 129,0 / 130,3 / 130,6 | 48,9 / 47,7 / 47,8 | 2,6–2,7× |
+| 300 | 8,68 / 8,49 / 8,61 | 4,85 / 4,77 / 5,03 | 1,7–1,8× | 4,2 / 4,4 / 4,4 | 5,0 / 4,5 / 4,7 | 0,8–1,0× |
+
+### Lectura
+
+- **A\*** es lo que más gana: la versión en JS busca el mejor abierto recorriendo un `Set` y prueba todas las cajas en cada vecino; Ara usa un montículo (mismo orden de visita: menor coste más heurística y, si empatan, el que entró antes) y guarda si cada celda está libre. Sin camino también cuenta: de las 64 rutas, 9 no tienen camino con 20 cajas, 40 con 80 y las 64 con 300 (la meta cae en una caja o queda encerrada). Con 300 casi todas terminan en la primera comprobación (4 µs en las dos rutas); ahí solo se ve el coste fijo de Ara, unos 3 µs para vaciar la rejilla de 1.813 celdas.
+- **Rayo:** con pocas cajas no hay diferencia que salga del ruido (una llamada cuesta menos de 1 µs en las dos rutas). Con 80 o más, Ara gana 1,4–1,8×. Lo que queda en JS por rayo es igual en las dos rutas: `normalize`, los personajes con `posicionGlobal` y el objeto del impacto.
+- Las cajas se mandan a Ara una vez por lista de sólidos (la física la rehace en cada paso), no por rayo: una llamada por caja y paso, solo si ese paso hay algún rayo o ruta.
+- `herramientas/medir-ara.mjs` (shooter 6/60/300 drones, tres ejecuciones): Ara 0,020–0,021 / 0,046–0,047 / 0,186–0,194 ms por fotograma, Águila 0,025–0,026 / 0,058–0,061 / 0,246–0,262. Igual que antes del bloque, como se esperaba: esa medida sustituye `Mundo3D` por un objeto de mentira (`lineaVision` fija), así que no pasa por los rayos ni por el A*.
+- Sin trigonometría en estas cuentas: solo `+ − × ÷` y `raiz`, que son IEEE-754 exactas en V8 y en wasm. Por eso las pruebas exigen igualdad exacta y no tolerancia. Ara no divide entre cero: el `1 / 0` de three.js (±∞ según el signo del cero) se escribe aparte (`inverso`).
+
 ## Ara contra Rust (`ara-etapa5/ara/bench/contra-rust.sh`)
 
 - No se ha vuelto a medir en esta sesión, porque otro agente estaba usando la batería de Ara.

@@ -7,6 +7,7 @@ import { plantillaShooter } from '../src/motor/shooters.js';
 import { comprobarAra, HAY_JSPI } from '../src/ara/puente.js';
 import { Mundo, NodoVivo } from '../src/motor/mundo.js';
 import { Mundo3D } from '../src/motor/mundo3d.js';
+import { nucleoAra } from '../src/motor/nucleo-ara.js';
 import { crearProyecto, PLANTILLAS } from '../src/motor/plantillas.js';
 import { normalizarEscena } from '../src/motor/proyecto.js';
 import { readFile } from 'node:fs/promises';
@@ -14,6 +15,7 @@ import './dom.js';
 
 const academia = plantillaAcademia('Academia'), shooter = plantillaShooter('Shooter');
 const recorrer = n => [n, ...(n.hijos || []).flatMap(recorrer)];
+const nucleo = await nucleoAra(); // los rayos de `rayos()` van por el núcleo de Ara, como en el juego
 
 test('academia cubre cada bloque real, también funciones ocultas, con grafos ejecutables y conexiones válidas', () => {
   assert.deepEqual(academia.archivos['cobertura-blueprints.json'].bloques.map(b => b.id).sort(), Object.keys(NODOS).sort());
@@ -175,7 +177,7 @@ function rayos() {
   const enemigo = { tipo: 'Personaje3D', props: { posicion: [0, 0, -10], altura: 1.8 }, visible: true };
   const muro = { tipo: 'Malla3D', visible: true };
   const d = Object.create(Mundo3D.prototype);
-  d.m = { todos: () => [jugador, enemigo] }; d.posicionGlobal = n => n.props.posicion;
+  d.m = { todos: () => [jugador, enemigo], nucleo }; d.posicionGlobal = n => n.props.posicion;
   d.solidos = []; d.controles = { buscarJugador: () => jugador };
   d.camaraUsada = new THREE.PerspectiveCamera(); d.camaraUsada.position.set(0, 1.44, 4); d.camaraUsada.updateMatrixWorld();
   d.escena = { scene: new THREE.Scene() }; d.trazas = [];
@@ -188,6 +190,7 @@ test('rayos de combate y visión se detienen en paredes y respetan alcance', () 
   assert.equal(d.dispararRayo(5), null); assert.equal(d.lineaVision(jugador, enemigo, 5), false);
   d.solidos = [{ n: muro, b: new THREE.Box3(new THREE.Vector3(-4, 0, -5), new THREE.Vector3(4, 3, -4)) }];
   assert.equal(d.dispararRayo(100), muro); assert.equal(d.lineaVision(jugador, enemigo, 20), false);
+  assert.equal(nucleo.espacio3d.dueno, d, 'los sólidos los probó Ara');
   d.limpiarTrazas(true); assert.equal(d.escena.scene.children.length, 0);
 });
 

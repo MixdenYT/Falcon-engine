@@ -1,4 +1,4 @@
-# Física 2D de Falcon Engine, escrita en Ara (vía B de PLAN_MOTOR_ARA.md).
+# Física 2D de Falcon Engine, escrita en Ara (vía B de docs/REWRITE_ROADMAP.md).
 #
 # Es la misma cuenta que `Mundo.fisica2d`, `Mundo.caja`, `Mundo.matrizPadre` y `Mundo.contactos2d` de
 # src/motor/mundo.js (y `matrizLocal` de render2d.js), operación por operación, para que el resultado sea idéntico

@@ -261,11 +261,17 @@ export class Tactico3D {
   }
   // A* sobre una cuadrícula de 50 cm. Solo se usa en este mapa pequeño. Cada
   // búsqueda comprueba las mismas cajas y puertas que la física y los disparos.
+  // Con el núcleo de Ara cargado la hace Ara; esta versión en JS queda de respaldo.
   calcularRuta(n, destino) {
     const d = this.d3, limites = d.m.proyecto.datos.navegacion || [-9, -12, 9, 12], celda = 0.5;
     const [x0, z0, x1, z1] = limites, ancho = Math.round((x1 - x0) / celda) + 1, alto = Math.round((z1 - z0) / celda) + 1;
     const coord = p => [Math.max(0, Math.min(ancho - 1, Math.round((p[0] - x0) / celda))), Math.max(0, Math.min(alto - 1, Math.round((p[2] - z0) / celda)))];
     const inicio = coord(d.posicionGlobal(n)), fin = coord(destino), clave = (x, z) => z * ancho + x;
+    const F = d.espacioAra();
+    if (F && [...inicio, ...fin].every(Number.isInteger)) { // el mismo A* en Ara (src/motor/ara/espacio3d.ara)
+      const largo = F.ruta(ancho, alto, x0, z0, celda, ...inicio, ...fin, n._alturaColision || 1.8);
+      if (!d.errorAra()) return Array.from({ length: largo }, (_, i) => { const k = F.celda(i); return [x0 + k % ancho * celda, 0, z0 + Math.floor(k / ancho) * celda]; });
+    }
     const desde = clave(...inicio), hasta = clave(...fin), prev = new Map(), coste = new Map([[desde, 0]]), abiertos = new Set([desde]), cerrados = new Set();
     const bloqueos = d.solidos.filter(s => s.b.max.y > 0.36 && s.b.min.y < (n._alturaColision || 1.8));
     const libre = (x, z) => x >= 0 && z >= 0 && x < ancho && z < alto && !bloqueos.some(s => s.b.max.x > x0 + x * celda - 0.4 && s.b.min.x < x0 + x * celda + 0.4 && s.b.max.z > z0 + z * celda - 0.4 && s.b.min.z < z0 + z * celda + 0.4);

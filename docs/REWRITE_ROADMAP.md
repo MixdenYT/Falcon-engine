@@ -1,6 +1,6 @@
 # Falcon Engine — Powered by Ara: hoja de ruta
 
-Estado: **Fase 0 completada. La arquitectura está pendiente de aprobación** (paso 5 del prompt maestro). No hay reescritura estructural masiva hasta que se apruebe.
+Estado: **arquitectura aprobada por el usuario el 21-11-2026**. Fases 1 y 3 completadas; fase 2 en desarrollo.
 Rama de trabajo: `motor-ara`, en `falcon-engine` y en `ara-etapa5/ara`. Solo hay commits locales; no se ha subido nada a GitHub.
 
 ## Cómo se trabaja
@@ -19,13 +19,13 @@ Rama de trabajo: `motor-ara`, en `falcon-engine` y en `ara-etapa5/ara`. Solo hay
 ## Auditoría: qué existe de verdad (21-11-2026)
 
 ### Falcon Engine 1.3.0
-Electron 44 + three.js 0.186; unas 22.900 líneas de JS en `src/`. Hay 50 pruebas headless (`npm test`) y pasan las 50.
+Electron 44 + three.js 0.186; unas 22.900 líneas de JS en `src/`. `npm test` (headless): 79 de 79 más las suites propias, con código de salida 0. La línea base inicial, «50 de 50», era falsa: el runner se cortaba en `release.test.js` y no ejecutaba 7 pruebas (corregido en `86b418e` y `6ca1704`).
 
 | Sistema | Dónde | Líneas | Estado real | Ara hoy |
 |---|---|---|---|---|
 | Escena, nodos y eventos | `motor/mundo.js`, `tipos.js` | 1.700 | Funciona | No |
 | Física 2D | `mundo.js` (`fisica2d`, `contactos2d`) | 160 | Funciona | **En revisión** (B3): `fisica2d`, cajas, matrices de mundo y pares de `contactos2d` en Ara (`motor/ara/fisica2d.ara`), idénticos bit a bit; JS de respaldo. Ara es 1,8–4× más rápido (`docs/BENCHMARKS.md`) |
-| Física 3D (cajas), controles, CQB | `mundo3d.js`, `control3d.js`, `tactico3d.js` | 1.075 | Funciona, mezclada con three.js | La IA de CQB sí (Blueprints→Ara) |
+| Física 3D (cajas), controles, CQB | `mundo3d.js`, `control3d.js`, `tactico3d.js` | 1.075 | Funciona, mezclada con three.js | La IA de CQB sí (Blueprints→Ara). **En revisión** (B4): rayos contra los sólidos (`primerImpacto`: combate, visión, cobertura, arma baja) y A* (`calcularRuta`) en Ara (`motor/ara/espacio3d.ara`), idénticos bit a bit a three.js/JS (`pruebas/espacio3d-ara.test.js`); JS de respaldo. Rayo 1,2–1,8×, A* 2,6–4× más rápido (`docs/BENCHMARKS.md`). Pendiente: física de cajas de `mundo3d`, cámara de `control3d` |
 | Render 2D | `render2d.js` (Canvas2D) | 400 | Funciona | No |
 | Render 3D y Lumbre | `lumbre*.js`, `escena3d.js`, `materiales.js` | 2.500 | Funciona: WebGL2, sondas, GTAO, bloom | No |
 | Audio | `audio.js` (Web Audio) | 124 | Funciona | No |
@@ -45,9 +45,10 @@ Electron 44 + three.js 0.186; unas 22.900 líneas de JS en `src/`. Hay 50 prueba
 | Backend x86-64 (`nativo.ara`) | PE y ELF sin enlazador; de 1,0 a 2× las instrucciones de Rust |
 | Backend ARM64 (`arm64.ara`) | Solo Windows y sin optimizar |
 | WebAssembly | Funciona; es lo que usa Falcon |
-| FFI nativa (`externa` en `.exe`) | **No existe**: rechazada en `nativo.ara:313`; imports fijos de KERNEL32 |
-| Ventanas, GPU, audio, imágenes | **No existen** en el lenguaje ni en la biblioteca |
-| `f32`, búferes de bytes, estructuras por valor | No existen |
+| FFI nativa (`externa "x.dll" func`) | **Existe en Windows x64** (`b016792`): ABI Win64 e IAT generada. Tipos de frontera `f32`/`i32`/`u32` (`0106860`), llamadas indirectas `ara:indirecta` (`b8e8884`) y `retrollamada(f)` (`98634f6`). No existe en Linux ni en ARM64. Ver `docs/NATIVO.md` de Ara |
+| Ventanas, GPU | Por FFI: ventana Win32 con `WndProc` en Ara y OpenGL 4.6 con shaders (`ejemplos/ventana_cubo.ara`). No hay biblioteca propia. Audio e imágenes no existen |
+| Búferes de bytes | `ara:memoria` + `ejemplos/nativo/bufer.ara` (u8, u16, i32, i64, f32, con límites comprobados) |
+| Estructuras por valor | No existen |
 | Trigonometría | Integrada (`sen`, `cos`, `tan`, `asen`, `acos`, `atan`, `atan2`, de fdlibm, igual bit a bit en JIT, wasm y código máquina). Falcon la usa desde el 21-11-2026 |
 | Closures, genéricos, traits, hilos | No existen |
 | Memoria | Conteo de referencias; los ciclos se pierden |
@@ -89,8 +90,8 @@ Reglas de la frontera:
 |---|---|---|
 | 0 | Auditoría, línea base y esta hoja de ruta | Completado |
 | 1 | Fundación:<br>• trigonometría en Ara<br>• `herramientas/compilar-nucleo-ara.mjs`<br>• `src/motor/ara/nucleo.wasm` versionado | Completado |
-| 2 | Núcleo en Ara, por bloques, cada uno con las pruebas headless en verde:<br>1. física 2D (en revisión)<br>2. contactos 2D (los pares, en revisión con B3)<br>3. temporizadores, partículas, animación de sprites<br>4. física 3D, controles y CQB<br>5. compilador de Blueprints | En desarrollo |
-| 3 | Ara nativo:<br>• FFI con DLL, convención Win64<br>• `f32` y búferes<br>• ventana Win32<br>• triángulo OpenGL<br>• llamadas indirectas | Pendiente |
+| 2 | Núcleo en Ara, por bloques, cada uno con las pruebas headless en verde:<br>1. física 2D (en revisión)<br>2. contactos 2D (los pares, en revisión con B3)<br>3. temporizadores, partículas, animación de sprites<br>4. física 3D, controles y CQB (B4 en revisión: rayos y A*)<br>5. compilador de Blueprints | En desarrollo |
+| 3 | Ara nativo (Windows x64):<br>• FFI con DLL, convención Win64<br>• `f32` y búferes<br>• ventana Win32<br>• triángulo y cubo OpenGL<br>• llamadas indirectas y retrollamadas | Completado (Ara `7e4e99b`, 232/232 pruebas) |
 | 4 | Runtime nativo: el núcleo de la fase 2 corre en un `.exe` y dibuja con la fase 3; escena 2D primero | Pendiente |
 | 5 | Lumbre nativo: capacidades documentadas por plataforma | Pendiente |
 | 6 | Compatibilidad: matriz real Windows x64, Linux x64, ARM64 y wasm | Pendiente |
@@ -102,7 +103,7 @@ Reglas de la frontera:
 - Logo nuevo:
   - `recursos/logo.png` es la fuente; `herramientas/generar-iconos.js` genera a partir de él `icono.png` e `icono.ico`.
   - Se retira `icono.svg`, que ya no se usaba.
-  - La marca vectorial de la interfaz (`src/ui/iconos.js`, `PERFIL`) aún es la antigua: hay que vectorizar el logo nuevo.
+  - La marca vectorial de la interfaz (`src/ui/iconos.js`, `PERFIL`) se traza desde el logo con `herramientas/trazar-logo.js` (`224a608`).
 - Núcleo en Ara:
   - `src/motor/ara/fisica2d.ara` (física 2D, idéntica bit a bit a `mundo.js`).
   - `herramientas/compilar-nucleo-ara.mjs`.

@@ -284,8 +284,10 @@ export class Mundo3D {
   // Cajas físicas compartidas con los controles: los muros y sus huecos también bloquean tiros.
   primerImpacto(origen, direccion, alcance, ignorados = []) {
     const r = new THREE.Ray(origen, direccion.clone().normalize()), punto = new THREE.Vector3();
-    let cerca = Math.max(0, Math.min(1000, Number(alcance) || 0)), impacto = null;
-    const cajas = this.solidos.filter(s => !ignorados.includes(s.n));
+    let cerca = Math.max(0, Math.min(1000, Number(alcance) || 0)), impacto = null, cajas = [];
+    const solido = this.solidoAra(origen, direccion, cerca, ignorados);
+    if (solido === undefined) cajas = this.solidos.filter(s => !ignorados.includes(s.n));
+    else if (solido) { impacto = solido; cerca = solido.distancia; }
     for (const n of this.m.todos()) {
       if (n.tipo === 'Personaje3D' && !n.eliminado && !n._muerto && n.visible !== false && !ignorados.includes(n)) cajas.push({ n, b: this.cajaPersonaje(n, this.posicionGlobal(n)) });
     }
@@ -295,6 +297,49 @@ export class Mundo3D {
       if (distancia <= cerca) { cerca = distancia; impacto = { nodo: n, punto: punto.clone(), distancia }; }
     }
     return impacto;
+  }
+
+  // ---------- Núcleo de Ara (src/motor/ara/espacio3d.ara) ----------
+  // Los sólidos de este paso en el núcleo, o null si no está cargado. La física rehace `solidos` en cada paso: basta
+  // con mandarlos cuando la lista es otra o el núcleo viene de otro mundo.
+  // shortcut: una caja cambiada dentro de la misma lista (sin pasar por `fisica`) no se reenvía; si algo lo hace, que asigne una lista nueva.
+  espacioAra() {
+    const F = this.m.nucleo?.espacio3d;
+    if (!F) return null;
+    if (F.dueno !== this || this._solidosAra !== this.solidos) {
+      F.dueno = this; this._solidosAra = this.solidos;
+      const duenos = this._duenosAra = new Map();
+      F.vaciar();
+      for (const { n, b } of this.solidos) {
+        if (!duenos.has(n)) duenos.set(n, duenos.size);
+        F.caja(b.min.x, b.min.y, b.min.z, b.max.x, b.max.y, b.max.z, duenos.get(n));
+      }
+    }
+    return F;
+  }
+
+  /** Si el núcleo de Ara falló, lo deja de usar (vuelve a JS) y devuelve true. */
+  errorAra() {
+    const e = this.m.nucleo?.error();
+    if (e) { console.error('Núcleo de Ara (3D):', e.mensaje); this.m.nucleo = null; }
+    return !!e;
+  }
+
+  /** El sólido más cercano que corta el rayo, calculado en Ara: un impacto, null si no hay, o undefined si hay que hacerlo en JS. */
+  solidoAra(origen, d, alcance, ignorados) {
+    const F = this.espacioAra();
+    if (!F) return undefined;
+    let a = -1, b = -1;
+    for (const n of ignorados) {
+      const k = this._duenosAra.get(n);
+      if (k === undefined) continue;
+      if (a < 0) a = k; else if (b < 0) b = k; else return undefined;
+    }
+    const i = F.rayo(origen.x, origen.y, origen.z, d.x, d.y, d.z, alcance, a, b);
+    if (this.errorAra()) return undefined;
+    if (i < 0) return null;
+    const n = this.solidos[i].n; // eliminado u oculto después de la física: JS lo salta y busca el siguiente
+    return n.eliminado || n.visible === false ? undefined : { nodo: n, punto: new THREE.Vector3(F.x(), F.y(), F.z()), distancia: F.t() };
   }
 
   dispararRayo(alcance = 100) {

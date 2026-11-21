@@ -1,0 +1,324 @@
+# Rayos y navegación de la parte 3D de Falcon Engine, escritos en Ara (bloque B4).
+#
+# Las cajas son las de `Mundo3D.solidos` (src/motor/mundo3d.js): JS las manda todas con `caja` cuando esa lista
+# cambia (la física la rehace en cada paso). Con ellas:
+#  · `rayo` es el bucle de sólidos de `Mundo3D.primerImpacto`: `THREE.Ray.intersectBox` (slab test) y la distancia
+#    al punto, operación por operación, para dar lo mismo bit a bit que three.js;
+#  · `ruta` es el A* de `Tactico3D.calcularRuta`, con el mismo orden de visita: de los abiertos con menor coste más
+#    heurística, el que entró antes (el orden de un `Set` de JS). Aquí con un montículo en vez de recorrer la lista.
+# Los personajes no están aquí: se mueven entre rayo y rayo, y JS los prueba aparte.
+# El dueño de cada caja (un número por nodo, lo pone JS) va como decimal para no cruzar BigInt en cada caja.
+
+const SIN = -1
+const INF = 1e308 * 10.0  # Ara no divide entre cero: el infinito de `1 / 0` de JS se escribe aparte
+
+clase Espacio3D extiende Nucleo:
+    nb = 0
+    bx0: lista[decimal] = []
+    by0: lista[decimal] = []
+    bz0: lista[decimal] = []
+    bx1: lista[decimal] = []
+    by1: lista[decimal] = []
+    bz1: lista[decimal] = []
+    bdueno: lista[decimal] = []
+    # Resultado del último `rayo`: distancia y punto.
+    rt = 0.0
+    rx = 0.0
+    ry = 0.0
+    rz = 0.0
+    # A*: por celda, su coste, de dónde viene, si está abierta o cerrada, si está libre y su orden de entrada.
+    coste: lista[entero] = []
+    prev: lista[entero] = []
+    estado: lista[entero] = []  # 0 sin ver, 1 abierta, 2 cerrada
+    libres: lista[entero] = []  # 0 sin mirar, 1 libre, 2 bloqueada
+    orden: lista[entero] = []
+    bloqueos: lista[entero] = []
+    # Montículo de abiertas: (coste + heurística, orden de entrada, celda). Las entradas viejas se saltan al salir.
+    nm = 0
+    mh: lista[entero] = []
+    ms: lista[entero] = []
+    mk: lista[entero] = []
+    ruta_: lista[entero] = []  # de la meta hacia atrás
+    nr = 0
+    # La rejilla de la búsqueda en curso.
+    ancho = 0
+    alto = 0
+    gx0 = 0.0
+    gz0 = 0.0
+    tam = 0.5
+
+    # ---------- Cajas ----------
+
+    func vaciar():
+        nb = 0
+
+    func caja(x0: decimal, y0: decimal, z0: decimal, x1: decimal, y1: decimal, z1: decimal, dueno: decimal):
+        si nb < largo(bx0):
+            bx0[nb] = x0
+            by0[nb] = y0
+            bz0[nb] = z0
+            bx1[nb] = x1
+            by1[nb] = y1
+            bz1[nb] = z1
+            bdueno[nb] = dueno
+        sino:
+            agregar(bx0, x0)
+            agregar(by0, y0)
+            agregar(bz0, z0)
+            agregar(bx1, x1)
+            agregar(by1, y1)
+            agregar(bz1, z1)
+            agregar(bdueno, dueno)
+        nb += 1
+
+    # ---------- Rayos ----------
+
+    # La caja más cercana que corta el rayo (o, d) sin pasar de `alcance`, saltando las de los dueños `ig_a` e `ig_b`
+    # (-1: ninguno). Con empate gana la última, como `distancia <= cerca` en JS. Deja distancia y punto en rt, rx, ry, rz.
+    func rayo(ox: decimal, oy: decimal, oz: decimal, dx: decimal, dy: decimal, dz: decimal, alcance: decimal, ig_a: decimal, ig_b: decimal) -> entero:
+        # Vector3.normalize: divideScalar(length() || 1), que es multiplyScalar(1 / l).
+        l = raiz(dx * dx + dy * dy + dz * dz)
+        si l != l o l == 0.0:
+            l = 1.0
+        s = 1.0 / l
+        ux = dx * s
+        uy = dy * s
+        uz = dz * s
+        ix = inverso(ux)
+        iy = inverso(uy)
+        iz = inverso(uz)
+        cerca = alcance
+        mejor = SIN
+        para i en rango(nb):
+            si bdueno[i] == ig_a o bdueno[i] == ig_b:
+                continuar
+            # Ray.intersectBox de three.js, tal cual (NaN incluido).
+            tmin = 0.0
+            tmax = 0.0
+            si ix >= 0.0:
+                tmin = (bx0[i] - ox) * ix
+                tmax = (bx1[i] - ox) * ix
+            sino:
+                tmin = (bx1[i] - ox) * ix
+                tmax = (bx0[i] - ox) * ix
+            tymin = 0.0
+            tymax = 0.0
+            si iy >= 0.0:
+                tymin = (by0[i] - oy) * iy
+                tymax = (by1[i] - oy) * iy
+            sino:
+                tymin = (by1[i] - oy) * iy
+                tymax = (by0[i] - oy) * iy
+            si tmin > tymax o tymin > tmax:
+                continuar
+            si tymin > tmin o tmin != tmin:
+                tmin = tymin
+            si tymax < tmax o tmax != tmax:
+                tmax = tymax
+            tzmin = 0.0
+            tzmax = 0.0
+            si iz >= 0.0:
+                tzmin = (bz0[i] - oz) * iz
+                tzmax = (bz1[i] - oz) * iz
+            sino:
+                tzmin = (bz1[i] - oz) * iz
+                tzmax = (bz0[i] - oz) * iz
+            si tmin > tzmax o tzmin > tmax:
+                continuar
+            si tzmin > tmin o tmin != tmin:
+                tmin = tzmin
+            si tzmax < tmax o tmax != tmax:
+                tmax = tzmax
+            si tmax < 0.0:
+                continuar
+            t = tmax
+            si tmin >= 0.0:
+                t = tmin
+            px = ox + ux * t
+            py = oy + uy * t
+            pz = oz + uz * t
+            ex = ox - px
+            ey = oy - py
+            ez = oz - pz
+            distancia = raiz(ex * ex + ey * ey + ez * ez)
+            si distancia <= cerca:
+                cerca = distancia
+                mejor = i
+                rx = px
+                ry = py
+                rz = pz
+        rt = cerca
+        devolver mejor
+
+    # `1 / v` de JS: con cero da ±infinito según el signo del cero (atan2(0, -0) = π).
+    func inverso(v: decimal) -> decimal:
+        si v == 0.0:
+            si atan2(0.0, v) == 0.0:
+                devolver INF
+            devolver 0.0 - INF
+        devolver 1.0 / v
+
+    func r_t() -> decimal:
+        devolver rt
+
+    func r_x() -> decimal:
+        devolver rx
+
+    func r_y() -> decimal:
+        devolver ry
+
+    func r_z() -> decimal:
+        devolver rz
+
+    # ---------- A* ----------
+
+    # Celda (x, z) libre: dentro de la rejilla y sin caja de `bloqueos` a menos de 0,4 de su centro (como `libre` de JS).
+    func libre(x: entero, z: entero) -> booleano:
+        si x < 0 o z < 0 o x >= ancho o z >= alto:
+            devolver falso
+        k = z * ancho + x
+        si libres[k] == 0:
+            cx = gx0 + decimal(x) * tam
+            cz = gz0 + decimal(z) * tam
+            libres[k] = 1
+            para j en rango(largo(bloqueos)):
+                i = bloqueos[j]
+                si bx1[i] > cx - 0.4 y bx0[i] < cx + 0.4 y bz1[i] > cz - 0.4 y bz0[i] < cz + 0.4:
+                    libres[k] = 2
+                    romper
+        devolver libres[k] == 1
+
+    func meter(h: entero, s: entero, k: entero):
+        si nm < largo(mh):
+            mh[nm] = h
+            ms[nm] = s
+            mk[nm] = k
+        sino:
+            agregar(mh, h)
+            agregar(ms, s)
+            agregar(mk, k)
+        i = nm
+        nm += 1
+        mientras i > 0:
+            p = (i - 1) // 2
+            si mh[p] < mh[i] o (mh[p] == mh[i] y ms[p] < ms[i]):
+                romper
+            cambiar(i, p)
+            i = p
+
+    func cambiar(a: entero, b: entero):
+        h = mh[a]
+        s = ms[a]
+        k = mk[a]
+        mh[a] = mh[b]
+        ms[a] = ms[b]
+        mk[a] = mk[b]
+        mh[b] = h
+        ms[b] = s
+        mk[b] = k
+
+    # Quita la raíz del montículo (la deja en la posición nm).
+    func quitar_raiz():
+        nm -= 1
+        cambiar(0, nm)
+        i = 0
+        mientras verdadero:
+            a = 2 * i + 1
+            si a >= nm:
+                romper
+            b = a + 1
+            m = a
+            si b < nm y (mh[b] < mh[a] o (mh[b] == mh[a] y ms[b] < ms[a])):
+                m = b
+            si mh[i] < mh[m] o (mh[i] == mh[m] y ms[i] < ms[m]):
+                romper
+            cambiar(i, m)
+            i = m
+
+    func heuristica(k: entero, fx: entero, fz: entero) -> entero:
+        devolver abs(k % ancho - fx) + abs(k // ancho - fz)
+
+    # Ruta de (ix, iz) a (fx, fz) en una rejilla de an × al celdas de lado `celda` con origen (x0, z0), evitando las
+    # cajas que cortan la franja de altura (0,36, `altura`). Devuelve cuántas celdas tiene (0: sin ruta); se leen con
+    # `ruta_celda`, sin la de salida. Mismo límite de 4000 celdas visitadas que JS.
+    func ruta(an: entero, al: entero, x0: decimal, z0: decimal, celda: decimal, ix: entero, iz: entero, fx: entero, fz: entero, altura: decimal) -> entero:
+        ancho = an
+        alto = al
+        gx0 = x0
+        gz0 = z0
+        tam = celda
+        nr = 0
+        n = an * al
+        mientras largo(coste) < n:
+            agregar(coste, 0)
+            agregar(prev, 0)
+            agregar(estado, 0)
+            agregar(libres, 0)
+            agregar(orden, 0)
+        para k en rango(n):
+            estado[k] = 0
+            libres[k] = 0
+        bloqueos = []
+        para i en rango(nb):
+            si by1[i] > 0.36 y by0[i] < altura:
+                agregar(bloqueos, i)
+        si no libre(fx, fz):
+            devolver 0
+        desde = iz * an + ix
+        hasta = fz * an + fx
+        coste[desde] = 0
+        estado[desde] = 1
+        orden[desde] = 0
+        entradas = 1
+        nm = 0
+        meter(heuristica(desde, fx, fz), 0, desde)
+        intentos = 0
+        mientras nm > 0 y intentos < 4000:
+            h = mh[0]
+            actual = mk[0]
+            quitar_raiz()
+            si estado[actual] != 1 o h != coste[actual] + heuristica(actual, fx, fz):
+                continuar  # entrada vieja: la celda ya salió o luego bajó de coste
+            intentos += 1
+            si actual == hasta:
+                k = hasta
+                mientras k != desde:
+                    si nr < largo(ruta_):
+                        ruta_[nr] = k
+                    sino:
+                        agregar(ruta_, k)
+                    nr += 1
+                    k = prev[k]
+                devolver nr
+            estado[actual] = 2
+            x = actual % an
+            z = actual // an
+            para v en rango(4):
+                nx = x
+                nz = z
+                si v == 0:
+                    nx = x + 1
+                sino si v == 1:
+                    nx = x - 1
+                sino si v == 2:
+                    nz = z + 1
+                sino:
+                    nz = z - 1
+                si no libre(nx, nz):
+                    continuar
+                k = nz * an + nx
+                nuevo = coste[actual] + 1
+                si estado[k] == 2 o (estado[k] == 1 y nuevo >= coste[k]):
+                    continuar
+                prev[k] = actual
+                coste[k] = nuevo
+                si estado[k] == 0:
+                    estado[k] = 1
+                    orden[k] = entradas
+                    entradas += 1
+                meter(nuevo + heuristica(k, fx, fz), orden[k], k)
+        devolver 0
+
+    # La celda `i` de la ruta, de la salida a la meta (clave z · ancho + x).
+    func ruta_celda(i: entero) -> entero:
+        devolver ruta_[nr - 1 - i]

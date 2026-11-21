@@ -2,15 +2,18 @@
 
 Formato [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Versionado semántico.
 Aquí van los cambios de la rama `motor-ara` respecto a `main` (`66fea90`, Falcon Engine 1.3.0).
-- Falcon: `git log main..motor-ara`, 15 commits.
-- Ara: `git log master..motor-ara` en `ara-etapa5/ara`, 10 commits hasta `7e4e99b`; Ara no tiene rama `main`.
+- Falcon: `git log main..motor-ara`, 25 commits (más los del cierre).
+- Ara: `git log master..motor-ara` en `ara-etapa5/ara`, 12 commits hasta `fced30d`; Ara no tiene rama `main`.
 
 ## [Sin publicar]
 
 ### Añadido
 - **Núcleo del motor en Ara:**
   - física 2D (`src/motor/ara/fisica2d.ara`), precompilada a `src/motor/ara/nucleo.wasm` con `herramientas/compilar-nucleo-ara.mjs` y cargada por `src/motor/nucleo-ara.js` (`bf37180`, `2e4289b`);
-  - transformaciones, cajas y pares de `contactos2d` en Ara, con envío al núcleo solo de lo que cambió (`c1b2b95`).
+  - transformaciones, cajas y pares de `contactos2d` en Ara, con envío al núcleo solo de lo que cambió (`c1b2b95`);
+  - núcleo táctico 3D: rayos contra cajas y A* (`src/motor/ara/espacio3d.ara`, `f53a50a`).
+- **Compilador de Blueprints escrito en Ara** (`src/motor/ara-blueprints/`), único desde `1f17541` (`1a00017`).
+- **Runtime nativo 2D (fase 4):** `examples/native-2d/`, un `.exe` de Ara con ventana Win32 + OpenGL que corre el nivel «plataformas» con la misma física del núcleo y los mismos scripts y Blueprints que Falcon, igual bit a bit (`fc2b5c7`, `064b90d`). La API del motor para nativo está en `src/motor/nativo/anfitrion2d.ara`.
 - Pruebas `fisica2d-ara.test.js` (Ara igual bit a bit que JS), `seguridad.test.js` y `carpetas-omitidas.test.js`.
 - `herramientas/medir-fisica2d.mjs`.
 - Documentación: `REWRITE_ROADMAP.md`, `TESTING.md`, `BENCHMARKS.md`, `PLATFORM_MATRIX.md`, `SECURITY.md`, `DEPENDENCIES.md` y los documentos de arquitectura y proceso de `docs/`.
@@ -23,7 +26,8 @@ Aquí van los cambios de la rama `motor-ara` respecto a `main` (`66fea90`, Falco
   - llamadas indirectas con `ara:indirecta` (`b8e8884`);
   - funciones de Ara para una DLL con `retrollamada(f)` (`98634f6`);
   - ejemplo de cubo con OpenGL moderno (`eb22a34`);
-  - fusión en `7e4e99b`. Falcon todavía no ha copiado esta versión.
+  - fusión en `7e4e99b`;
+  - anfitrión escrito en Ara: `externa func` con cuerpo, `Clase(yo)` y `avisar` (`e93ee0e`, fusión en `fced30d`).
 
 ### Cambiado
 - Ara al día desde `2ff41f0` (`abc24d9`):
@@ -40,17 +44,23 @@ Aquí van los cambios de la rama `motor-ara` respecto a `main` (`66fea90`, Falco
 - `pruebas/ejecutar.js` sigue con los demás archivos aunque uno no cargue (`86b418e`).
 - `node_modules` sale de git; `js-yaml` se declara como devDependency (`6ca1704`).
 - Logo nuevo (`recursos/logo.png`, iconos) y silueta del halcón en la interfaz (`db8923f`, `224a608`).
+- `sandbox: true` y gestor de permisos en todas las ventanas; Electron 44.9.0 → 44.11.5 (`ee249af`).
 
 ### Eliminado
 - `recursos/icono.svg`, que ya no se usaba (`db8923f`).
+- El compilador de Blueprints en JS (unas 500 líneas de `blueprints.js`): lo sustituye el escrito en Ara (`1f17541`).
 
 ### Corregido
 - Exportar al destino por defecto (`<proyecto>/exportado`) metía los `.ara` exportados en el juego, y no arrancaba (`6117105`).
 - Los juegos exportados no arrancaban porque faltaban `src/ara/api.js` y `api-motor.js` en `ARCHIVOS_APP` (`be4429d`).
 - `cargarEscena` descartaba el núcleo de Ara que había precargado `iniciar` (`2e4289b`).
+- Ara nativo: `nativo.ara` pisaba r10/r11 en las llamadas y `acos` daba mal resultado en x64 (`9ca603f`).
+- Plantilla «plataformas»: el enemigo empezaba dentro del suelo y caía al hueco, y vibraba contra la roca (`eda6a59`).
 
 ### Seguridad
 - C1: XSS persistente con datos del proyecto (valores sin `esc()`) (`5f79601`).
 - A2: path traversal en `falcon://app` (`5f79601`).
 - A1: IPC con acceso a todo el disco; `falcon://fs` (`be4429d`).
-- Siguen abiertos M1, M3, M4 y los hallazgos B: ver `SECURITY.md`.
+- M1: ventanas sin sandbox y permisos concedidos sin preguntar (`ee249af`).
+- M4: Electron con un aviso de gravedad alta (GHSA-jr5w-w6x2-84p9) (`ee249af`).
+- Siguen abiertos M3 (actualizaciones sin firma) y los hallazgos B: ver `SECURITY.md`.

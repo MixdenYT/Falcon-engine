@@ -66,7 +66,7 @@ Electron 44 + three.js 0.186; unas 22.900 líneas de JS en `src/`. `npm test` (h
    - llamadas indirectas
 4. Riesgo: cruzar Ara↔JS en cada escalar. Hay que medirlo en cada bloque y agrupar las llamadas si cuesta.
 
-## Arquitectura propuesta (pendiente de aprobación)
+## Arquitectura (aprobada el 21-11-2026)
 
 ```
 Editor Falcon (DOM, se conserva) ─┐
@@ -90,13 +90,34 @@ Reglas de la frontera:
 |---|---|---|
 | 0 | Auditoría, línea base y esta hoja de ruta | Completado |
 | 1 | Fundación:<br>• trigonometría en Ara<br>• `herramientas/compilar-nucleo-ara.mjs`<br>• `src/motor/ara/nucleo.wasm` versionado | Completado |
-| 2 | Núcleo en Ara, por bloques, cada uno con las pruebas headless en verde:<br>1. física 2D (en revisión)<br>2. contactos 2D (los pares, en revisión con B3)<br>3. temporizadores, partículas, animación de sprites<br>4. física 3D, controles y CQB (B4 en revisión: rayos y A*)<br>5. compilador de Blueprints (en revisión: en Ara, único; el de JS retirado) | En desarrollo |
-| 3 | Ara nativo (Windows x64):<br>• FFI con DLL, convención Win64<br>• `f32` y búferes<br>• ventana Win32<br>• triángulo y cubo OpenGL<br>• llamadas indirectas y retrollamadas | Completado (Ara `7e4e99b`, 232/232 pruebas) |
-| 4 | Runtime nativo: el núcleo de la fase 2 corre en un `.exe` y dibuja con la fase 3; escena 2D primero | En desarrollo: primer corte hecho (`examples/native-2d`, ver abajo) |
+| 2 | Núcleo en Ara, por bloques, cada uno con las pruebas headless en verde:<br>1. física 2D — completado (B2/B3, revisado)<br>2. contactos 2D — completado (pares en Ara)<br>3. temporizadores, partículas, animación de sprites — pendiente<br>4. física 3D, controles y CQB — rayos y A* completados (B4); física de cajas 3D y cámara de `control3d` pendientes<br>5. compilador de Blueprints — completado (en Ara, único; el de JS retirado) | En desarrollo |
+| 3 | Ara nativo (Windows x64):<br>• FFI con DLL, convención Win64<br>• `f32` y búferes<br>• ventana Win32<br>• triángulo y cubo OpenGL<br>• llamadas indirectas y retrollamadas<br>• anfitrión escrito en Ara (`externa func` con cuerpo, `Clase(yo)`, `avisar`) | Completado (Ara `fced30d`) |
+| 4 | Runtime nativo: el núcleo de la fase 2 corre en un `.exe` y dibuja con la fase 3; escena 2D primero | En desarrollo: el nivel «plataformas» con sus scripts y Blueprints corre en un `.exe`, igual bit a bit que Falcon (`fc2b5c7`, `064b90d`, `eda6a59`). Falta: resto de la API, Inspector y Señales, sprites, texto, audio, cargar escenas |
 | 5 | Lumbre nativo: capacidades documentadas por plataforma | Pendiente |
 | 6 | Compatibilidad: matriz real Windows x64, Linux x64, ARM64 y wasm | Pendiente |
 | 7 | Seguridad (fuzzing del parser e importadores), benchmarks, ejemplos (`examples/`) | Pendiente |
 | 8 | Estabilización y versión | Pendiente |
+
+## Informe de continuidad (cierre del 21-11-2026)
+
+**Estado verificado al cerrar:** Falcon `npm test` 91/91 con salida 0; Ara batería completa 233/233 en 29 grupos (`fced30d`). Todo en commits locales en `motor-ara` de los dos repos; **nada subido a GitHub**.
+
+**Siguientes pasos, por orden:**
+1. Núcleo 2D restante en Ara: temporizadores, partículas y animación de sprites (`mundo.js`), con el mismo patrón y pruebas JS↔Ara.
+2. Fase 4: completar la API nativa del motor (`crear`, `grupo`, `llamar`, Inspector, Señales), sprites y texto con texturas OpenGL, y cargar `.fscn` sin recompilar (lector JSON en Ara, reutilizable).
+3. Física de cajas 3D de `mundo3d` y cámara de `control3d` en Ara (B4 pendiente).
+4. Ara: cruzar listas/búferes entre wasm y JS sin un texto por campo (lo pide el compilador de Blueprints, hoy 1,6× más lento que el JS que sustituyó).
+5. Fase 6: probar Linux x64 / ARM64 de verdad (hoy solo Windows ARM64 y x64 emulado; ver `PLATFORM_MATRIX.md`).
+6. Fase 7: `examples/` restantes, fuzzing del parser e importadores, repetir benchmarks con el equipo en reposo.
+
+**Decisiones que esperan al usuario:**
+- M3: firmar las actualizaciones (necesita un certificado de firma de código).
+- Subir las ramas `motor-ara` a GitHub y abrir PR cuando se quiera publicar.
+- Volver a exportar los juegos hechos antes de `ee249af` (llevan Electron 44.9.0).
+
+**Avisos:**
+- Los cambios del usuario sin commit en `src/motor/lumbre.js` (con `console.log` de depuración) y `src/editor/visores/visor3d.js` (en la línea 358, `n.id` sin `esc()`) no se han tocado.
+- El compilador de Ara que lleva Falcon (`src/ara/`) es el de Ara `2ff41f0`; el `.exe` nativo usa el de `fced30d` directamente. Al actualizar el Ara de Falcon (`copiar-a-falcon.sh`), regenerar `nucleo.wasm` y `blueprints.wasm`; las pruebas «al día» lo detectan.
 
 ## Registro de cambios de esta rama
 

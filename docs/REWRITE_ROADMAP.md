@@ -24,7 +24,7 @@ Electron 44 + three.js 0.186; unas 22.900 líneas de JS en `src/`. Hay 50 prueba
 | Sistema | Dónde | Líneas | Estado real | Ara hoy |
 |---|---|---|---|---|
 | Escena, nodos y eventos | `motor/mundo.js`, `tipos.js` | 1.700 | Funciona | No |
-| Física 2D | `mundo.js` (`fisica2d`, `contactos2d`) | 160 | Funciona | `fisica2d`: **en revisión**, en Ara (`motor/ara/fisica2d.ara`), JS de respaldo. `contactos2d`: no |
+| Física 2D | `mundo.js` (`fisica2d`, `contactos2d`) | 160 | Funciona | **En revisión** (B3): `fisica2d`, cajas, matrices de mundo y pares de `contactos2d` en Ara (`motor/ara/fisica2d.ara`), idénticos bit a bit; JS de respaldo. Ara es 1,8–4× más rápido (`docs/BENCHMARKS.md`) |
 | Física 3D (cajas), controles, CQB | `mundo3d.js`, `control3d.js`, `tactico3d.js` | 1.075 | Funciona, mezclada con three.js | La IA de CQB sí (Blueprints→Ara) |
 | Render 2D | `render2d.js` (Canvas2D) | 400 | Funciona | No |
 | Render 3D y Lumbre | `lumbre*.js`, `escena3d.js`, `materiales.js` | 2.500 | Funciona: WebGL2, sondas, GTAO, bloom | No |
@@ -89,7 +89,7 @@ Reglas de la frontera:
 |---|---|---|
 | 0 | Auditoría, línea base y esta hoja de ruta | Completado |
 | 1 | Fundación:<br>• trigonometría en Ara<br>• `herramientas/compilar-nucleo-ara.mjs`<br>• `src/motor/ara/nucleo.wasm` versionado | En desarrollo |
-| 2 | Núcleo en Ara, por bloques, cada uno con las pruebas headless en verde:<br>1. física 2D (en revisión)<br>2. contactos 2D<br>3. temporizadores, partículas, animación de sprites<br>4. física 3D, controles y CQB<br>5. compilador de Blueprints | En desarrollo |
+| 2 | Núcleo en Ara, por bloques, cada uno con las pruebas headless en verde:<br>1. física 2D (en revisión)<br>2. contactos 2D (los pares, en revisión con B3)<br>3. temporizadores, partículas, animación de sprites<br>4. física 3D, controles y CQB<br>5. compilador de Blueprints | En desarrollo |
 | 3 | Ara nativo:<br>• FFI con DLL, convención Win64<br>• `f32` y búferes<br>• ventana Win32<br>• triángulo OpenGL<br>• llamadas indirectas | Pendiente |
 | 4 | Runtime nativo: el núcleo de la fase 2 corre en un `.exe` y dibuja con la fase 3; escena 2D primero | Pendiente |
 | 5 | Lumbre nativo: capacidades documentadas por plataforma | Pendiente |
@@ -114,3 +114,17 @@ Reglas de la frontera:
     - Reutilizar las listas de `choques` en Ara bajó `mover` de 850 a 110 ns.
     - El ~75 % del paso es JS común a las dos rutas (`caja`, matrices). Los 11 cruces por personaje son ~12 %; agruparlos no compensa todavía.
     - Pendiente: `contactos2d` en Ara; no reenviar las celdas de los mosaicos en cada fotograma.
+  - B3 (transformaciones, cajas y contactos 2D), en revisión:
+    - Ara guarda por nodo (índice = posición en `Mundo.todos()`) su padre, su matriz local y su caja local. Con eso calcula `matrizPadre`, `caja`, `mover` (con `aplicarMovimiento2d`) y los pares de `contactos2d`.
+    - `Mundo.sincronizarAra` solo manda los nodos que cambiaron. Compara con lo último que mandó; si el núcleo pasa a otro mundo, lo manda todo. Las celdas se reenvían solo si cambian (`poner`, `quitar` o un objeto `celdas` nuevo).
+    - Las sumas son las de la `DOMMatrix` de `pruebas/dom.js`, en el mismo orden. El seno y el coseno de la rotación los calcula JS, porque el compilador de Falcon no tiene trigonometría (`shortcut:` en `mundo.js`).
+    - `pruebas/fisica2d-ara.test.js`, 10 pruebas. Cubren padres anidados con escala y rotación, `Fondo` y áreas, y scripts que entre pasos cambian padres, posiciones, escalas, visibilidad y celdas, crean y eliminan nodos. También dos mundos que se turnan el núcleo. Los pares de `contactos2d` también salen iguales.
+    - 200 personajes (Node, ms/paso, JS → Ara):
+      - con plataformas, 0,27 → 0,12;
+      - con mosaicos, 0,74 → 0,19;
+      - con `contactos2d`, 0,63 → 0,34 y 1,15 → 0,45.
+    - Riesgo: en Electron la ruta JS usa la `DOMMatrix` nativa de Chromium. En nodos girados (y quizá en el signo de algún cero) puede redondear distinto que Ara. Las pruebas comparan con la de `pruebas/dom.js`.
+    - Pendiente:
+      - leer los resultados de `mover` y los pares con menos cruces;
+      - `contactos2d` es O(n²);
+      - pasar la trigonometría a Ara cuando Falcon actualice su compilador.

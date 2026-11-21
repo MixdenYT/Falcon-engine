@@ -1,5 +1,6 @@
 // La física 2D del núcleo de Ara (src/motor/ara/fisica2d.ara) da exactamente lo mismo que la de JS (mundo.js),
-// paso a paso; y src/motor/ara/nucleo.wasm corresponde a los .ara.
+// paso a paso: posiciones, velocidades, contactos con sólidos y pares de contactos2d; y src/motor/ara/nucleo.wasm
+// corresponde a los .ara.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
@@ -26,26 +27,34 @@ const estado = (m) => m.todos().filter((n) => n.tipo === 'Personaje2D').map((n) 
   suelo: n.enSuelo, pared: n.enPared, techo: n.enTecho, nodoSuelo: n._nodoSuelo?.nombre ?? null,
   contactos: [...n._contactosSolidos].map((s) => s.nombre),
 }));
+/** Los pares que se tocan (contactos2d), en su orden. */
+const pares = (m) => [...m.pares.values()].map(([a, b]) => a.nombre + '|' + b.nombre).join();
+
+/** Un paso de física y contactos en los dos mundos; exige el mismo resultado y devuelve el de Ara. */
+function pasoIgual(js, ara, i, dt, mandar) {
+  for (const m of [js, ara]) {
+    const nodos = m.todos();
+    mandar(i, (nombre) => nodos.find((n) => n.nombre === nombre), m);
+    const vivos = m.todos(); // `mandar` puede crear, quitar o mover nodos
+    m.fisica2d(dt, vivos);
+    m.contactos2d(vivos);
+  }
+  const a = estado(js), b = estado(ara);
+  assert.equal(a.length, b.length);
+  for (let k = 0; k < a.length; k++) for (const c in a[k]) {
+    const iguales = Array.isArray(a[k][c]) ? a[k][c].join() === b[k][c].join() : Object.is(a[k][c], b[k][c]);
+    assert.ok(iguales, `paso ${i}, ${a[k].n}.${c}: JS ${a[k][c]} y Ara ${b[k][c]}`);
+  }
+  assert.equal(pares(ara), pares(js), `paso ${i}: pares de contactos2d`);
+  return b;
+}
 
 /** Corre la escena con JS y con Ara, `pasos` veces, y exige el mismo estado en cada paso. Devuelve los estados. */
 async function comparar(escena, mandar, pasos = 240) {
   const js = mundo(escena(), null), ara = mundo(escena(), await nucleoAra());
   const vistos = [];
-  for (let i = 0; i < pasos; i++) {
-    const dt = i % 7 === 3 ? 1 / 30 : 1 / 60;
-    for (const m of [js, ara]) {
-      const nodos = m.todos();
-      mandar(i, (nombre) => nodos.find((n) => n.nombre === nombre), m);
-      m.fisica2d(dt, nodos);
-    }
-    const a = estado(js), b = estado(ara);
-    for (let k = 0; k < a.length; k++) for (const c in a[k]) {
-      const iguales = Array.isArray(a[k][c]) ? a[k][c].join() === b[k][c].join() : Object.is(a[k][c], b[k][c]);
-      assert.ok(iguales, `paso ${i}, ${a[k].n}.${c}: JS ${a[k][c]} y Ara ${b[k][c]}`);
-    }
-    vistos.push(b);
-  }
-  return vistos.flat();
+  for (let i = 0; i < pasos; i++) vistos.push(...pasoIgual(js, ara, i, i % 7 === 3 ? 1 / 30 : 1 / 60, mandar), { pares: pares(ara) });
+  return vistos;
 }
 
 test('física 2D en Ara = JS: plataformas (andar, saltar, paredes, techo)', async () => {
@@ -127,6 +136,73 @@ test('física 2D en Ara = JS: mosaicos (suelo, pared y claves raras)', async () 
   });
   assert.ok(v.some((e) => e.nodoSuelo === 'Mapa'), 'pisa el mosaico');
   assert.ok(v.some((e) => e.pared && e.contactos.includes('Mapa')), 'choca con la pared de mosaicos');
+});
+
+test('física 2D en Ara = JS: padres anidados con escala y rotación, áreas y Fondo', async () => {
+  const escena = () => nodo('Nodo2D', 'Escena', {}, [
+    nodo('Nodo2D', 'Mundo', { posicion: [20, 10], escala: [1.5, 1.25], rotacion: 12 }, [
+      nodo('Nodo2D', 'Sub', { posicion: [-30, 40], escala: [0.5, 2], rotacion: -27.5 }, [
+        pj('Jugador', { posicion: [100, 120] }),
+        bloque('SueloSub', 160, 160, 600, 30),
+      ]),
+      bloque('SueloMundo', 300, 380, 900, 40),
+      nodo('Area2D', 'Zona', { posicion: [200, 300], vigilar: 'personajes' }, [nodo('Colision', 'ColZona', { posicion: [5, -3], ancho: 120, alto: 80 })]),
+    ]),
+    nodo('Fondo', 'Fondo', { posicion: [500, 500], escala: [3, 3] }, [pj('EnFondo'), bloque('SueloFondo', 0, 60, 400, 20)]),
+    nodo('Area2D', 'Global', { posicion: [250, 300] }),
+  ]);
+  const v = await comparar(escena, (i, $, m) => {
+    const j = $('Jugador');
+    // Un área que cuelga del jugador: no se toca con su antepasado, sí con los demás.
+    if (i === 0) j.hijos.push(new NodoVivo(m, nodo('Area2D', 'Detector', {}, [nodo('Colision', 'ColDet', { ancho: 60, alto: 60 })]), j));
+    j.mueveX = i % 100 < 50 ? 180 : -180;
+    if (i % 45 === 10 && j.enSuelo) j.vy = -500;
+    $('EnFondo').mueveX = 100;
+  });
+  assert.ok(v.some((e) => e.nodoSuelo === 'SueloSub'), 'pisa el suelo del padre girado');
+  assert.ok(v.some((e) => /Zona|Global/.test(e.pares)), 'hay pares de áreas');
+  assert.ok(!v.some((e) => /Jugador\|Detector|Detector\|Jugador/.test(e.pares)), 'un área no toca a su antepasado');
+});
+
+test('física 2D en Ara = JS: los scripts cambian padres, posiciones, escalas y celdas entre pasos', async () => {
+  const celdas = {};
+  for (let c = 0; c < 30; c++) celdas[`${c},12`] = 1;
+  const escena = () => nodo('Nodo2D', 'Escena', {}, [
+    nodo('Nodo2D', 'Grupo', {}, [pj('A', { posicion: [100, 200] }), bloque('Ascensor', 120, 300, 200, 20)]),
+    pj('B', { posicion: [400, 100] }),
+    nodo('Mosaicos', 'Mapa', { tam_celda: 32, solido: true, celdas }),
+    nodo('Sprite', 'Moneda', { posicion: [300, 340], ancho: 20, alto: 20 }),
+  ]);
+  const v = await comparar(escena, (i, $, m) => {
+    const a = $('A'), b = $('B'), g = $('Grupo'), ascensor = $('Ascensor');
+    a.mueveX = i % 60 < 30 ? 150 : -150;
+    b.mueveX = i % 80 < 40 ? -120 : 120;
+    g.props.posicion[0] = Math.sin(i / 15) * 40; // el padre se mueve
+    if (i === 20) g.props.escala = [1.25, 0.75];
+    if (i === 30) $('Moneda').scripts = [{ tieneEvento: () => false }]; // ahora participa en contactos2d
+    if (i === 40) a.props.posicion = [100, 200]; // vuelve a su posición inicial
+    if (i === 50) ascensor.visible = false;
+    if (i === 60) { ascensor.visible = true; ascensor.props.solo_arriba = true; }
+    if (i === 70) { g.hijos.splice(g.hijos.indexOf(a), 1); a.padre = m.raiz; m.raiz.hijos.push(a); } // cambia de padre
+    if (i === 80) m.raiz.hijos.unshift(new NodoVivo(m, pj('Nuevo', { posicion: [200, 50] }), m.raiz)); // desplaza los índices
+    if (i === 90) $('Mapa').metodos().poner(8, 11);
+    if (i === 95) $('Mapa').metodos().quitar(3, 12);
+    if (i === 100) $('Mapa').props.celdas = { ...$('Mapa').props.celdas, '20,11': 1 };
+    if (i === 110) { const n = $('Nuevo'); n.eliminado = true; m.raiz.hijos.splice(m.raiz.hijos.indexOf(n), 1); }
+    if (i === 120) $('ColB').props.ancho = 40;
+    if (i === 130) a.props.posicion = [NaN, 150]; // NaN sigue siendo NaN (y la caja se queda en x = 0)
+    if (i === 131) a.props.posicion = [150, 150];
+  }, 200);
+  assert.ok(v.some((e) => e.n === 'Nuevo'), 'el nodo creado se mueve');
+  assert.ok(v.some((e) => /Moneda/.test(e.pares)), 'la moneda con script entra en contactos2d');
+});
+
+test('física 2D en Ara = JS: dos mundos se turnan el núcleo', async () => {
+  const escenaA = () => nodo('Nodo2D', 'Escena', {}, [pj('Jugador', { posicion: [100, 330] }), bloque('Suelo', 300, 400, 800, 40)]);
+  const escenaB = () => nodo('Nodo2D', 'Escena', {}, [bloque('Suelo', 200, 300, 800, 40), pj('Jugador', { posicion: [150, 100] })]);
+  const nucleo = await nucleoAra();
+  const mundos = [[mundo(escenaA(), null), mundo(escenaA(), nucleo)], [mundo(escenaB(), null), mundo(escenaB(), nucleo)]];
+  for (let i = 0; i < 120; i++) for (const [js, ara] of mundos) pasoIgual(js, ara, i, 1 / 60, (k, $) => { $('Jugador').mueveX = k % 50 < 25 ? 200 : -200; });
 });
 
 test('nucleo.wasm está al día con src/motor/ara/*.ara', async () => {

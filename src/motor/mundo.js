@@ -159,8 +159,9 @@ export class NodoVivo {
       animar: (nombre) => { m.animar(yo, nombre); return null; },
       parar_animacion: () => { yo.props.animando = false; return null; },
       // Mosaicos
-      poner: (c, f, t = 0) => { yo.props.celdas[`${Math.floor(c)},${Math.floor(f)}`] = t; return null; },
-      quitar: (c, f) => { delete yo.props.celdas[`${Math.floor(c)},${Math.floor(f)}`]; return null; },
+      // `_versionCeldas`: el núcleo de Ara solo vuelve a leer las celdas cuando cambian.
+      poner: (c, f, t = 0) => { yo.props.celdas[`${Math.floor(c)},${Math.floor(f)}`] = t; yo._versionCeldas = (yo._versionCeldas || 0) + 1; return null; },
+      quitar: (c, f) => { delete yo.props.celdas[`${Math.floor(c)},${Math.floor(f)}`]; yo._versionCeldas = (yo._versionCeldas || 0) + 1; return null; },
       hay_mosaico: (c, f) => `${Math.floor(c)},${Math.floor(f)}` in yo.props.celdas,
       // Área
       tocando: () => m.tocandoA(yo),
@@ -813,18 +814,18 @@ export class Mundo {
   }
 
   fisica2d(dt, nodos) {
-    const solidos = this.solidos2d(nodos);
-    this.mosaicosSolidos = nodos.filter(n => n.tipo === 'Mosaicos' && n.props.solido);
     const g = this.interp.globales.vars.get('gravedad');
     const escalaG = (this.proyecto.datos.gravedad || 1200) ? g / (this.proyecto.datos.gravedad || 1200) : 1;
     // Mientras dure la migración, la versión en JS queda de respaldo (sin núcleo de Ara cargado).
     if (this.nucleo) {
-      this.fisica2dAra(this.nucleo.fisica2d, dt, nodos, solidos, escalaG);
+      this.fisica2dAra(this.nucleo.fisica2d, dt, nodos, escalaG);
       // No debería pasar: si el núcleo falla, se avisa y se sigue con JS.
       const e = this.nucleo.error();
       if (e) { console.error('Núcleo de Ara (física 2D):', e.mensaje); this.nucleo = null; }
       return;
     }
+    const solidos = this.solidos2d(nodos);
+    this.mosaicosSolidos = nodos.filter(n => n.tipo === 'Mosaicos' && n.props.solido);
     const choques = (x0, y0, x1, y1) => {
       const r = [];
       for (const s of solidos) if (x1 > s.x0 && x0 < s.x1 && y1 > s.y0 && y0 < s.y1) r.push(s);
@@ -899,65 +900,134 @@ export class Mundo {
 
   /**
    * `fisica2d` con el núcleo de Ara (src/motor/ara/fisica2d.ara): la misma cuenta, con el mismo resultado bit a bit.
-   * Los nodos viajan como índices de `lista`, que vale solo para este fotograma.
+   * Ara calcula las matrices de mundo y las cajas; JS solo le pasa lo que cambió (`sincronizarAra`).
    */
-  fisica2dAra(F, dt, nodos, solidos, escalaG) {
-    const lista = [], indices = new Map();
-    const indice = (n) => {
-      let i = indices.get(n);
-      if (i === undefined) { i = lista.length; lista.push(n); indices.set(n, i); }
-      return i;
-    };
-    F.vaciar();
-    for (const s of solidos) F.solido(s.x0, s.y0, s.x1, s.y1, s.unaCara, indice(s.n));
-    for (const n of this.mosaicosSolidos) {
-      const m = this.matrizPadre(n).multiply(matrizLocal(n));
-      F.mosaico(m.e, m.f, n.props.tam_celda, indice(n));
-      for (const k in n.props.celdas) {
-        // Solo las claves que `${c},${f}` puede formar con c y f enteros.
-        // shortcut: |c|, |f| < 2^21 (clave de fisica2d.ara); más lejos se ignoran.
-        const coma = k.indexOf(','), c = +k.slice(0, coma), f = +k.slice(coma + 1);
-        if (`${c},${f}` === k && Number.isInteger(c) && Number.isInteger(f) && Math.abs(c) < 2097152 && Math.abs(f) < 2097152) F.celda(c, f);
-      }
+  fisica2dAra(F, dt, nodos, escalaG) {
+    const plataformas = this.sincronizarAra(F, nodos);
+    F.preparar();
+    // Arrastre de las plataformas móviles: `_delta` y `_cajaPrev` siguen en el nodo, igual que en JS.
+    for (let k = 0; k < plataformas.length; k++) {
+      const n = plataformas[k], cx = F.solidoCx(k), cy = F.solidoCy(k), prev = n._cajaPrev;
+      n._delta = prev ? [cx - prev[0], cy - prev[1]] : [0, 0];
+      n._cajaPrev = [cx, cy];
     }
     const amort = Math.pow(0.02, dt);
     for (const n of nodos) {
       if (n.tipo !== 'Personaje2D') continue;
-      const [cx0, cy0, w, h] = this.caja(n);
-      // Plataforma móvil: arrastra al personaje que está encima.
       const delta = n.enSuelo && n._nodoSuelo && n._nodoSuelo._delta;
       const gravedad = !!n.props.usa_gravedad;
-      F.mover(cx0, cy0, w, h, n.mueveX, n.mueveY, n.empX, n.empY, n.vy, gravedad, (n.props.gravedad ?? 1200) * escalaG, dt, amort, delta ? delta[0] : 0, delta ? delta[1] : 0);
-      n.empX = F.empX(); n.empY = F.empY(); n.vy = F.vy();
-      n.enSuelo = !!F.suelo(); n.enPared = !!F.pared(); n.enTecho = !!F.techo();
+      F.mover(n._ranura, n.mueveX, n.mueveY, n.empX, n.empY, n.vy, gravedad, (n.props.gravedad ?? 1200) * escalaG, dt, amort, delta ? delta[0] : 0, delta ? delta[1] : 0);
+      // Ara solo cambia vy con gravedad y empY sin ella.
+      n.empX = F.empX();
+      if (gravedad) n.vy = F.vy(); else n.empY = F.empY();
+      const b = F.banderas();
+      n.enSuelo = (b & 1) !== 0; n.enPared = (b & 2) !== 0; n.enTecho = (b & 4) !== 0;
       const suelo = F.nodoSuelo();
-      n._nodoSuelo = suelo < 0 ? null : lista[suelo];
+      n._nodoSuelo = suelo < 0 ? null : nodos[suelo];
       const contactos = new Set();
-      for (let i = 0, k = F.contactos(); i < k; i++) contactos.add(lista[F.contacto(i)]);
-      this.aplicarMovimiento2d(n, F.cx() - cx0, F.cy() - cy0, contactos);
+      for (let i = 0, k = F.contactos(); i < k; i++) contactos.add(nodos[F.contacto(i)]);
+      const p = n.props.posicion;
+      p[0] += F.ddx(); p[1] += F.ddy();
+      n.mueveX = 0; n.mueveY = 0;
+      n._contactosSolidos = contactos;
+      // Ara ya tiene la posición nueva: se anota para no volver a mandarla.
+      if (typeof p[0] === 'number' && typeof p[1] === 'number') { n._ara[2] = p[0]; n._ara[3] = p[1]; } else n._ara = null;
     }
+    this._nodosAra = nodos; // contactos2d puede usar las cajas de Ara en este fotograma
+  }
+
+  /**
+   * Pasa al núcleo de Ara, por su índice en `nodos`, lo que `caja` y `matrizPadre` necesitan de cada nodo (padre,
+   * `matrizLocal`, caja local) y su papel en la física y en contactos2d; solo si cambió desde el fotograma anterior.
+   * Devuelve las plataformas sólidas, en el orden de `solidos2d`.
+   */
+  sincronizarAra(F, nodos) {
+    // El núcleo es uno para todos los mundos: si otro lo usó, se manda todo de nuevo.
+    if (F.dueno !== this) { F.dueno = this; this._ranurasAra = []; }
+    const ranuras = this._ranurasAra, v = [];
+    const plataformas = [], mosaicos = [];
+    let celdasCambian = false;
+    F.empezar(nodos.length);
+    for (let i = 0; i < nodos.length; i++) {
+      const n = nodos[i], p = n.props, t = n.tipo;
+      n._ranura = i;
+      const pos = p.posicion || CERO2, e = p.escala, esc = Array.isArray(e) && e.length === 2;
+      let solido = 0, papel = 0, cajaTipo = 0, ox = 0, oy = 0, w = 0, h = 0;
+      if (t === 'Plataforma' && p.solido && n.visible !== false) { solido = p.solo_arriba ? 2 : 1; plataformas.push(n); }
+      else if (t === 'Mosaicos' && p.solido) { solido = 3; w = +p.tam_celda; mosaicos.push(n); }
+      // Los participantes de contactos2d.
+      if ((n.visible !== false || t === 'Area2D') && (t === 'Area2D' || t === 'Personaje2D' || (n.scripts.length && (t === 'Sprite' || t === 'Plataforma'))))
+        papel = t === 'Personaje2D' ? 1 : t === 'Area2D' ? (p.vigilar === 'personajes' ? 3 : 2) : 4;
+      if (solido === 1 || solido === 2 || papel || t === 'Personaje2D') {
+        // Lo mismo que lee `caja`.
+        const col = n.hijos.find(h => h.tipo === 'Colision' && !h.eliminado);
+        if (col) {
+          const o = col.props.posicion || CERO2;
+          cajaTipo = 1; ox = o[0] === undefined ? 0 : +o[0]; oy = o[1] === undefined ? 0 : +o[1]; // como new DOMPoint(x, y)
+          w = +col.props.ancho; h = +col.props.alto;
+        } else {
+          let tam = tamanoNodo(n);
+          if (!tam) { const s = n.hijos.find(h => h.tipo === 'Sprite'); tam = s ? [s.props.ancho, s.props.alto] : [32, 32]; }
+          cajaTipo = 2; w = +tam[0]; h = +tam[1];
+        }
+      }
+      v[0] = n.padre ? n.padre._ranura : -1; v[1] = t === 'Fondo' || t === 'Interfaz';
+      v[2] = +pos[0]; v[3] = +pos[1];
+      v[4] = p.rotacion && typeof p.rotacion === 'number' ? p.rotacion : 0;
+      v[5] = esc ? +(e[0] ?? 1) : 1; v[6] = esc ? +(e[1] ?? 1) : 1; v[7] = esc;
+      v[8] = cajaTipo; v[9] = ox; v[10] = oy; v[11] = w; v[12] = h; v[13] = solido; v[14] = papel;
+      v[15] = solido === 3 ? p.celdas : null; v[16] = solido === 3 ? n._versionCeldas : 0;
+      const c = n._ara;
+      if (ranuras[i] === n && mismos(v, c)) continue;
+      ranuras[i] = n;
+      n._ara = v.slice();
+      if (solido === 3 || (c && c[13] === 3)) celdasCambian = true;
+      // shortcut: seno y coseno con Math de JS (el Ara de Falcon aún no tiene trigonometría), como pruebas/dom.js;
+      // el DOMMatrix de Chromium puede redondear distinto en nodos girados: actualizar al pasar al compilador con `sen`/`cos`.
+      const r = v[4] * Math.PI / 180;
+      F.nodo(i, v[0], v[1], v[2], v[3], v[4] !== 0, Math.cos(r), Math.sin(r), esc, v[5], v[6], cajaTipo, ox, oy, w, h, solido, papel);
+    }
+    if (celdasCambian) {
+      F.vaciarCeldas();
+      for (const n of mosaicos) for (const k in n.props.celdas) {
+        // Solo las claves que `${c},${f}` puede formar con c y f enteros.
+        // shortcut: |c|, |f| < 2^21 (clave de fisica2d.ara); más lejos se ignoran.
+        const coma = k.indexOf(','), c = +k.slice(0, coma), f = +k.slice(coma + 1);
+        if (`${c},${f}` === k && Number.isInteger(c) && Number.isInteger(f) && Math.abs(c) < 2097152 && Math.abs(f) < 2097152) F.celda(n._ranura, c, f);
+      }
+    }
+    return plataformas;
   }
 
   contactos2d(nodos) {
-    const participantes = [];
-    for (const n of nodos) {
-      if (n.visible === false && n.tipo !== 'Area2D') continue;
-      const relevante = n.tipo === 'Area2D' || n.tipo === 'Personaje2D' || (n.scripts.length && (n.tipo === 'Sprite' || n.tipo === 'Plataforma'));
-      if (!relevante) continue;
-      const [cx, cy, w, h] = this.caja(n);
-      participantes.push({ n, x0: cx - w / 2, y0: cy - h / 2, x1: cx + w / 2, y1: cy + h / 2 });
-    }
     const actuales = new Map();
     const clave = (a, b) => a.id < b.id ? a.id + '|' + b.id : b.id + '|' + a.id;
-    for (let i = 0; i < participantes.length; i++) {
-      const a = participantes[i];
-      for (let j = i + 1; j < participantes.length; j++) {
-        const b = participantes[j];
-        if (a.n.tipo !== 'Personaje2D' && b.n.tipo !== 'Personaje2D' && a.n.tipo !== 'Area2D' && b.n.tipo !== 'Area2D') continue;
-        if (esAncestro(a.n, b.n) || esAncestro(b.n, a.n)) continue;
-        if (a.n.tipo === 'Area2D' && a.n.props.vigilar === 'personajes' && b.n.tipo !== 'Personaje2D') continue;
-        if (b.n.tipo === 'Area2D' && b.n.props.vigilar === 'personajes' && a.n.tipo !== 'Personaje2D') continue;
-        if (a.x1 > b.x0 && a.x0 < b.x1 && a.y1 > b.y0 && a.y0 < b.y1) actuales.set(clave(a.n, b.n), [a.n, b.n]);
+    if (this.nucleo && this._nodosAra === nodos) {
+      // Las cajas ya están en Ara: las dejó fisica2dAra en este fotograma.
+      const F = this.nucleo.fisica2d;
+      for (let k = 0, total = F.pares(); k < total; k++) {
+        const a = nodos[F.parA(k)], b = nodos[F.parB(k)];
+        actuales.set(clave(a, b), [a, b]);
+      }
+    } else {
+      const participantes = [];
+      for (const n of nodos) {
+        if (n.visible === false && n.tipo !== 'Area2D') continue;
+        const relevante = n.tipo === 'Area2D' || n.tipo === 'Personaje2D' || (n.scripts.length && (n.tipo === 'Sprite' || n.tipo === 'Plataforma'));
+        if (!relevante) continue;
+        const [cx, cy, w, h] = this.caja(n);
+        participantes.push({ n, x0: cx - w / 2, y0: cy - h / 2, x1: cx + w / 2, y1: cy + h / 2 });
+      }
+      for (let i = 0; i < participantes.length; i++) {
+        const a = participantes[i];
+        for (let j = i + 1; j < participantes.length; j++) {
+          const b = participantes[j];
+          if (a.n.tipo !== 'Personaje2D' && b.n.tipo !== 'Personaje2D' && a.n.tipo !== 'Area2D' && b.n.tipo !== 'Area2D') continue;
+          if (esAncestro(a.n, b.n) || esAncestro(b.n, a.n)) continue;
+          if (a.n.tipo === 'Area2D' && a.n.props.vigilar === 'personajes' && b.n.tipo !== 'Personaje2D') continue;
+          if (b.n.tipo === 'Area2D' && b.n.props.vigilar === 'personajes' && a.n.tipo !== 'Personaje2D') continue;
+          if (a.x1 > b.x0 && a.x0 < b.x1 && a.y1 > b.y0 && a.y0 < b.y1) actuales.set(clave(a.n, b.n), [a.n, b.n]);
+        }
       }
     }
     // Contactos de personajes con sólidos que tienen scripts.
@@ -1379,6 +1449,9 @@ export class Mundo {
     if (this.audio) this.audio.cerrar();
   }
 }
+
+const CERO2 = [0, 0];
+const mismos = (a, b) => { if (!b) return false; for (let k = 0; k < a.length; k++) if (!Object.is(a[k], b[k])) return false; return true; };
 
 function esAncestro(a, b) { for (let p = b.padre; p; p = p.padre) if (p === a) return true; return false; }
 

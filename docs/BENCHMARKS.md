@@ -56,7 +56,46 @@
 
 ## Núcleo en Ara: física 2D
 
-Pendiente: cifras del agente 03 (`src/motor/ara/fisica2d.ara` contra `fisica2d` de `mundo.js`).
+`src/motor/ara/fisica2d.ara` contra `fisica2d` y `contactos2d` de `mundo.js`. Los dos dan el mismo estado bit a bit (`pruebas/fisica2d-ara.test.js`).
+
+### Metodología
+
+- `node herramientas/medir-fisica2d.mjs [pasos]`, con el valor por defecto: 300 pasos de calentamiento y 2.000 medidos, `dt` = 1/60.
+- Mismo equipo y Node de arriba (v26.13.1, `arm64`, V8 14.6.202.34). Árbol en `6ca1704` más los cambios de este bloque; `DOMMatrix` es la de `pruebas/dom.js` (Node no trae una).
+- Dos escenas, cada una con 200 `Personaje2D` (con hijo `Colision`) que andan, saltan y chocan entre sí:
+  - 21 plataformas (un suelo y 20 repisas; la mitad `solo_arriba`);
+  - un mosaico sólido de 450 celdas.
+- «fisica2d» es solo `Mundo.fisica2d`; «+ contactos2d», el paso de física completo de `Mundo.paso`. Con 200 personajes amontonados, `contactos2d` encuentra unos 300 pares por paso.
+- Se ejecutó 3 veces seguidas; la tabla da las tres medidas.
+
+### Resultados (ms por paso; ejecuciones 1 / 2 / 3)
+
+**B3 (este bloque):** Ara calcula las matrices de mundo, las cajas y los pares de `contactos2d`. JS solo le manda los nodos que cambiaron.
+
+| Escena | JS | Ara | Ara es… |
+|---|---|---|---|
+| 21 plataformas, fisica2d | 0,267 / 0,261 / 0,268 | 0,119 / 0,120 / 0,124 | 2,2× más rápido |
+| 21 plataformas, + contactos2d | 0,638 / 0,613 / 0,636 | 0,339 / 0,338 / 0,335 | 1,8–1,9× |
+| 450 celdas, fisica2d | 0,736 / 0,740 / 0,735 | 0,185 / 0,189 / 0,188 | 3,9–4,0× |
+| 450 celdas, + contactos2d | 1,149 / 1,149 / 1,172 | 0,449 / 0,454 / 0,452 | 2,5–2,6× |
+
+**B2 (antes, `6ca1704` sin cambios, misma herramienta):** Ara solo hacía `mover`; las cajas, las matrices (`DOMMatrix`) y `contactos2d` seguían en JS, y las celdas se mandaban en cada paso.
+
+| Escena | JS | Ara | Ara es… |
+|---|---|---|---|
+| 21 plataformas, fisica2d | 0,269 / 0,266 / 0,265 | 0,304 / 0,309 / 0,329 | 0,8–0,9× (más lento) |
+| 21 plataformas, + contactos2d | 0,626 / 0,632 / 0,640 | 0,684 / 0,666 / 0,653 | 0,9–1,0× |
+| 450 celdas, fisica2d | 0,744 / 0,744 / 0,760 | 0,454 / 0,455 / 0,480 | 1,6× |
+| 450 celdas, + contactos2d | 1,162 / 1,181 / 1,844 | 0,889 / 0,880 / 1,096 | 1,3–1,7× (la última ejecución, con ruido) |
+
+### Lectura
+
+- La ruta de Ara bajó de 0,30 a 0,12 ms con plataformas y de 0,46 a 0,19 ms con mosaicos. Se quitó el JS común a las dos rutas (`caja`, `matrizPadre` con `DOMMatrix`) y el reenvío de las celdas.
+- Lo que queda en la ruta de Ara, por paso y con 200 personajes:
+  - unos 25 µs en `sincronizarAra`, que compara cada nodo con lo que se mandó;
+  - unas 9 llamadas Ara↔JS por personaje para leer el resultado de `mover`;
+  - en `contactos2d`, unos 100 µs del recorrido O(n²) de pares dentro de Ara, y otros 100 µs en JS para leer los ~300 pares y construir el `Map` de claves (esa parte también la hace la ruta JS).
+- Estas cifras son de Node con la `DOMMatrix` de `pruebas/dom.js`. En Electron, la ruta JS usa la `DOMMatrix` nativa de Chromium y no se ha medido aquí.
 
 ## Ara contra Rust (`ara-etapa5/ara/bench/contra-rust.sh`)
 

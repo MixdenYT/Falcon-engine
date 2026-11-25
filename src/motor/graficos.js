@@ -58,7 +58,6 @@ export function detectarCalidad(renderer) {
   const gpu = nombreGPU(renderer);
   const g = gpu.toLowerCase();
   let nivel = 'media';
-  const num = (re) => { const m = re.exec(g); return m ? Number(m[1]) : 0; };
   if (/swiftshader|llvmpipe|software|microsoft basic|virgl|softpipe/.test(g)) nivel = 'baja';
   else if (/rtx\s*(50|40|30)\d0|rtx\s*a\d{4}|rx\s*(9|7|6)[89]\d0|radeon pro w7/.test(g)) nivel = /rtx\s*(50|40)\d0|rtx\s*30[789]0|rx\s*[79][89]\d0/.test(g) ? 'ultra' : 'alta';
   else if (/rtx\s*20\d0|rtx\s*30[56]0|rx\s*(5[67]00|6[67]\d0|7[67]00)|arc\s*a7/.test(g)) nivel = 'alta';
@@ -78,21 +77,53 @@ export function resolverCalidad(opcion, renderer) {
   return CALIDADES[opcion] ? opcion : 'media';
 }
 
-/** Ajuste automático: si en modo «automática» el juego va lento, baja un nivel. */
+/**
+ * Ajusta la calidad automática con histéresis para evitar cambios constantes.
+ * La recuperación nunca supera el nivel máximo observado al iniciar la medición.
+ */
 export class AjusteAutomatico {
   constructor(alCambiar) {
     this.alCambiar = alCambiar;
-    this.tiempo = 0; this.cuadros = 0; this.esperar = 3; this.activo = true;
+    this.tiempo = 0;
+    this.cuadros = 0;
+    this.esperar = 3;
+    this.activo = true;
+    this.nivelMaximo = null;
   }
-  reiniciar() { this.tiempo = 0; this.cuadros = 0; this.esperar = 3; }
+
+  reiniciar() {
+    this.tiempo = 0;
+    this.cuadros = 0;
+    this.esperar = 3;
+  }
+
   medir(dt, nivelActual) {
-    if (!this.activo) return;
-    if (this.esperar > 0) { this.esperar -= dt; return; }
-    this.tiempo += dt; this.cuadros++;
+    if (!this.activo || !Number.isFinite(dt) || dt <= 0) return;
+
+    const indice = ORDEN_CALIDAD.indexOf(nivelActual);
+    if (indice < 0) return;
+    if (this.nivelMaximo === null) this.nivelMaximo = indice;
+
+    if (this.esperar > 0) {
+      this.esperar = Math.max(0, this.esperar - dt);
+      return;
+    }
+
+    this.tiempo += dt;
+    this.cuadros++;
     if (this.tiempo < 4) return;
+
     const fps = this.cuadros / this.tiempo;
-    this.tiempo = 0; this.cuadros = 0;
-    const i = ORDEN_CALIDAD.indexOf(nivelActual);
-    if (fps < 42 && i > 0) { this.esperar = 3; this.alCambiar(ORDEN_CALIDAD[i - 1], fps); }
+    this.tiempo = 0;
+    this.cuadros = 0;
+
+    let siguiente = indice;
+    if (fps < 42 && indice > 0) siguiente = indice - 1;
+    else if (fps > 58 && indice < this.nivelMaximo) siguiente = indice + 1;
+
+    if (siguiente !== indice) {
+      this.esperar = 6;
+      this.alCambiar(ORDEN_CALIDAD[siguiente], fps);
+    }
   }
 }

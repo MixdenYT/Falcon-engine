@@ -600,6 +600,7 @@ export async function crearVisor3D(contenedor, op = {}) {
       window.removeEventListener('keyup', teclaArriba, true);
       controles.dispose();
       lumbre.destruir();
+      void escena.destruir();
       renderer.dispose();
       if (renderPrevia) renderPrevia.dispose();
     },

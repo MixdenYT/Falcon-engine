@@ -1328,6 +1328,9 @@ export class Mundo {
     this.vista = { ancho: W, alto: H, escala, ox: (this.lienzo.width - W * escala) / 2, oy: (this.lienzo.height - H * escala) / 2 };
   }
 
+  /** Devuelve las métricas del último fotograma 3D o null si el proyecto es 2D. */
+  diagnosticoGrafico() { return this.d3?.diagnosticoGrafico() ?? null; }
+
   dibujar() {
     if (!this.raiz) return;
     this.ajustarLienzo();

@@ -28,3 +28,14 @@ jobs:
       - run: npm run test:actualizaciones
       - name: Validar configuración de paquetes
         run: node -e "require('app-builder-lib/out/util/config/config').validateConfiguration(require('./electron-builder.config.cjs'), require('electron-builder/package.json').version).catch(e => { console.error(e); process.exit(1); })"
+      - name: Instalar Chromium para pruebas WebGL
+        id: chrome
+        uses: browser-actions/setup-chrome@v1
+        with:
+          chrome-version: stable
+      - name: Instalar Playwright Core
+        run: npm install --no-save --no-package-lock --ignore-scripts playwright-core@1.56.1
+      - name: Probar renderizado 3D real con WebGL
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}
+        run: node pruebas/webgl.test.mjs

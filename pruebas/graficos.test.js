@@ -45,6 +45,20 @@ test('la recuperación nunca supera la calidad máxima inicial', () => {
   assert.equal(cambios.length, 2);
 });
 
+test('reiniciar vuelve a detectar el límite de calidad de la nueva configuración', () => {
+  const cambios = [];
+  const ajuste = new AjusteAutomatico((...args) => cambios.push(args));
+  ajuste.medir(3.1, 'ultra');
+  ajuste.reiniciar();
+  ajuste.medir(3.1, 'media');
+  medirVentana(ajuste, 'media', 40);
+  assert.equal(cambios[0][0], 'baja');
+  ajuste.medir(6.1, 'baja');
+  medirVentana(ajuste, 'baja', 60);
+  assert.equal(cambios[1][0], 'media');
+  assert.equal(cambios.length, 2);
+});
+
 test('ignora deltas inválidos y niveles desconocidos sin corromper la ventana', () => {
   const cambios = [];
   const ajuste = new AjusteAutomatico((...args) => cambios.push(args));

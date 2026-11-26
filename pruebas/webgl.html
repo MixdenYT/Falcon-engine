@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Falcon Engine · Prueba WebGL</title>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "/node_modules/three/build/three.module.js",
+        "three/addons/": "/node_modules/three/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <canvas id="salida" width="128" height="128"></canvas>
+  <script type="module">
+    import * as THREE from 'three';
+    import { Escena3D } from '../src/motor/escena3d.js';
+
+    const resultado = { ok: false, errores: [], fotogramas: 0, llamadasDibujo: 0, triangulos: 0, pixelesRenderizados: 0, erroresWebGL: [] };
+    try {
+      const canvas = document.querySelector('#salida');
+      const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: false, preserveDrawingBuffer: true });
+      renderer.setPixelRatio(1);
+      renderer.setSize(128, 128, false);
+      renderer.setClearColor(0x101820, 1);
+      const gl = renderer.getContext();
+      const escena = new Escena3D({
+        url: ruta => ruta,
+        ajustesImportacion: () => ({ filtro: 'lineal' }),
+      });
+      const raiz = {
+        id: 'raiz', nombre: 'Escena de prueba', tipo: 'Escena', props: {},
+        hijos: [
+          { id: 'malla', nombre: 'Malla roja', tipo: 'Malla3D', props: { malla: 'cubo', color: '#e84b3c', escala: [1.2, 1.2, 1.2], posicion: [0, 0, 0] }, hijos: [], visible: true },
+          { id: 'personaje', nombre: 'Personaje', tipo: 'Personaje3D', props: { altura: 1.1, color: '#38c98b', posicion: [1.25, 0, 0] }, hijos: [], visible: true },
+        ],
+        visible: true,
+      };
+      const camara = new THREE.PerspectiveCamera(55, 1, 0.1, 100);
+      camara.position.set(3.2, 2.4, 4.5);
+      camara.lookAt(0.45, 0.2, 0);
+      for (let i = 0; i < 6; i++) {
+        await escena.construir(raiz);
+        renderer.render(escena.scene, camara);
+        resultado.fotogramas++;
+      }
+      resultado.llamadasDibujo = renderer.info.render.calls;
+      resultado.triangulos = renderer.info.render.triangles;
+      const pixels = new Uint8Array(128 * 128 * 4);
+      gl.readPixels(0, 0, 128, 128, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+      const fondo = [16, 24, 32];
+      for (let i = 0; i < pixels.length; i += 4) {
+        if (Math.abs(pixels[i] - fondo[0]) + Math.abs(pixels[i + 1] - fondo[1]) + Math.abs(pixels[i + 2] - fondo[2]) > 24) resultado.pixelesRenderizados++;
+      }
+      const error = gl.getError();
+      if (error !== gl.NO_ERROR) resultado.erroresWebGL.push('gl.getError()=' + error);
+      await escena.destruir();
+      renderer.dispose();
+      resultado.ok = resultado.fotogramas === 6 && resultado.llamadasDibujo > 0 && resultado.triangulos > 0 && resultado.pixelesRenderizados > 0 && resultado.erroresWebGL.length === 0;
+      if (!resultado.ok) resultado.errores.push('El renderizado no produjo geometría visible válida o registró errores WebGL.');
+    } catch (error) {
+      resultado.errores.push(error?.stack || String(error));
+    }
+    window.__FALCON_WEBGL_RESULTADO__ = resultado;
+  </script>
+</body>
+</html>

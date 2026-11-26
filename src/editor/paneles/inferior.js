@@ -68,10 +68,10 @@ export function crearInferior(contenedor, op = {}) {
     const panel = el(`<div class="rendimiento desplazable">
       <div class="rend-cab">
         <span class="rend-titulo">Diagnóstico del visor 3D</span>
-        <span class="rend-meta"><b data-k="calidad">—</b><span data-k="estado">Esperando métricas…</span><span data-k="gi">GI —</span><span data-k="pixel">— px</span></span>
+        <span class="rend-meta"><b data-k="calidad">—</b><span data-k="estado">Esperando métricas…</span><span data-k="gi">GI —</span><span data-k="pixel">Escala —</span></span>
       </div>
       <div class="rend-grid">
-        <div class="rend-metrica"><span>FPS del editor</span><b data-k="fps">—</b></div>
+        <div class="rend-metrica"><span>Ritmo del bucle</span><b data-k="fps">—</b></div>
         <div class="rend-metrica"><span>Llamadas de dibujo</span><b data-k="calls">—</b></div>
         <div class="rend-metrica"><span>Triángulos</span><b data-k="triangulos">—</b></div>
         <div class="rend-metrica"><span>Geometrías</span><b data-k="geometrias">—</b></div>

@@ -28,6 +28,8 @@ export class Mundo3D {
   async construir() {
     this.lienzo.classList.remove('oculto');
     this.renderer = this.m._renderer3d || new THREE.WebGLRenderer({ canvas: this.lienzo, antialias: true, preserveDrawingBuffer: true });
+    // Acumula todas las pasadas de Lumbre y de la escena durante un fotograma completo.
+    if (this.renderer.info) this.renderer.info.autoReset = false;
     this.m._renderer3d = this.renderer;
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
@@ -417,6 +419,16 @@ export class Mundo3D {
     }
   }
 
+  /** Métricas del último fotograma; no fuerza lecturas síncronas de la GPU. */
+  diagnosticoGrafico() {
+    const dt = this._ultimoDt || 0;
+    return {
+      fps: dt > 0 ? 1 / dt : 0,
+      tiempoFotogramaMs: dt * 1000,
+      ...(this.lumbre ? this.lumbre.diagnostico() : {}),
+    };
+  }
+
   // ---------- Dibujo ----------
   dibujar() {
     const m = this.m;
@@ -450,8 +462,12 @@ export class Mundo3D {
     this.escena.revisarHuecos();
     const ancho = this.lienzo.clientWidth, alto = this.lienzo.clientHeight;
     const ahora = performance.now();
-    const dtR = this._ultimo ? Math.min(0.1, (ahora - this._ultimo) / 1000) : 1 / 60;
+    const dtReal = this._ultimo ? Math.max(0, (ahora - this._ultimo) / 1000) : 1 / 60;
+    const dtR = Math.min(0.1, dtReal);
     this._ultimo = ahora;
+    this._ultimoDt = dtReal;
+    // Las llamadas de dibujo de sondas, reflejos, sombras y escena se suman en esta instantánea.
+    this.renderer.info?.reset?.();
     this.renderer.setPixelRatio(this.lumbre ? this.lumbre.pixelRatio() : (window.devicePixelRatio || 1));
     this.renderer.setSize(ancho, alto, false);
     const act = this.escena.camaraActiva();

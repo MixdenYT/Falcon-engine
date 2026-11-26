@@ -38,6 +38,8 @@ export async function crearVisor3D(contenedor, op = {}) {
   const ejesCanvas = $('.ejes-3d', raiz);
   const ejesCtx = ejesCanvas.getContext('2d');
   const renderer = new THREE.WebGLRenderer({ canvas: lienzo, antialias: true, preserveDrawingBuffer: true });
+  // Mantiene acumuladas las estadísticas de todas las pasadas de Lumbre en un fotograma.
+  if (renderer.info) renderer.info.autoReset = false;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -496,12 +498,22 @@ export async function crearVisor3D(contenedor, op = {}) {
 
   // ---------- Bucle ----------
   let ultimo = performance.now();
+  let inicioMuestra = ultimo;
+  let ultimoInforme = ultimo;
+  let cuadrosMuestra = 0;
+  let fpsVisor = 0;
   const ro = new ResizeObserver(() => { sucio = true; });
   ro.observe(lienzo);
   function bucle(t) {
     if (!vivo) return;
     const dt = Math.min(0.05, (t - ultimo) / 1000);
     ultimo = t;
+    cuadrosMuestra++;
+    if (t - inicioMuestra >= 1000) {
+      fpsVisor = cuadrosMuestra * 1000 / (t - inicioMuestra);
+      cuadrosMuestra = 0;
+      inicioMuestra = t;
+    }
     volar(dt);
     // Huecos: si se mueve o escala un hueco o la malla que recorta, se rehace el recorte.
     if (escena.revisarHuecos()) sucio = true;
@@ -509,6 +521,8 @@ export async function crearVisor3D(contenedor, op = {}) {
     const final = sombreado === 'final';
     if (sucio || volando || final) {
       sucio = false;
+      // Una instantánea por fotograma, incluyendo capturas de sondas y render final.
+      renderer.info?.reset?.();
       const r = lienzo.getBoundingClientRect();
       renderer.setPixelRatio(final ? lumbre.pixelRatio() : (window.devicePixelRatio || 1));
       renderer.setSize(r.width, r.height, false);
@@ -531,6 +545,10 @@ export async function crearVisor3D(contenedor, op = {}) {
       pintarIconos();
       pintarEjes();
       if (previa) pintarPrevia();
+    }
+    if (t - ultimoInforme >= 250) {
+      ultimoInforme = t;
+      bus.emit('grafico:diagnostico', { ...lumbre.diagnostico(), fpsVisor });
     }
     requestAnimationFrame(bucle);
   }
@@ -582,6 +600,7 @@ export async function crearVisor3D(contenedor, op = {}) {
       window.removeEventListener('keyup', teclaArriba, true);
       controles.dispose();
       lumbre.destruir();
+      void escena.destruir();
       renderer.dispose();
       if (renderPrevia) renderPrevia.dispose();
     },

@@ -501,3 +501,22 @@
 .props-sencillas .p-s label.interruptor { display: inline-flex; color: var(--texto); font-size: 14px; margin: 0; }
 .pie-leccion .btn { font-size: 13px; padding: 0 8px; }
 .leccion .curso-cab span[data-a] { display: inline-flex; align-items: center; gap: 4px; }
+
+
+/* ---------- Diagnóstico de rendimiento 3D ---------- */
+.rendimiento { padding: 8px 12px 10px; overflow: auto; }
+.rend-cab { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 22px; margin-bottom: 7px; }
+.rend-titulo { font-size: 12px; font-weight: 800; color: var(--texto-2); letter-spacing: .02em; }
+.rend-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; font-size: 11px; color: var(--texto-2); }
+.rend-meta > * { padding: 3px 7px; border: 1px solid var(--borde); border-radius: 6px; background: var(--fondo); white-space: nowrap; }
+.rend-meta b { color: var(--verde); font-weight: 800; }
+.rend-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.rend-metrica { min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 9px; border: 1px solid var(--borde-suave); border-radius: 8px; background: var(--fondo); }
+.rend-metrica span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--texto-2); font-size: 11px; }
+.rend-metrica b { flex: none; font: 700 13px var(--mono); color: var(--texto); font-variant-numeric: tabular-nums; }
+.rend-metrica:first-child b { color: var(--verde); }
+.rend-pie { margin-top: 6px; color: var(--texto-3); font-size: 10px; line-height: 1.3; }
+@media (max-width: 900px) {
+  .rend-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .rend-cab { align-items: flex-start; flex-direction: column; gap: 4px; }
+}

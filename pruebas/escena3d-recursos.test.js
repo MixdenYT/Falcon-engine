@@ -51,7 +51,7 @@ test('destruir conserva las geometrías primitivas compartidas por el motor', as
   assert.equal(leerLiberacion(), 0);
 });
 
-test('limpiar retira los objetos sin liberar recursos reutilizables durante una reconstrucción', () => {
+test('limpiar conserva recursos durante una reconstrucción y destruirlos los libera al cerrar la escena', async () => {
   const escena = new Escena3D({});
   const geometria = new THREE.BoxGeometry();
   const material = new THREE.MeshBasicMaterial();
@@ -67,4 +67,8 @@ test('limpiar retira los objetos sin liberar recursos reutilizables durante una 
   assert.equal(escena.objetos.size, 0);
   assert.equal(leerGeometria(), 0);
   assert.equal(leerMaterial(), 0);
+
+  await escena.destruir();
+  assert.equal(leerGeometria(), 1);
+  assert.equal(leerMaterial(), 1);
 });

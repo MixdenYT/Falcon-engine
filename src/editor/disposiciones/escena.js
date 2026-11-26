@@ -40,7 +40,7 @@ export async function crearDisposicionEscena(contenedor, dim) {
     v.querySelector('button').onclick = () => nuevaEscena(dim);
     centro.append(v);
   }
-  partes.push(crearInferior(centro, { plegado: dim === '3D' ? est._inferiorPlegado3d ?? true : est._inferiorPlegado2d ?? false, alPlegar: (s) => { if (dim === '3D') est._inferiorPlegado3d = s; else est._inferiorPlegado2d = s; } }));
+  partes.push(crearInferior(centro, { pestanas: dim === '3D' ? ['salida', 'depurador', 'rendimiento', 'aguila', 'animacion', 'audio'] : undefined, plegado: dim === '3D' ? est._inferiorPlegado3d ?? true : est._inferiorPlegado2d ?? false, alPlegar: (s) => { if (dim === '3D') est._inferiorPlegado3d = s; else est._inferiorPlegado2d = s; } }));
   partes.push(crearInspector(der));
   return { destruir: () => partes.forEach(p => p && p.destruir && p.destruir()) };
 }

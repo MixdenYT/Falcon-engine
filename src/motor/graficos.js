@@ -77,6 +77,23 @@ export function resolverCalidad(opcion, renderer) {
   return CALIDADES[opcion] ? opcion : 'media';
 }
 
+/** Estadísticas acumuladas del WebGLRenderer de Three.js, con valores seguros para pruebas y renderers parciales. */
+export function leerEstadisticasRenderer(renderer) {
+  const info = renderer?.info;
+  if (!info) return null;
+  const numero = (valor) => Number.isFinite(valor) && valor >= 0 ? valor : 0;
+  const render = info.render || {}, memoria = info.memory || {};
+  return {
+    llamadasDibujo: numero(render.calls),
+    triangulos: numero(render.triangles),
+    lineas: numero(render.lines),
+    puntos: numero(render.points),
+    geometrias: numero(memoria.geometries),
+    texturas: numero(memoria.textures),
+    programas: Array.isArray(info.programs) ? info.programs.length : 0,
+  };
+}
+
 /**
  * Ajusta la calidad automática con histéresis para evitar cambios constantes.
  * La recuperación nunca supera el nivel máximo observado al iniciar la medición.

@@ -68,8 +68,7 @@ function mezclarGeometrias(lista) {
 
 // Reflejos suaves para que los metales no se vean negros.
 const reflejos = new WeakMap();
-const texturasRig = new WeakMap(), materialesRig = new WeakMap();
-function limitarTexturasRig(raiz, maximo) {
+function limitarTexturasRig(raiz, maximo, texturasRig, materialesRig) {
   if (!maximo) return;
   raiz.traverse(o => {
     if (!o.isMesh || !o.material) return;
@@ -207,6 +206,9 @@ export class Escena3D {
     this.ayudasEditor = [];       // objetos que solo ve el editor (Lumbre los oculta en sus capturas)
     this.alCambiar = op.alCambiar || (() => {});
     this.destruida = false;
+    // Estos cachés pertenecen a esta escena: no compartir materiales que luego se liberan al cerrarla.
+    this.texturasRig = new WeakMap();
+    this.materialesRig = new WeakMap();
   }
 
   // ---------- Recursos ----------
@@ -366,7 +368,7 @@ export class Escena3D {
           visual.add(m);
           if (p.animaciones_3d) {
             const config = await this.proyecto.leerJSON(p.animaciones_3d), clips = {};
-            limitarTexturasRig(m, config.textura_max);
+            limitarTexturasRig(m, config.textura_max, this.texturasRig, this.materialesRig);
             if (config.recorte_uv) g.userData.recorte = aplicarRecorteUV(m, await this.proyecto.leerJSON(config.recorte_uv));
             if (config.manos) { config.perfiles_manos = await this.proyecto.leerJSON(config.manos); g.userData.manos = prepararManos(m, config.perfiles_manos); }
             for (const [nombre, ruta] of Object.entries(config.clips || {})) {

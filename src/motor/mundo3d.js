@@ -81,7 +81,7 @@ export class Mundo3D {
     this.tactico.destruir();
     this.limpiarTrazas(true);
     if (this.lumbre) { this.lumbre.destruir(); this.lumbre = null; }
-    this.escena.limpiar();
+    void this.escena.destruir();
     if (this._raton) { window.removeEventListener('mousemove', this._raton); this.m.lienzo.removeEventListener('click', this._clic); }
     this.controles.desconectar();
     if (document.pointerLockElement) document.exitPointerLock();

@@ -196,6 +196,7 @@ export class Escena3D {
     this.scene = new THREE.Scene();
     this.objetos = new Map();     // id de nodo → Object3D
     this.nodos = new Map();       // id → nodo
+    this.raicesRetiradas = [];    // recursos de nodos reemplazados o retirados, pendientes de liberación terminal
     this.texturas = new Map();
     this.materiales = new Map();  // rel → Promise<material>
     this.modelos = new Map();     // rel → Promise<gltf.scene>
@@ -270,6 +271,7 @@ export class Escena3D {
   limpiar() {
     for (const o of this.objetos.values()) o.userData.animador?.destruir();
     for (const o of this.objetos.values()) if (o.parent) o.parent.remove(o);
+    this.raicesRetiradas.push(...this.objetos.values());
     this.objetos.clear();
     this.nodos.clear();
     this.ayudasEditor = [];
@@ -285,7 +287,7 @@ export class Escena3D {
       texturas: new Set(this.texturas.values()),
       geometriasCompartidas: new Set(geometrias.values()),
     };
-    recolectarRecursos([...this.objetos.values(), this.scene], recursos);
+    recolectarRecursos([...this.objetos.values(), ...this.raicesRetiradas, this.scene], recursos);
     if (this.fondoTex) recursos.texturas.add(this.fondoTex);
     if (this.matHueco) recursos.materiales.add(this.matHueco);
 
@@ -312,6 +314,7 @@ export class Escena3D {
     this.texturas.clear();
     this.materiales.clear();
     this.modelos.clear();
+    this.raicesRetiradas = [];
     this.fondoTex = null;
     this.fondoCanvas = null;
     this.matHueco = null;
@@ -651,6 +654,7 @@ export class Escena3D {
     aplicarTransformacion(nuevo, n.props);
     for (const h of hijosObj) nuevo.add(h);
     if (padre) { padre.add(nuevo); padre.remove(viejo); }
+    this.raicesRetiradas.push(viejo);
     this.objetos.set(n.id, nuevo);
     this.alCambiar();
     return nuevo;
@@ -665,6 +669,7 @@ export class Escena3D {
 
   quitar(n) {
     const obj = this.objetos.get(n.id);
+    if (obj) this.raicesRetiradas.push(obj);
     if (obj && obj.parent) obj.parent.remove(obj);
     const borrar = (x) => { this.objetos.delete(x.id); this.nodos.delete(x.id); x.hijos.forEach(borrar); };
     borrar(n);

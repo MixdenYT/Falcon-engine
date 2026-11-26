@@ -149,6 +149,36 @@ function uvPorCara(g, escala, tam) {
   uv.needsUpdate = true;
 }
 
+// Recolecta recursos Three.js sin liberar las geometrías primitivas compartidas por todo el motor.
+function recolectarRecursos(raices, recursos) {
+  const visitadas = new Set();
+  const recogerTexturas = (valor) => {
+    if (!valor || typeof valor !== 'object' || visitadas.has(valor)) return;
+    visitadas.add(valor);
+    if (valor.isTexture) { recursos.texturas.add(valor); return; }
+    if (Array.isArray(valor)) { for (const elemento of valor) recogerTexturas(elemento); return; }
+    for (const elemento of Object.values(valor)) {
+      if (elemento && typeof elemento === 'object' && (elemento.isTexture || Array.isArray(elemento))) recogerTexturas(elemento);
+    }
+  };
+  for (const raiz of raices) {
+    raiz?.traverse?.(objeto => {
+      if (objeto.geometry && !recursos.geometriasCompartidas.has(objeto.geometry)) recursos.geometrias.add(objeto.geometry);
+      const lista = Array.isArray(objeto.material) ? objeto.material : [objeto.material];
+      for (const material of lista) {
+        if (!material) continue;
+        recursos.materiales.add(material);
+        recogerTexturas(material);
+      }
+    });
+  }
+}
+function disponerRecursos(recursos) {
+  for (const geometria of recursos.geometrias) geometria.dispose();
+  for (const material of recursos.materiales) material.dispose();
+  for (const textura of recursos.texturas) textura.dispose();
+}
+
 export function aplicarTransformacion(obj, props) {
   const p = props.posicion || [0, 0, 0], r = props.rotacion || [0, 0, 0], e = props.escala || [1, 1, 1];
   obj.position.set(p[0] || 0, p[1] || 0, p[2] || 0);
@@ -176,6 +206,7 @@ export class Escena3D {
     this.fondoCanvas = null;
     this.ayudasEditor = [];       // objetos que solo ve el editor (Lumbre los oculta en sus capturas)
     this.alCambiar = op.alCambiar || (() => {});
+    this.destruida = false;
   }
 
   // ---------- Recursos ----------
@@ -223,9 +254,11 @@ export class Escena3D {
 
   // ---------- Construcción ----------
   async construir(raiz) {
+    if (this.destruida) return null;
     this.limpiar();
     this.raiz = raiz;
     const obj = await this.crear(raiz);
+    if (this.destruida || !obj) return null;
     this.scene.add(obj);
     this.aplicarEntorno();
     await this.prepararHuecos();
@@ -240,8 +273,57 @@ export class Escena3D {
     this.ayudasEditor = [];
   }
 
+  // Cierre terminal: a diferencia de limpiar(), también libera los recursos que pertenecen a esta escena.
+  async destruir() {
+    if (this.destruida) return;
+    this.destruida = true;
+    const recursos = {
+      geometrias: new Set(),
+      materiales: new Set(),
+      texturas: new Set(this.texturas.values()),
+      geometriasCompartidas: new Set(geometrias.values()),
+    };
+    recolectarRecursos([...this.objetos.values(), this.scene], recursos);
+    if (this.fondoTex) recursos.texturas.add(this.fondoTex);
+    if (this.matHueco) recursos.materiales.add(this.matHueco);
+
+    const promesasMateriales = [...this.materiales.values()];
+    const promesasModelos = [...this.modelos.values()];
+    this.limpiar();
+
+    // Espera las cargas ya iniciadas para no dejar recursos huérfanos si terminan tras cerrar la escena.
+    const [materiales, modelos] = await Promise.all([
+      Promise.allSettled(promesasMateriales),
+      Promise.allSettled(promesasModelos),
+    ]);
+    for (const resultado of materiales) {
+      if (resultado.status === 'fulfilled' && resultado.value) recursos.materiales.add(resultado.value);
+    }
+    for (const resultado of modelos) {
+      if (resultado.status === 'fulfilled' && resultado.value) recolectarRecursos([resultado.value], recursos);
+    }
+
+    this.scene.background = null;
+    this.scene.environment = null;
+    this.scene.clear();
+    disponerRecursos(recursos);
+    this.texturas.clear();
+    this.materiales.clear();
+    this.modelos.clear();
+    this.fondoTex = null;
+    this.fondoCanvas = null;
+    this.matHueco = null;
+    this.alCambiar = () => {};
+  }
+
   async crear(n) {
     const obj = await this.crearObjeto(n);
+    if (this.destruida) {
+      const recursos = { geometrias: new Set(), materiales: new Set(), texturas: new Set(), geometriasCompartidas: new Set(geometrias.values()) };
+      recolectarRecursos([obj], recursos);
+      disponerRecursos(recursos);
+      return obj;
+    }
     obj.userData.nodoId = n.id;
     obj.name = n.nombre;
     this.objetos.set(n.id, obj);
@@ -250,8 +332,10 @@ export class Escena3D {
     obj.visible = n.visible !== false || !!this.op.editor;
     if (this.op.editor && n.visible === false) this.atenuar(obj);
     for (const h of n.hijos) {
+      if (this.destruida) break;
       if (h.eliminado) continue;
-      obj.add(await this.crear(h));
+      const hijo = await this.crear(h);
+      if (!this.destruida) obj.add(hijo);
     }
     return obj;
   }

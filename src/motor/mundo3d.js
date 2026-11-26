@@ -44,7 +44,7 @@ export class Mundo3D {
     this.ajuste = new AjusteAutomatico((nivel, fps) => {
       this.lumbre.configurar(nivel);
       this.m.calidadNivel = nivel;
-      this.m.informar({ tipo: 'mostrar', texto: `Calidad gráfica bajada a ${CALIDADES[nivel].nombre} (${Math.round(fps)} FPS)` });
+      this.m.informar({ tipo: 'mostrar', texto: `Calidad gráfica ajustada a ${CALIDADES[nivel].nombre} (${Math.round(fps)} FPS)` });
       this.m.op.alCalidad && this.m.op.alCalidad(nivel);
     });
     this.aplicarCalidad();

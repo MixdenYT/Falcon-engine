@@ -26,7 +26,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { restarCajas } from './huecos.js';
 import { Pass, FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
 import { INTENSIDAD_GI, ESPEJOS_ACTIVOS, AO_PANTALLA, prepararMaterial, prepararEspejo, ajustarSesgo } from './lumbre-parche.js';
-import { CALIDADES, soportaGI } from './graficos.js';
+import { CALIDADES, soportaGI, leerEstadisticasRenderer } from './graficos.js';
 import { ProxyCapturas, QUIETO } from './lumbre-proxy.js';
 
 // En la imagen final queda un poco de luz ambiental plana; el resto llega rebotada por las sondas.
@@ -143,6 +143,22 @@ export class Lumbre {
   }
 
   pixelRatio() { return Math.min(window.devicePixelRatio || 1, this.aj.escala || 1); }
+
+  /** Instantánea de solo lectura para diagnóstico y herramientas del editor. */
+  diagnostico() {
+    return {
+      calidad: this.nivel,
+      estado: this.estado,
+      giDisponible: this.giDisponible,
+      pixelRatio: this.pixelRatio(),
+      ...leerEstadisticasRenderer(this.r),
+      sondas: this.stats.sondas,
+      sombras: this.stats.sombras,
+      espejos: this.stats.espejos,
+      msSondaCPU: Number.isFinite(this._msSonda) ? this._msSonda : null,
+      msSondaGPU: Number.isFinite(this._msSondaGPU) ? this._msSondaGPU : null,
+    };
+  }
 
   prepararMateriales() {
     this.scene.traverse((o) => {

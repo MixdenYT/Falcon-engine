@@ -95,6 +95,7 @@ export class AjusteAutomatico {
     this.tiempo = 0;
     this.cuadros = 0;
     this.esperar = 3;
+    this.nivelMaximo = null;
   }
 
   medir(dt, nivelActual) {
@@ -111,7 +112,8 @@ export class AjusteAutomatico {
 
     this.tiempo += dt;
     this.cuadros++;
-    if (this.tiempo < 4) return;
+    // Evita que la suma de deltas de coma flotante deje la ventana en 3.999999... s.
+    if (this.tiempo < 4 - 1e-9) return;
 
     const fps = this.cuadros / this.tiempo;
     this.tiempo = 0;

@@ -90,7 +90,7 @@ export function crearInferior(contenedor, op = {}) {
       fijar('calidad', d.calidad ? `Calidad ${d.calidad}` : 'Calidad —');
       fijar('estado', d.estado || 'Renderizador activo');
       fijar('gi', d.giDisponible ? 'GI disponible' : 'GI no disponible');
-      fijar('pixel', `${numero(d.pixelRatio)} px`);
+      fijar('pixel', `Escala ${numero(d.pixelRatio)}×`);
       fijar('fps', numero(d.fpsVisor));
       fijar('calls', numero(d.llamadasDibujo));
       fijar('triangulos', numero(d.triangulos));

@@ -48,6 +48,7 @@ async function crear() {
     espacio3d: espacio3d(E, B),
     fisica3d: fisica3d(E, B),
     movimiento3d: movimiento3d(E),
+    camara3d: camara3d(E),
     /** El error pendiente de Ara (`{ mensaje }`) o null; lo borra. */
     error() { const e = ara.error(); if (e) ara.limpiarError(); return e; },
   };
@@ -111,5 +112,37 @@ function movimiento3d(E) {
     mueveX: () => rmx(), mueveZ: () => rmz(),
     coyote: () => rc(), recordado: () => rr(), altura: () => ra(),
     banderas: () => Number(rb()),
+  };
+}
+
+
+// Matemática de cámara en Ara. Three.js conserva únicamente raycasts y aplicación de transformadas.
+function camara3d(E) {
+  const yo = E['Camara3D.crear'](0);
+  const f = (nombre) => E['Camara3D.func.' + nombre].bind(null, yo);
+  const iniciar = f('iniciar'), cambiarModo = f('cambiar_modo');
+  const preparar = f('preparar'), finalizar = f('finalizar');
+  const nombres = {
+    yaw: 'r_yaw', pitch: 'r_pitch', distancia: 'r_distancia',
+    distanciaActual: 'r_distancia_actual', zoom: 'r_zoom',
+    pivoteX: 'r_pivote_x', pivoteY: 'r_pivote_y', pivoteZ: 'r_pivote_z',
+    dirX: 'r_dir_x', dirY: 'r_dir_y', dirZ: 'r_dir_z',
+    camX: 'r_cam_x', camY: 'r_cam_y', camZ: 'r_cam_z', roll: 'r_roll',
+    fov: 'r_fov', fovBase: 'r_fov_base', sinRaton: 'r_sin_raton',
+    fase: 'r_fase', bob: 'r_bob', golpe: 'r_golpe', caidaMax: 'r_caida_max',
+    enSueloAntes: 'r_en_suelo_antes', inclinacion: 'r_inclinacion',
+    ads: 'r_ads', retroceso: 'r_retroceso', ocultar: 'r_ocultar',
+  };
+  const getters = {};
+  for (const [clave, nombre] of Object.entries(nombres)) {
+    const leer = f(nombre);
+    getters[clave] = () => leer();
+  }
+  return {
+    iniciar: (...args) => iniciar(...args),
+    cambiarModo: (...args) => cambiarModo(...args),
+    preparar: (...args) => preparar(...args),
+    finalizar: (...args) => finalizar(...args),
+    ...getters,
   };
 }

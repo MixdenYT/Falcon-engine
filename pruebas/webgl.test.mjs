@@ -38,11 +38,15 @@ try {
   const fallosConsola = [];
   pagina.on('pageerror', error => fallosConsola.push(error.message));
   pagina.on('console', mensaje => { if (mensaje.type() === 'error') fallosConsola.push(mensaje.text()); });
+  // La consola no siempre incluye la URL de un 404; capturamos la respuesta para localizar el recurso exacto.
+  pagina.on('response', respuesta => {
+    if (respuesta.status() >= 400) fallosConsola.push(`HTTP ${respuesta.status()} ${respuesta.url()}`);
+  });
   await pagina.goto(`http://127.0.0.1:${puerto}/pruebas/webgl.html`, { waitUntil: 'load' });
   await pagina.waitForFunction(() => window.__FALCON_WEBGL_RESULTADO__ !== undefined, { timeout: 30000 });
   const resultado = await pagina.evaluate(() => window.__FALCON_WEBGL_RESULTADO__);
-  assert.equal(fallosConsola.length, 0, 'La página WebGL produjo errores de consola: ' + fallosConsola.join('\n'));
-  assert.equal(resultado.ok, true, resultado.errores.join('\n') || JSON.stringify(resultado));
+  assert.equal(fallosConsola.length, 0, 'La página WebGL produjo errores de consola o HTTP: ' + fallosConsola.join('\\n'));
+  assert.equal(resultado.ok, true, resultado.errores.join('\\n') || JSON.stringify(resultado));
   assert.equal(resultado.fotogramas, 6);
   assert.ok(resultado.llamadasDibujo > 0, 'No se registraron llamadas de dibujo');
   assert.ok(resultado.triangulos > 0, 'No se registraron triángulos');

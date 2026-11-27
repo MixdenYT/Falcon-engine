@@ -101,6 +101,12 @@ clase Fisica3D extiende Nucleo:
     func r_vz() -> decimal:
         devolver f.resultado_vz()
 
+    func r_emp_x() -> decimal:
+        devolver f.resultado_emp_x()
+
+    func r_emp_z() -> decimal:
+        devolver f.resultado_emp_z()
+
     func r_banderas() -> entero:
         devolver f.banderas()
 

@@ -79,57 +79,105 @@ export class Controles3D {
       n.vy = 0; n._vx = 0; n._vz = 0;
       if (this.jugador === n) this.pivote.set(n._inicio[0], n._inicio[1] + (n.props.altura || 1.8) * 0.85, n._inicio[2]);
     }
-    let x = e.eje('izquierda', 'derecha'), z = e.eje('adelante', 'atras');
-    const l = Math.hypot(x, z);
-    if (l > 1) { x /= l; z /= l; }
+
+    const x = e.eje('izquierda', 'derecha');
+    const z = e.eje('adelante', 'atras');
     const tactico = !!n.props.tactico;
+    const altura = n.props.altura || 1.8;
+    let objetivoAltura = altura;
     if (tactico) {
       if (e.pulsa('sensibilidad_menos')) n.props.sensibilidad = Math.max(0.2, (n.props.sensibilidad || 0.75) - 0.1);
       if (e.pulsa('sensibilidad_mas')) n.props.sensibilidad = Math.min(3, (n.props.sensibilidad || 0.75) + 0.1);
-      const altura = n.props.altura || 1.8, agachar = e.mantiene('agacharse');
+      const agachar = e.mantiene('agacharse');
       const p = this.d3.posicionGlobal(n), prueba = this.d3.cajaPersonaje(n, p);
       prueba.min.y += 0.08; prueba.max.y = p[1] + altura;
       const techo = !agachar && this.d3.solidos.some(s => s.b.intersectsBox(prueba));
       n._agachado = agachar || !!techo;
-      const objetivoAltura = n._agachado ? 1.12 : altura;
+      objetivoAltura = n._agachado ? 1.12 : altura;
       n._alturaColision ??= altura;
-      n._alturaColision += Math.sign(objetivoAltura - n._alturaColision) * Math.min(Math.abs(objetivoAltura - n._alturaColision), dt * 4.5);
       n._apuntando = e.mantiene('apuntar') && !n.aguilaObtener('recargando');
       n._lento = e.mantiene('andar_lento');
     }
-    const correr = e.mantiene('correr') && l > 0.1 && (!tactico || !n._agachado && !n._apuntando && !n._lento);
-    const v = n._muerto ? 0 : tactico ? (n._agachado ? 1.05 : n._lento ? 1.1 : n._apuntando ? 1.35 : correr ? 3.2 : 2.2) : (n.props.velocidad ?? 5) * (correr ? 1.7 : 1);
-    let objX, objZ;
-    if (this.activo && this.jugador === n) {
-      // Relativo a hacia dónde mira la cámara de los controles.
-      const s = Math.sin(this.yaw), c = Math.cos(this.yaw);
-      objX = (c * x + s * z) * v;
-      objZ = (-s * x + c * z) * v;
-    } else {
-      const { f, r } = this.d3.ejesCamara();
-      objX = (r.x * x - f.x * z) * v;
-      objZ = (r.z * x - f.z * z) * v;
+
+    const yawActivo = this.activo && this.jugador === n;
+    let adelante = { x: 0, z: 0 }, derecha = { x: 0, z: 0 };
+    if (!yawActivo) {
+      const ejes = this.d3.ejesCamara();
+      adelante = ejes.f; derecha = ejes.r;
     }
-    n._vx ??= 0; n._vz ??= 0;
-    // Inercia: en el suelo acelera rápido y frena aún más rápido; en el aire se controla menos.
-    const tasa = tactico ? (l > 0.05 ? 32 : 42) : n.enSuelo ? (l > 0.05 ? 14 : 20) : (l > 0.05 ? 4 : 1.2);
-    const k = 1 - Math.exp(-tasa * dt);
-    n._vx += (objX - n._vx) * k;
-    n._vz += (objZ - n._vz) * k;
-    if (Math.abs(n._vx) < 0.01 && !objX) n._vx = 0;
-    if (Math.abs(n._vz) < 0.01 && !objZ) n._vz = 0;
-    n.mueveX = n._vx; n.mueveZ = n._vz;
-    n._correr = correr;
-    if (l > 0.1) m.telemetria('andar');
-    // Salto: tiempo de coyote, salto recordado y altura variable.
-    n._coyote = n.enSuelo ? 0.12 : Math.max(0, (n._coyote || 0) - dt);
-    n._recordado = e.pulsa('saltar') ? 0.14 : Math.max(0, (n._recordado || 0) - dt);
-    if (!tactico && n._recordado > 0 && n._coyote > 0) {
-      n.vy = n.props.salto; n.enSuelo = false; n._coyote = 0; n._recordado = 0; n._saltando = true;
-      m.telemetria('salto');
+    const teclaCorrer = e.mantiene('correr');
+    const pulsaSaltar = e.pulsa('saltar');
+    const mantieneSaltar = e.mantiene('saltar');
+    const alturaActual = n._alturaColision ?? altura;
+    const A = this.d3.m.nucleo?.movimiento3d;
+    let usoAra = false;
+
+    if (A) {
+      A.actualizar(
+        x, z, n.props.velocidad ?? 5, dt, tactico, !!n._agachado, !!n._lento, !!n._apuntando,
+        teclaCorrer, !!n._muerto, !!n.enSuelo, yawActivo, this.yaw,
+        adelante.x, adelante.z, derecha.x, derecha.z,
+        n._vx ?? 0, n._vz ?? 0, n.vy ?? 0, n._coyote ?? 0, n._recordado ?? 0,
+        !!n._saltando, pulsaSaltar, mantieneSaltar, n.props.salto ?? 6,
+        alturaActual, objetivoAltura
+      );
+      if (!this.d3.errorAra()) {
+        n._vx = A.vx(); n._vz = A.vz();
+        n.vy = A.vy();
+        n.mueveX = A.mueveX(); n.mueveZ = A.mueveZ();
+        n._coyote = A.coyote(); n._recordado = A.recordado();
+        n._saltando = !!(A.banderas() & 2);
+        n._correr = !!(A.banderas() & 1);
+        n.enSuelo = !!(A.banderas() & 4);
+        if (tactico) n._alturaColision = A.altura();
+        const banderas = A.banderas();
+        if (banderas & 8) m.telemetria('andar');
+        if (banderas & 16) m.telemetria('salto');
+        usoAra = true;
+      }
     }
-    if (n._saltando && !e.mantiene('saltar') && n.vy > 0) { n.vy *= 0.55; n._saltando = false; }
-    if (n.vy <= 0) n._saltando = false;
+
+    // Respaldo para versiones antiguas del núcleo o si Ara comunica un error.
+    if (!usoAra) {
+      let xNorm = x, zNorm = z;
+      const l = Math.hypot(xNorm, zNorm);
+      if (l > 1) { xNorm /= l; zNorm /= l; }
+      const correr = teclaCorrer && l > 0.1 && (!tactico || !n._agachado && !n._apuntando && !n._lento);
+      const v = n._muerto ? 0 : tactico ? (n._agachado ? 1.05 : n._lento ? 1.1 : n._apuntando ? 1.35 : correr ? 3.2 : 2.2) : (n.props.velocidad ?? 5) * (correr ? 1.7 : 1);
+      let objX, objZ;
+      if (yawActivo) {
+        const s = Math.sin(this.yaw), c = Math.cos(this.yaw);
+        objX = (c * xNorm + s * zNorm) * v;
+        objZ = (-s * xNorm + c * zNorm) * v;
+      } else {
+        objX = (derecha.x * xNorm - adelante.x * zNorm) * v;
+        objZ = (derecha.z * xNorm - adelante.z * zNorm) * v;
+      }
+      n._vx ??= 0; n._vz ??= 0;
+      const tasa = tactico ? (l > 0.05 ? 32 : 42) : n.enSuelo ? (l > 0.05 ? 14 : 20) : (l > 0.05 ? 4 : 1.2);
+      const k = 1 - Math.exp(-tasa * dt);
+      n._vx += (objX - n._vx) * k;
+      n._vz += (objZ - n._vz) * k;
+      if (Math.abs(n._vx) < 0.01 && !objX) n._vx = 0;
+      if (Math.abs(n._vz) < 0.01 && !objZ) n._vz = 0;
+      n.mueveX = n._vx; n.mueveZ = n._vz;
+      n._correr = correr;
+      if (l > 0.1) m.telemetria('andar');
+
+      n._coyote = n.enSuelo ? 0.12 : Math.max(0, (n._coyote || 0) - dt);
+      n._recordado = pulsaSaltar ? 0.14 : Math.max(0, (n._recordado || 0) - dt);
+      if (!tactico && n._recordado > 0 && n._coyote > 0) {
+        n.vy = n.props.salto; n.enSuelo = false; n._coyote = 0; n._recordado = 0; n._saltando = true;
+        m.telemetria('salto');
+      }
+      if (n._saltando && !mantieneSaltar && n.vy > 0) { n.vy *= 0.55; n._saltando = false; }
+      if (n.vy <= 0) n._saltando = false;
+      if (tactico) {
+        const diferencia = objetivoAltura - n._alturaColision;
+        n._alturaColision += Math.sign(diferencia) * Math.min(Math.abs(diferencia), dt * 4.5);
+      }
+    }
+
     // «cambiar_vista» (V o Y en el mando) pasa de tercera a primera persona y al revés.
     if (n.props.cambiar_vista !== false && e.pulsa('cambiar_vista')) {
       n.props.controles = n.props.controles === 'primera_persona' ? 'tercera_persona' : 'primera_persona';

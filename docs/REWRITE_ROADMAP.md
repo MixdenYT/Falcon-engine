@@ -18,6 +18,18 @@ Esta sección prevalece sobre el estado de «solo commits locales» y el informe
 
 **Límites todavía explícitos:** Three.js sigue calculando las cajas de mundo y transformaciones de escena; las AABB estáticas se envían una vez por lista de sólidos y se reutilizan entre personajes. La cámara, la dinámica de cuerpos empujables que sí entran en el recorrido del personaje y el renderizado no se han migrado. No se afirma que toda la física 3D esté ya en Ara.
 
+
+## Actualización de trabajo en GitHub — control de movimiento 3D (27-11-2026)
+
+- Rama dependiente: `codex/control3d-ara`, basada en `codex/fisica3d-ara`.
+- `src/motor/ara/movimiento3d.ara`: normalización de ejes, movimiento relativo a cámara, velocidades objetivo, aceleración/inercia, carrera, movimiento táctico, control aéreo, coyote-time, salto recordado, salto variable y suavizado de altura.
+- `src/motor/ara/nucleo.ara` y `src/motor/nucleo-ara.js`: API pequeña para entregar los valores de entrada y leer el estado resultante.
+- `src/motor/control3d.js`: conserva lectura de teclado/mando, bloqueo del ratón, detección de techo con Three.js, telemetría y cambio de vista. La lógica numérica de movimiento usa Ara; se conserva el algoritmo JS como respaldo si el núcleo no está disponible o informa un error.
+- `pruebas/movimiento3d-ara.test.js`: 500 entradas deterministas comparadas con la fórmula JS, casos tácticos, salto de coyote, salto recordado, corte de salto, altura variable y prueba de integración que confirma que `Controles3D` llama al núcleo Ara.
+- CI: compilación del núcleo, comprobación del wasm, `npm test` y pruebas de actualizaciones superadas en la rama.
+
+**Pendiente:** órbita de cámara, yaw/pitch, seguimiento del pivote, zoom, oclusión por geometría, balanceo en primera persona, inclinación, retroceso y FOV. El DOM, Pointer Lock, mando y raycasts de Three.js siguen siendo adaptadores de plataforma.
+
 ## Cómo se trabaja
 
 - **Skills.** Caveman y Ponytail se cargan al inicio de cada sesión.

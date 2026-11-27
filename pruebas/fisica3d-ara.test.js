@@ -165,6 +165,37 @@ test('Mundo3D usa Ara para resolver la física y conserva el mapeo de contactos'
   assert.equal(d.m.nucleo, nucleo, 'el núcleo no ha sufrido errores');
 });
 
+
+test('Mundo3D carga las cajas estáticas una vez y limpia los cuerpos entre personajes', () => {
+  const d = Object.create(Mundo3D.prototype);
+  d.m = { nucleo };
+  d.posicionGlobal = n => n.props.posicion;
+  const solidos = [{
+    n: { nombre: 'Muro' }, movil: false,
+    b: { min: { x: 8, y: 0, z: 8 }, max: { x: 9, y: 3, z: 9 } },
+  }];
+  const a = {
+    tipo: 'Personaje3D', props: { tactico: true, altura: 1.8, usa_gravedad: false },
+    grupos: new Set(), posicion: [0, 0, 0], mueveX: 0, mueveZ: 0, empX: 0, empZ: 0, vy: 0,
+    _contactosSolidos: new Set(),
+  };
+  const b = {
+    tipo: 'Personaje3D', props: { tactico: false, altura: 1.8, posicion: [3, 0, 0], usa_gravedad: false },
+    grupos: new Set(), mueveX: 0, mueveZ: 0, empX: 0, empZ: 0, vy: 0,
+    _contactosSolidos: new Set(),
+  };
+  const original = F.caja;
+  let llamadas = 0;
+  F.caja = (...args) => { llamadas++; return original(...args); };
+  try {
+    assert.equal(d.resolverFisicaPersonajeAra(a, [0, 0, 0], 1 / 60, 1, [a, b], solidos), true);
+    assert.equal(d.resolverFisicaPersonajeAra(b, [3, 0, 0], 1 / 60, 1, [a, b], solidos), true);
+    assert.equal(llamadas, 2, 'una caja estática y un cuerpo dinámico; la caja estática no se reenvía');
+  } finally {
+    F.caja = original;
+  }
+});
+
 test('Mundo3D conserva el respaldo JS cuando hay cuerpos empujables', () => {
   const d = Object.create(Mundo3D.prototype);
   d.m = { nucleo };

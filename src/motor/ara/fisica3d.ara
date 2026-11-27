@@ -10,6 +10,7 @@
 
 estructura Solucionador3D:
     cantidad: entero
+    cantidad_estatica: entero
     x0: lista[decimal]
     y0: lista[decimal]
     z0: lista[decimal]
@@ -35,6 +36,7 @@ estructura Solucionador3D:
 
     func crear(este):
         este.cantidad = 0
+        este.cantidad_estatica = 0
         este.cantidad_contactos = 0
         este.px = 0.0
         este.py = 0.0
@@ -50,6 +52,16 @@ estructura Solucionador3D:
 
     func empezar(este):
         este.cantidad = 0
+        este.cantidad_estatica = 0
+        este.cantidad_contactos = 0
+
+    # Marca las AABB estáticas ya cargadas. Se conservan mientras se resuelven todos los personajes del paso.
+    func preparar(este):
+        este.cantidad_estatica = este.cantidad
+
+    # Descarta los cuerpos del personaje anterior sin volver a cargar las cajas estáticas.
+    func empezar_personaje(este):
+        este.cantidad = este.cantidad_estatica
         este.cantidad_contactos = 0
 
     # Añade una AABB. dueno es el índice que el adaptador usa para recuperar el nodo.

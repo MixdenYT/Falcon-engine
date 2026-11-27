@@ -5,6 +5,7 @@ on:
     branches:
       - codex/fisica3d-ara
       - codex/control3d-ara
+      - codex/camara3d-ara
 
 permissions:
   contents: write

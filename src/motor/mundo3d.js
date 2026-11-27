@@ -240,7 +240,7 @@ export class Mundo3D {
   // Three.js solo aporta las AABB y aplica después el desplazamiento corregido al nodo.
   resolverCuerposMovilesAra(solidos, dt, escalaG) {
     const F = this.m.nucleo?.fisica3d;
-    if (!F?.empezar || !F.resolverCuerpo || !F.cuerpoTieneApoyo) return false;
+    if (!F?.empezar || !F.resolverCuerpo || !F.cuerpoTieneApoyo || !F.desplazarCuerpo) return false;
     F.empezar();
     const duenos = new Map();
     for (const s of solidos) {
@@ -263,6 +263,7 @@ export class Mundo3D {
       if (this.errorAra()) return false;
       n.props.posicion[1] += desplazamiento;
       s.b.translate(new THREE.Vector3(0, desplazamiento, 0));
+      F.desplazarCuerpo(duenos.get(n), desplazamiento);
       if (F.cuerpoTieneApoyo()) n.vy = 0;
     }
     return true;

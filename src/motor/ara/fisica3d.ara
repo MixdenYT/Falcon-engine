@@ -95,6 +95,7 @@ estructura Solucionador3D:
         este.px = x
         este.py = y_
         este.pz = z
+        y_original = y_
         este.vy = velocidad_y
         este.vx = 0.0
         este.vz = 0.0
@@ -151,18 +152,18 @@ estructura Solucionador3D:
             este.vy -= gravedad * escala_gravedad * dt
             este.vy = maximo(este.vy, -60.0)
         dy = (vy_anterior + este.vy) * 0.5 * dt
-        y_inicial = este.py
         este.py += dy
+        y_caja = este.py
         para i en rango(este.cantidad):
             si este.cuerpos[i]:
                 continuar
-            si no este.intersecta(este.px - radio, este.py, este.pz - radio, este.px + radio, este.py + altura, este.pz + radio, i):
+            si no este.intersecta(este.px - radio, y_caja, este.pz - radio, este.px + radio, y_caja + altura, este.pz + radio, i):
                 continuar
-            si dy <= 0.0 y y_inicial >= este.y1[i] - 0.36:
+            si dy <= 0.0 y y_original >= este.y1[i] - 0.36:
                 este.py = este.y1[i]
                 este.vy = 0.0
                 este.suelo = verdadero
-            sino si dy > 0.0 y y_inicial + altura_techo <= este.y0[i] + 0.05:
+            sino si dy > 0.0 y y_original + altura_techo <= este.y0[i] + 0.05:
                 este.py = este.y0[i] - altura_techo
                 este.vy = 0.0
                 este.techo = verdadero

@@ -89,6 +89,18 @@ clase Fisica3D extiende Nucleo:
     func mover(x: decimal, y_: decimal, z: decimal, radio: decimal, altura: decimal, altura_techo: decimal, vx: decimal, vz: decimal, emp_x: decimal, emp_z: decimal, amort: decimal, vy: decimal, usa_gravedad: booleano, gravedad: decimal, escala_gravedad: decimal, dt: decimal):
         f.mover(x, y_, z, radio, altura, altura_techo, vx, vz, emp_x, emp_z, amort, vy, usa_gravedad, gravedad, escala_gravedad, dt)
 
+    func empujados() -> entero:
+        devolver f.cantidad_de_empujados()
+
+    func empujado_dueno(i: entero) -> entero:
+        devolver f.empujado_dueno(i)
+
+    func empujado_x(i: entero) -> decimal:
+        devolver f.empujado_x(i)
+
+    func empujado_z(i: entero) -> decimal:
+        devolver f.empujado_z(i)
+
     func resolver_cuerpo(dueno: entero, min_x: decimal, min_y: decimal, min_z: decimal, max_x: decimal, max_y: decimal, max_z: decimal, desplazamiento_y: decimal) -> decimal:
         devolver f.resolver_cuerpo(dueno, min_x, min_y, min_z, max_x, max_y, max_z, desplazamiento_y)
 

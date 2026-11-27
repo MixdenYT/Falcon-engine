@@ -121,3 +121,38 @@ clase Fisica3D extiende Nucleo:
 
     func contacto(i: entero) -> entero:
         devolver f.contacto(i)
+
+
+# Movimiento de personajes 3D: el anfitrión solo entrega entrada, estado y ejes de cámara.
+clase Movimiento3D extiende Nucleo:
+    f = ControladorMovimiento3D()
+
+    func actualizar(eje_x: decimal, eje_z: decimal, velocidad_base: decimal, dt: decimal, tactico: booleano, agachado: booleano, lento: booleano, apuntando: booleano, tecla_correr: booleano, muerto: booleano, suelo_actual: booleano, yaw_activo: booleano, yaw: decimal, adelante_x: decimal, adelante_z: decimal, derecha_x: decimal, derecha_z: decimal, velocidad_x: decimal, velocidad_z: decimal, velocidad_y: decimal, coyote_actual: decimal, recordado_actual: decimal, saltando_actual: booleano, pulsa_saltar: booleano, mantiene_saltar: booleano, velocidad_salto: decimal, altura_actual: decimal, altura_objetivo: decimal):
+        f.actualizar(eje_x, eje_z, velocidad_base, dt, tactico, agachado, lento, apuntando, tecla_correr, muerto, suelo_actual, yaw_activo, yaw, adelante_x, adelante_z, derecha_x, derecha_z, velocidad_x, velocidad_z, velocidad_y, coyote_actual, recordado_actual, saltando_actual, pulsa_saltar, mantiene_saltar, velocidad_salto, altura_actual, altura_objetivo)
+
+    func r_vx() -> decimal:
+        devolver f.resultado_vx()
+
+    func r_vz() -> decimal:
+        devolver f.resultado_vz()
+
+    func r_vy() -> decimal:
+        devolver f.resultado_vy()
+
+    func r_mueve_x() -> decimal:
+        devolver f.resultado_mueve_x()
+
+    func r_mueve_z() -> decimal:
+        devolver f.resultado_mueve_z()
+
+    func r_coyote() -> decimal:
+        devolver f.resultado_coyote()
+
+    func r_recordado() -> decimal:
+        devolver f.resultado_recordado()
+
+    func r_altura() -> decimal:
+        devolver f.resultado_altura()
+
+    func r_banderas() -> entero:
+        devolver f.banderas()

@@ -251,3 +251,26 @@ test('Ara resuelve la caída de cuerpos empujables y detecta el apoyo', () => {
   assert.equal(libre, -0.25);
   assert.equal(F.cuerpoTieneApoyo(), false);
 });
+
+test('Ara empuja cuerpos móviles y bloquea el empuje si no hay espacio', () => {
+  F.empezar();
+  F.caja(0.4, 0, -1, 1.4, 1.8, 1, 52, false, true);
+  F.preparar();
+  F.empezarPersonaje();
+  F.mover(0, 0, 0, 0.38, 1.8, 1.8, 5, 0, 0, 0, 1, 0, false, 18, 1, 0.1);
+  assert.equal(F.x(), 0.5, 'el personaje avanza al empujar');
+  assert.equal(F.empujados(), 1);
+  assert.equal(F.empujadoDueno(0), 52);
+  assert.equal(F.empujadoX(0), 0.5);
+  assert.equal(F.empujadoZ(0), 0);
+  assert.deepEqual(Array.from({ length: F.contactos() }, (_, i) => F.contacto(i)), [52]);
+
+  F.empezar();
+  F.caja(0.4, 0, -1, 1.4, 1.8, 1, 52, false, true);
+  F.caja(1.5, 0, -1, 2.5, 2, 1, 53, false, false);
+  F.preparar();
+  F.empezarPersonaje();
+  F.mover(0, 0, 0, 0.38, 1.8, 1.8, 5, 0, 0, 0, 1, 0, false, 18, 1, 0.1);
+  assert.equal(F.empujados(), 0, 'no se mueve el cuerpo contra una pared');
+  assert.equal(F.x(), 0.019);
+});

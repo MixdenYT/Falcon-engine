@@ -2,6 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { nucleoAra } from '../src/motor/nucleo-ara.js';
+import { Controles3D } from '../src/motor/control3d.js';
 
 const nucleo = await nucleoAra();
 const A = nucleo.movimiento3d;
@@ -122,6 +123,44 @@ test('movimiento Ara = referencia JS: 500 entradas deterministas', () => {
     };
     comparar(p, 'entrada ' + i);
   }
+});
+
+
+test('Controles3D delega el movimiento del jugador al núcleo Ara', () => {
+  const entrada = {
+    eje: (izq, der) => izq === 'izquierda' ? 1 : 0,
+    pulsa: () => false,
+    mantiene: nombre => nombre === 'correr',
+  };
+  const eventos = [];
+  const d3 = {
+    m: { nucleo, entrada, telemetria: nombre => eventos.push(nombre) },
+    posicionGlobal: () => [0, 0, 0],
+    ejesCamara: () => ({ f: { x: 0, z: -1 }, r: { x: 1, z: 0 } }),
+    errorAra: () => false,
+  };
+  const controles = Object.create(Controles3D.prototype);
+  controles.d3 = d3;
+  controles.activo = false;
+  controles.jugador = null;
+  controles.yaw = 0;
+  const personaje = {
+    props: { tactico: false, altura: 1.8, velocidad: 5, salto: 6, controles: 'tercera_persona', cambiar_vista: false },
+    enSuelo: true, vy: 0, _vx: 0, _vz: 0, _coyote: 0, _recordado: 0, _saltando: false,
+  };
+  const original = nucleo.movimiento3d.actualizar;
+  let llamadas = 0;
+  nucleo.movimiento3d.actualizar = (...args) => { llamadas++; return original(...args); };
+  try {
+    controles.moverJugador(personaje, 1 / 60);
+  } finally {
+    nucleo.movimiento3d.actualizar = original;
+  }
+  assert.equal(llamadas, 1);
+  assert.ok(personaje._vx > 0);
+  assert.equal(personaje._correr, true);
+  assert.equal(personaje.mueveX, personaje._vx);
+  assert.deepEqual(eventos, ['andar']);
 });
 
 test('el núcleo expone el controlador de movimiento escrito en Ara', () => {

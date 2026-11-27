@@ -3,6 +3,21 @@
 Estado del 21-11-2026, rama `motor-ara` (`6117105`). Las referencias `fichero:línea` son de ese commit.
 Lo marcado **Plan** no existe en el código. Plan y fases: [`REWRITE_ROADMAP.md`](REWRITE_ROADMAP.md).
 
+## Requisito arquitectónico obligatorio: Ara primero
+
+Falcon Engine debe tener el runtime y la lógica del motor implementados en **Ara** siempre que Ara pueda expresar la funcionalidad. Esta es una condición de aceptación del proyecto, no una preferencia ni una fase opcional.
+
+- **Ara es la fuente de verdad** del estado y de la simulación: escenas, nodos, física 2D/3D, animación, controles, IA, recursos y sistemas internos deben implementarse en Ara.
+- **JavaScript es una capa de adaptación**, no el núcleo. Solo se permite para interoperabilidad imprescindible con APIs de plataforma que Ara todavía no pueda invocar directamente: DOM, WebGL/WebGPU, Canvas, Web Audio, Electron/Node y APIs del navegador.
+- No se añadirá lógica central nueva en JavaScript por comodidad si Ara puede implementarla.
+- Cada módulo JavaScript que permanezca en el runtime deberá tener una justificación técnica explícita, una frontera pequeña y pruebas del contrato Ara↔JS.
+- Cuando Ara incorpore una capacidad que elimine una limitación, el adaptador JavaScript correspondiente deberá poder sustituirse sin rediseñar el motor.
+- Las pruebas WebGL validan el adaptador gráfico y el resultado de renderizado; por sí solas no demuestran que el motor esté implementado en Ara.
+
+**Estado actual honesto:** el repositorio todavía no cumple este requisito. La física 2D tiene un núcleo Ara, pero el árbol de escenas y buena parte del runtime, el render 2D/3D, la gestión de recursos, la entrada y el audio siguen dependiendo de JavaScript. Por tanto, no se debe presentar Falcon como un motor 100 % Ara todavía.
+
+**Criterio para las siguientes fases:** antes de ampliar optimizaciones sobre la arquitectura JavaScript actual, auditar cada subsistema del motor, clasificarlo como (1) lógica migrable a Ara o (2) adaptador de plataforma inevitable, y crear entregas incrementales para migrar la primera categoría. Mantener pruebas de equivalencia Ara/JS mientras exista un respaldo, y pruebas de integración reales para cada adaptador.
+
 ## Arquitectura actual
 
 ```

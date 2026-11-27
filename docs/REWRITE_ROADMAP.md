@@ -248,3 +248,15 @@ Reglas de la frontera:
     - los valores del Inspector y las Señales;
     - audio y temblor de cámara (hoy no hacen nada);
     - un error de script cierra el `.exe`; en Falcon desactiva ese `cuando` y el juego sigue.
+
+
+## Cámara 3D: colisión geométrica migrada a Ara (27-11-2026)
+
+- `src/motor/ara/espacio3d.ara` incorpora `rayo_camara` sobre el mismo conjunto de AABB que ya alimenta el núcleo:
+  - expande cada obstáculo 0,18 unidades, manteniendo el margen visual que tenía la cámara en Three.js;
+  - ignora las cajas que ya contienen el pivote, para evitar que una pared que engloba el punto de seguimiento fuerce una distancia falsa;
+  - calcula en Ara el primer impacto y la distancia limitada por el zoom solicitado.
+- `src/motor/nucleo-ara.js` y `src/motor/mundo3d.js` exponen esa operación como `distanciaCamaraAra`. `src/motor/control3d.js` ya no recorre los sólidos ni ejecuta el slab test durante el funcionamiento normal: consume la distancia calculada por Ara y aplica la posición final a Three.js. El recorrido geométrico JS queda únicamente como respaldo si Ara no está disponible o informa de un error.
+- `pruebas/espacio3d-ara.test.js` compara 600 rayos deterministas con Three.js, incluyendo pivotes dentro de obstáculos, márgenes, varios alcances y ausencia de impacto. Se mantiene la batería previa de rayos generales y A*.
+- Límite restante de cámara: Three.js sigue aplicando la posición/orientación final y renderizando; balanceo, golpe de aterrizaje, inclinación táctica, ADS y retroceso de primera persona siguen en JS.
+- La CI del commit `8f87f446365b3fc6e933045b6b4da078686fcbbc` compiló el núcleo Ara y superó `npm test`, `npm run test:actualizaciones` y la validación de paquetes. El workflow de push que regenera/verifica el WASM debe comprobar también el HEAD más reciente.

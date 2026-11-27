@@ -1,0 +1,193 @@
+# Solucionador de colisiones 3D de Falcon Engine.
+#
+# La escena, las transformaciones y la obtención de AABB pertenecen al adaptador Three.js.
+# La resolución de movimiento, escalones, gravedad, suelo, paredes, techo y contactos se ejecuta aquí.
+# Las cajas se entregan en coordenadas de mundo por fotograma y se reutilizan entre ejes.
+#
+# Convenciones: el personaje se representa con una caja vertical centrada en X/Z:
+# [x-radio, y, z-radio] .. [x+radio, y+altura, z+radio].
+# La intersección usa límites estrictos, igual que THREE.Box3.intersectsBox.
+
+clase Solucionador3D:
+    cantidad: entero
+    x0: lista[decimal] = []
+    y0: lista[decimal] = []
+    z0: lista[decimal] = []
+    x1: lista[decimal] = []
+    y1: lista[decimal] = []
+    z1: lista[decimal] = []
+    duenos: lista[entero] = []
+    cuerpos: lista[booleano] = []
+    moviles: lista[booleano] = []
+    contactos: lista[entero] = []
+    cantidad_contactos: entero
+    px: decimal
+    py: decimal
+    pz: decimal
+    vy: decimal
+    vx: decimal
+    vz: decimal
+    suelo: booleano
+    pared: booleano
+    techo: booleano
+
+    func crear(este):
+        este.cantidad = 0
+        este.cantidad_contactos = 0
+        este.suelo = falso
+        este.pared = falso
+        este.techo = falso
+
+    func empezar(este):
+        este.cantidad = 0
+        este.cantidad_contactos = 0
+
+    # Añade una AABB. dueno es el índice que el adaptador usa para recuperar el nodo.
+    func caja(este, min_x: decimal, min_y: decimal, min_z: decimal, max_x: decimal, max_y: decimal, max_z: decimal, dueno: entero, es_cuerpo: booleano, es_movil: booleano):
+        i = este.cantidad
+        si i < largo(este.x0):
+            este.x0[i] = min_x
+            este.y0[i] = min_y
+            este.z0[i] = min_z
+            este.x1[i] = max_x
+            este.y1[i] = max_y
+            este.z1[i] = max_z
+            este.duenos[i] = dueno
+            este.cuerpos[i] = es_cuerpo
+            este.moviles[i] = es_movil
+        sino:
+            agregar(este.x0, min_x)
+            agregar(este.y0, min_y)
+            agregar(este.z0, min_z)
+            agregar(este.x1, max_x)
+            agregar(este.y1, max_y)
+            agregar(este.z1, max_z)
+            agregar(este.duenos, dueno)
+            agregar(este.cuerpos, es_cuerpo)
+            agregar(este.moviles, es_movil)
+        este.cantidad += 1
+
+    func intersecta(este, min_x: decimal, min_y: decimal, min_z: decimal, max_x: decimal, max_y: decimal, max_z: decimal, i: entero) -> booleano:
+        devolver max_x > este.x0[i] y min_x < este.x1[i] y max_y > este.y0[i] y min_y < este.y1[i] y max_z > este.z0[i] y min_z < este.z1[i]
+
+    func anotar(este, dueno: entero):
+        para i en rango(este.cantidad_contactos):
+            si este.contactos[i] == dueno:
+                devolver
+        si este.cantidad_contactos < largo(este.contactos):
+            este.contactos[este.cantidad_contactos] = dueno
+        sino:
+            agregar(este.contactos, dueno)
+        este.cantidad_contactos += 1
+
+    # Resuelve un paso completo. dx/dz son velocidades, no desplazamientos.
+    func mover(este, x: decimal, y: decimal, z: decimal, radio: decimal, altura: decimal, altura_techo: decimal, velocidad_x: decimal, velocidad_z: decimal, impulso_x: decimal, impulso_z: decimal, amortiguacion: decimal, velocidad_y: decimal, usa_gravedad: booleano, gravedad: decimal, escala_gravedad: decimal, dt: decimal):
+        este.px = x
+        este.py = y
+        este.pz = z
+        este.vy = velocidad_y
+        este.vx = 0.0
+        este.vz = 0.0
+        este.suelo = falso
+        este.pared = falso
+        este.techo = falso
+        este.cantidad_contactos = 0
+
+        impulso_x *= amortiguacion
+        impulso_z *= amortiguacion
+        si abs(impulso_x) < 0.01:
+            impulso_x = 0.0
+        si abs(impulso_z) < 0.01:
+            impulso_z = 0.0
+
+        dx = (velocidad_x + impulso_x) * dt
+        si dx != 0.0 y dx == dx:
+            este.px += dx
+            para i en rango(este.cantidad):
+                si este.intersecta(este.px - radio, este.py + 0.05, este.pz - radio, este.px + radio, este.py + altura, este.pz + radio, i):
+                    si no este.moviles[i] y no este.cuerpos[i] y este.y1[i] - este.py < 0.35:
+                        este.py = este.y1[i]
+                        continuar
+                    si dx > 0.0:
+                        este.px = minimo(este.px, este.x0[i] - radio - 0.001)
+                    sino:
+                        este.px = maximo(este.px, este.x1[i] + radio + 0.001)
+                    este.pared = verdadero
+                    este.anotar(este.duenos[i])
+
+        dz = (velocidad_z + impulso_z) * dt
+        si dz != 0.0 y dz == dz:
+            este.pz += dz
+            para i en rango(este.cantidad):
+                si este.intersecta(este.px - radio, este.py + 0.05, este.pz - radio, este.px + radio, este.py + altura, este.pz + radio, i):
+                    si no este.moviles[i] y no este.cuerpos[i] y este.y1[i] - este.py < 0.35:
+                        este.py = este.y1[i]
+                        continuar
+                    si dz > 0.0:
+                        este.pz = minimo(este.pz, este.z0[i] - radio - 0.001)
+                    sino:
+                        este.pz = maximo(este.pz, este.z1[i] + radio + 0.001)
+                    este.pared = verdadero
+                    este.anotar(este.duenos[i])
+
+        vy_anterior = este.vy
+        si usa_gravedad:
+            este.vy -= gravedad * escala_gravedad * dt
+            este.vy = maximo(este.vy, -60.0)
+        dy = (vy_anterior + este.vy) * 0.5 * dt
+        y_inicial = este.py
+        este.py += dy
+        para i en rango(este.cantidad):
+            si este.cuerpos[i]:
+                continuar
+            si no este.intersecta(este.px - radio, este.py, este.pz - radio, este.px + radio, este.py + altura, este.pz + radio, i):
+                continuar
+            si dy <= 0.0 y y_inicial >= este.y1[i] - 0.36:
+                este.py = este.y1[i]
+                este.vy = 0.0
+                este.suelo = verdadero
+            sino si dy > 0.0 y y_inicial + altura_techo <= este.y0[i] + 0.05:
+                este.py = este.y0[i] - altura_techo
+                este.vy = 0.0
+                este.techo = verdadero
+            este.anotar(este.duenos[i])
+
+        si no usa_gravedad:
+            este.suelo = verdadero
+        si dt > 0.0:
+            este.vx = (este.px - x) / dt
+            este.vz = (este.pz - z) / dt
+
+    func resultado_x(este) -> decimal:
+        devolver este.px
+
+    func resultado_y(este) -> decimal:
+        devolver este.py
+
+    func resultado_z(este) -> decimal:
+        devolver este.pz
+
+    func resultado_vy(este) -> decimal:
+        devolver este.vy
+
+    func resultado_vx(este) -> decimal:
+        devolver este.vx
+
+    func resultado_vz(este) -> decimal:
+        devolver este.vz
+
+    func banderas(este) -> entero:
+        b = 0
+        si este.suelo:
+            b += 1
+        si este.pared:
+            b += 2
+        si este.techo:
+            b += 4
+        devolver b
+
+    func cantidad_de_contactos(este) -> entero:
+        devolver este.cantidad_contactos
+
+    func contacto(este, i: entero) -> entero:
+        devolver este.contactos[i]

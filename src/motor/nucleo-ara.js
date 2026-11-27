@@ -75,6 +75,7 @@ function fisica3d(E, B) {
   const empezar = f('empezar'), caja = f('caja'), mover = f('mover');
   const rx = f('r_x'), ry = f('r_y'), rz = f('r_z');
   const rvx = f('r_vx'), rvy = f('r_vy'), rvz = f('r_vz');
+  const rempx = f('r_emp_x'), rempz = f('r_emp_z');
   const banderas = f('r_banderas'), contactos = f('r_contactos'), contacto = f('contacto');
   return {
     empezar: () => empezar(),
@@ -84,6 +85,7 @@ function fisica3d(E, B) {
       mover(x, y, z, radio, altura, alturaTecho, vx, vz, empX, empZ, amort, vy, usaGravedad, gravedad, escalaGravedad, dt),
     x: () => rx(), y: () => ry(), z: () => rz(),
     vx: () => rvx(), vy: () => rvy(), vz: () => rvz(),
+    empX: () => rempx(), empZ: () => rempz(),
     banderas: () => Number(banderas()),
     contactos: () => Number(contactos()),
     contacto: (i) => Number(contacto(B(i))),

@@ -187,7 +187,7 @@ export class Mundo3D {
     const minX = Math.min(pos[0], pos[0] + dx) - radio;
     const maxX = Math.max(pos[0], pos[0] + dx) + radio;
     const minY = Math.min(pos[1], pos[1] + dy) - 0.05;
-    const maxY = Math.max(pos[1], pos[1] + dy) + altura + 0.35;
+    const maxY = Math.max(pos[1], pos[1] + dy) + altura + 0.36;
     const minZ = Math.min(pos[2], pos[2] + dz) - radio;
     const maxZ = Math.max(pos[2], pos[2] + dz) + radio;
     return solidos.some(s => s.movil &&

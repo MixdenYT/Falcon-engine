@@ -13,6 +13,8 @@ const caja = (x0, y0, z0, x1, y1, z1, dueno, cuerpo = false, movil = false) => (
 function preparar(solidos) {
   F.empezar();
   for (const s of solidos) F.caja(s.x0, s.y0, s.z0, s.x1, s.y1, s.z1, s.dueno, s.cuerpo, s.movil);
+  F.preparar();
+  F.empezarPersonaje();
 }
 
 function ara(solidos, p) {

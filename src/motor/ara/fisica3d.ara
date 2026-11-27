@@ -22,6 +22,10 @@ estructura Solucionador3D:
     moviles: lista[booleano]
     contactos: lista[entero]
     cantidad_contactos: entero
+    cantidad_empujados: entero
+    empujados: lista[entero]
+    empuje_x: lista[decimal]
+    empuje_z: lista[decimal]
     cuerpo_apoyado: booleano
     cuerpo_desplazamiento: decimal
     px: decimal
@@ -40,6 +44,7 @@ estructura Solucionador3D:
         este.cantidad = 0
         este.cantidad_estatica = 0
         este.cantidad_contactos = 0
+        este.cantidad_empujados = 0
         este.cuerpo_apoyado = falso
         este.cuerpo_desplazamiento = 0.0
         este.px = 0.0
@@ -58,6 +63,7 @@ estructura Solucionador3D:
         este.cantidad = 0
         este.cantidad_estatica = 0
         este.cantidad_contactos = 0
+        este.cantidad_empujados = 0
 
     # Marca las AABB estáticas ya cargadas. Se conservan mientras se resuelven todos los personajes del paso.
     func preparar(este):
@@ -67,6 +73,7 @@ estructura Solucionador3D:
     func empezar_personaje(este):
         este.cantidad = este.cantidad_estatica
         este.cantidad_contactos = 0
+        este.cantidad_empujados = 0
 
     # Añade una AABB. dueno es el índice que el adaptador usa para recuperar el nodo.
     func caja(este, min_x: decimal, min_y: decimal, min_z: decimal, max_x: decimal, max_y: decimal, max_z: decimal, dueno: entero, es_cuerpo: booleano, es_movil: booleano):
@@ -105,6 +112,34 @@ estructura Solucionador3D:
         sino:
             agregar(este.contactos, dueno)
         este.cantidad_contactos += 1
+
+    func registrar_empuje(este, dueno: entero, dx: decimal, dz: decimal):
+        para i en rango(este.cantidad_empujados):
+            si este.empujados[i] == dueno:
+                este.empuje_x[i] += dx
+                este.empuje_z[i] += dz
+                devolver
+        si este.cantidad_empujados < largo(este.empujados):
+            este.empujados[este.cantidad_empujados] = dueno
+            este.empuje_x[este.cantidad_empujados] = dx
+            este.empuje_z[este.cantidad_empujados] = dz
+        sino:
+            agregar(este.empujados, dueno)
+            agregar(este.empuje_x, dx)
+            agregar(este.empuje_z, dz)
+        este.cantidad_empujados += 1
+
+    func cantidad_de_empujados(este) -> entero:
+        devolver este.cantidad_empujados
+
+    func empujado_dueno(este, i: entero) -> entero:
+        devolver este.empujados[i]
+
+    func empujado_x(este, i: entero) -> decimal:
+        devolver este.empuje_x[i]
+
+    func empujado_z(este, i: entero) -> decimal:
+        devolver este.empuje_z[i]
 
     # Resuelve un paso completo. dx/dz son velocidades, no desplazamientos.
     func mover(este, x: decimal, y_: decimal, z: decimal, radio: decimal, altura: decimal, altura_techo: decimal, velocidad_x: decimal, velocidad_z: decimal, impulso_x: decimal, impulso_z: decimal, amortiguacion: decimal, velocidad_y: decimal, usa_gravedad: booleano, gravedad: decimal, escala_gravedad: decimal, dt: decimal):

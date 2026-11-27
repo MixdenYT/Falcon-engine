@@ -9,14 +9,13 @@ Rama de trabajo actual: `codex/fisica3d-ara` en `MixdenYT/Falcon-engine`. Los ca
 Esta sección prevalece sobre el estado de «solo commits locales» y el informe de continuidad del 21-11.
 
 - Rama: `codex/fisica3d-ara` (Falcon Engine); `main` no se ha modificado.
-- `src/motor/ara/fisica3d.ara`: nuevo `Solucionador3D` en Ara. Recibe AABB ya calculadas por la capa de escena y resuelve movimiento X/Z, escalones bajos, amortiguación de impulsos, gravedad, colisiones verticales, banderas de suelo/pared/techo y lista de contactos.
-- `src/motor/ara/nucleo.ara` y `src/motor/nucleo-ara.js`: envoltura pequeña para exponer el solucionador al runtime.
-- `src/motor/mundo3d.js`: usa Ara para personajes cuando los sólidos son estáticos. Si hay cuerpos empujables, conserva el camino JS anterior para no cambiar el comportamiento de empuje hasta migrar también su dinámica.
-- `pruebas/fisica3d-ara.test.js`: pruebas deterministas de pared, suelo, techo, escalones, impulsos, cuerpos y 500 escenarios AABB aleatorios comparados con una referencia JS; también verifica la integración real de `Mundo3D` y el respaldo de cuerpos empujables.
-- `src/motor/ara/nucleo.wasm`: regenerado desde las fuentes Ara en CI. `node herramientas/compilar-nucleo-ara.mjs --comprobar` confirma que está al día.
-- CI del 27-11: compilación del núcleo, pruebas completas `npm test` y `npm run test:actualizaciones` superadas en la rama.
-
-**Límites todavía explícitos:** Three.js sigue calculando las cajas de mundo y transformaciones de escena; las AABB estáticas se envían una vez por lista de sólidos y se reutilizan entre personajes. La cámara, la dinámica de cuerpos empujables que sí entran en el recorrido del personaje y el renderizado no se han migrado. No se afirma que toda la física 3D esté ya en Ara.
+- `src/motor/ara/fisica3d.ara`: el `Solucionador3D` en Ara resuelve movimiento de personajes (X/Z, escalones, impulsos, gravedad y contactos) y ahora también la caída vertical de cuerpos empujables, la detección de apoyo y la corrección de su desplazamiento al aterrizar.
+- `src/motor/ara/nucleo.ara` y `src/motor/nucleo-ara.js`: exponen las operaciones de resolución de cuerpos y la sincronización de sus AABB móviles.
+- `src/motor/mundo3d.js`: envía las AABB de sólidos y cuerpos a Ara para resolver la gravedad y el apoyo de los objetos empujables. Las cajas móviles se actualizan en Ara tras cada resolución para que los cuerpos procesados después vean la posición nueva. Si el núcleo falla, se conserva el algoritmo JS anterior como recuperación.
+- `pruebas/fisica3d-ara.test.js`: mantiene las pruebas deterministas de pared, suelo, techo, escalones, impulsos y 500 escenarios aleatorios comparados con JS; añade una prueba específica de caída, apoyo y desplazamiento de cuerpos empujables.
+- CI run 43 del 27-11-2026: compilación Ara, comprobación de `nucleo.wasm`, `npm test` y `npm run test:actualizaciones` superadas. El workflow regeneró y guardó el WebAssembly en la rama.
+ 
+**Límites todavía explícitos:** la detección de cuerpos empujables en la trayectoria del personaje y el empuje horizontal siguen usando el camino JS; Three.js sigue calculando las AABB y las transformaciones de escena. La cámara y el renderizado tampoco se han migrado. Por tanto, la física 3D aún no está completamente en Ara.
 
 ## Cómo se trabaja
 

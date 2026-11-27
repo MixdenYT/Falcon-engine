@@ -306,5 +306,5 @@ test('Ara empuja cuerpos móviles y bloquea el empuje si no hay espacio', () => 
   F.empezarPersonaje();
   F.mover(0, 0, 0, 0.38, 1.8, 1.8, 5, 0, 0, 0, 1, 0, false, 18, 1, 0.1);
   assert.equal(F.empujados(), 0, 'no se mueve el cuerpo contra una pared');
-  assert.equal(F.x(), 0.019);
+  assert.ok(Math.abs(F.x() - 0.019) < 1e-12);
 });

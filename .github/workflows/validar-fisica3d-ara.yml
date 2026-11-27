@@ -4,12 +4,13 @@ on:
   push:
     branches:
       - codex/fisica3d-ara
+      - codex/control3d-ara
 
 permissions:
   contents: write
 
 concurrency:
-  group: fisica3d-ara-${{ github.ref }}
+  group: falcon-ara-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:

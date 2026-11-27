@@ -148,14 +148,14 @@ clase Fisica3D extiende Nucleo:
 clase Camara3D extiende Nucleo:
     c = ControlCamara3D()
 
-    func iniciar(yaw: decimal, pitch: decimal, x: decimal, y: decimal, z: decimal, distancia: decimal):
-        c.iniciar(yaw, pitch, x, y, z, distancia)
+    func iniciar(yaw: decimal, pitch: decimal, x: decimal, centro_y: decimal, z: decimal, distancia: decimal):
+        c.iniciar(yaw, pitch, x, centro_y, z, distancia)
 
     func entrada(mx: decimal, my: decimal, sx: decimal, sy: decimal, sensibilidad: decimal, inversion: decimal, dt: decimal, primera_persona: booleano):
         c.entrada(mx, my, sx, sy, sensibilidad, inversion, dt, primera_persona)
 
-    func seguir_pivote(x: decimal, y: decimal, z: decimal, dt: decimal):
-        c.seguir_pivote(x, y, z, dt)
+    func seguir_pivote(x: decimal, centro_y: decimal, z: decimal, dt: decimal):
+        c.seguir_pivote(x, centro_y, z, dt)
 
     func seguir_yaw(vx: decimal, vz: decimal, velocidad: decimal, velocidad_base: decimal, dt: decimal):
         c.seguir_yaw(vx, vz, velocidad, velocidad_base, dt)

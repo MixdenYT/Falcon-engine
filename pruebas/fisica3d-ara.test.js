@@ -196,22 +196,56 @@ test('Mundo3D carga las cajas estáticas una vez y limpia los cuerpos entre pers
   }
 });
 
-test('Mundo3D conserva el respaldo JS cuando hay cuerpos empujables', () => {
+test('Mundo3D usa Ara para empujar cuerpos móviles y los bloquea contra obstáculos', () => {
+  const caja3 = (x0, x1) => ({
+    min: { x: x0, y: 0, z: 0 }, max: { x: x1, y: 1, z: 1 },
+    translate(v) {
+      this.min.x += v.x; this.max.x += v.x;
+      this.min.y += v.y; this.max.y += v.y;
+      this.min.z += v.z; this.max.z += v.z;
+      return this;
+    },
+  });
+  const personaje = () => ({
+    tipo: 'Personaje3D',
+    props: { tactico: false, altura: 1.8, usa_gravedad: false },
+    grupos: new Set(), mueveX: 10, mueveZ: 0, empX: 0, empZ: 0, vy: 0,
+    _contactosSolidos: new Set(),
+  });
   const d = Object.create(Mundo3D.prototype);
   d.m = { nucleo };
-  const personaje = {
-    props: { tactico: false, altura: 1.8, usa_gravedad: true, gravedad: 18 },
-    grupos: new Set(), mueveX: 0, mueveZ: 0, empX: 0, empZ: 0, vy: 0,
-  };
+  const jugador = personaje();
+  const movil = { props: { posicion: [0, 0, 0] } };
+  const cajaMovil = caja3(0.2, 1.2);
   const pos = [0, 0, 0];
   const usado = d.resolverFisicaPersonajeAra(
-    personaje, pos, 1 / 60, 1, [personaje],
-    [{ n: {}, movil: true, b: { min: { x: 0.2, y: 0, z: 0 }, max: { x: 1.2, y: 1, z: 1 } } }],
+    jugador, pos, 0.1, 1, [jugador],
+    [{ n: movil, movil: true, b: cajaMovil }],
   );
-  assert.equal(usado, false);
-  assert.deepEqual(pos, [0, 0, 0]);
-});
+  assert.equal(usado, true);
+  assert.equal(pos[0], 1);
+  assert.equal(movil.props.posicion[0], 1);
+  assert.equal(cajaMovil.min.x, 1.2);
+  assert.deepEqual([...jugador._contactosSolidos], [movil]);
 
+  const bloqueado = Object.create(Mundo3D.prototype);
+  bloqueado.m = { nucleo };
+  const otroJugador = personaje();
+  const otroMovil = { props: { posicion: [0, 0, 0] } };
+  const cajaBloqueada = caja3(0.2, 1.2);
+  const pared = { nombre: 'Pared' };
+  const posBloqueada = [0, 0, 0];
+  const usadoConPared = bloqueado.resolverFisicaPersonajeAra(
+    otroJugador, posBloqueada, 0.1, 1, [otroJugador],
+    [
+      { n: otroMovil, movil: true, b: cajaBloqueada },
+      { n: pared, movil: false, b: caja3(1.3, 2.3) },
+    ],
+  );
+  assert.equal(usadoConPared, true);
+  assert.equal(otroMovil.props.posicion[0], 0);
+  assert.ok(posBloqueada[0] < 0, 'el personaje se detiene antes del cuerpo que no puede empujar');
+});
 
 test('un cuerpo empujable lejano no desactiva el solucionador Ara', () => {
   const d = Object.create(Mundo3D.prototype);

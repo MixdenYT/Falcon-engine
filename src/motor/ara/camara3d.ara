@@ -17,11 +17,11 @@ estructura ControlCamara3D:
         este.pz = 0.0
         este.distancia = 5.0
 
-    func iniciar(este, yaw: decimal, pitch: decimal, x: decimal, y: decimal, z: decimal, distancia: decimal):
+    func iniciar(este, yaw: decimal, pitch: decimal, x: decimal, centro_y: decimal, z: decimal, distancia: decimal):
         este.yaw = yaw
         este.pitch = pitch
         este.px = x
-        este.py = y
+        este.py = centro_y
         este.pz = z
         este.distancia = distancia
 
@@ -36,19 +36,19 @@ estructura ControlCamara3D:
             este.pitch = maximo(-0.35, minimo(1.25, este.pitch + dp))
 
     # Seguimiento exponencial desacoplado en horizontal y vertical.
-    func seguir_pivote(este, tx: decimal, ty: decimal, tz: decimal, dt: decimal):
+    func seguir_pivote(este, tx: decimal, centro_y: decimal, tz: decimal, dt: decimal):
         dx = tx - este.px
-        dy = ty - este.py
+        dy = centro_y - este.py
         dz = tz - este.pz
         si raiz(dx * dx + dy * dy + dz * dz) > 6.0:
             este.px = tx
-            este.py = ty
+            este.py = centro_y
             este.pz = tz
         kh = 1.0 - exp(0.0 - dt * 16.0)
         kv = 1.0 - exp(0.0 - dt * 8.0)
         este.px += (tx - este.px) * kh
         este.pz += (tz - este.pz) * kh
-        este.py += (ty - este.py) * kv
+        este.py += (centro_y - este.py) * kv
 
     # Si el jugador avanza con teclado, la cámara vuelve suavemente detrás de él.
     func seguir_yaw(este, vx: decimal, vz: decimal, velocidad: decimal, velocidad_base: decimal, dt: decimal):

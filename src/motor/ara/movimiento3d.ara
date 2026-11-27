@@ -1,0 +1,167 @@
+# Controlador de movimiento para Personaje3D.
+# Entrada y efectos de escena se muestrean en JS; la normalización, velocidad,
+# aceleración, salto, coyote-time, salto recordado y altura se calculan en Ara.
+
+estructura ControladorMovimiento3D:
+    vx: decimal
+    vz: decimal
+    vy: decimal
+    mueve_x: decimal
+    mueve_z: decimal
+    coyote: decimal
+    recordado: decimal
+    altura_colision: decimal
+    saltando: booleano
+    correr: booleano
+    suelo: booleano
+    banderas_resultado: entero
+
+    func crear(este):
+        este.vx = 0.0
+        este.vz = 0.0
+        este.vy = 0.0
+        este.mueve_x = 0.0
+        este.mueve_z = 0.0
+        este.coyote = 0.0
+        este.recordado = 0.0
+        este.altura_colision = 1.8
+        este.saltando = falso
+        este.correr = falso
+        este.suelo = verdadero
+        este.banderas_resultado = 0
+
+    func actualizar(este, eje_x: decimal, eje_z: decimal, velocidad_base: decimal, dt: decimal, tactico: booleano, agachado: booleano, lento: booleano, apuntando: booleano, tecla_correr: booleano, muerto: booleano, suelo_actual: booleano, yaw_activo: booleano, yaw: decimal, adelante_x: decimal, adelante_z: decimal, derecha_x: decimal, derecha_z: decimal, velocidad_x: decimal, velocidad_z: decimal, velocidad_y: decimal, coyote_actual: decimal, recordado_actual: decimal, saltando_actual: booleano, pulsa_saltar: booleano, mantiene_saltar: booleano, velocidad_salto: decimal, altura_actual: decimal, altura_objetivo: decimal):
+        x = eje_x
+        z = eje_z
+        longitud = raiz(x * x + z * z)
+        si longitud > 1.0:
+            x /= longitud
+            z /= longitud
+
+        este.correr = tecla_correr y longitud > 0.1 y (no tactico o no agachado y no apuntando y no lento)
+        velocidad = 0.0
+        si no muerto:
+            si tactico:
+                si agachado:
+                    velocidad = 1.05
+                sino si lento:
+                    velocidad = 1.1
+                sino si apuntando:
+                    velocidad = 1.35
+                sino si este.correr:
+                    velocidad = 3.2
+                sino:
+                    velocidad = 2.2
+            sino:
+                velocidad = velocidad_base
+                si este.correr:
+                    velocidad *= 1.7
+
+        si yaw_activo:
+            s = sen(yaw)
+            c = cos(yaw)
+            objetivo_x = (c * x + s * z) * velocidad
+            objetivo_z = (0.0 - s * x + c * z) * velocidad
+        sino:
+            objetivo_x = (derecha_x * x - adelante_x * z) * velocidad
+            objetivo_z = (derecha_z * x - adelante_z * z) * velocidad
+
+        tasa = 0.0
+        si tactico:
+            si longitud > 0.05:
+                tasa = 32.0
+            sino:
+                tasa = 42.0
+        sino si suelo_actual:
+            si longitud > 0.05:
+                tasa = 14.0
+            sino:
+                tasa = 20.0
+        sino:
+            si longitud > 0.05:
+                tasa = 4.0
+            sino:
+                tasa = 1.2
+
+        k = 1.0 - potencia(2.718281828459045, 0.0 - tasa * dt)
+        este.vx = velocidad_x + (objetivo_x - velocidad_x) * k
+        este.vz = velocidad_z + (objetivo_z - velocidad_z) * k
+        si abs(este.vx) < 0.01 y objetivo_x == 0.0:
+            este.vx = 0.0
+        si abs(este.vz) < 0.01 y objetivo_z == 0.0:
+            este.vz = 0.0
+        este.mueve_x = este.vx
+        este.mueve_z = este.vz
+
+        si suelo_actual:
+            este.coyote = 0.12
+        sino:
+            este.coyote = maximo(0.0, coyote_actual - dt)
+        si pulsa_saltar:
+            este.recordado = 0.14
+        sino:
+            este.recordado = maximo(0.0, recordado_actual - dt)
+
+        este.vy = velocidad_y
+        este.suelo = suelo_actual
+        este.saltando = saltando_actual
+        salto_evento = falso
+        si no tactico y este.recordado > 0.0 y este.coyote > 0.0:
+            este.vy = velocidad_salto
+            este.suelo = falso
+            este.coyote = 0.0
+            este.recordado = 0.0
+            este.saltando = verdadero
+            salto_evento = verdadero
+        si este.saltando y no mantiene_saltar y este.vy > 0.0:
+            este.vy *= 0.55
+            este.saltando = falso
+        si este.vy <= 0.0:
+            este.saltando = falso
+
+        diferencia_altura = altura_objetivo - altura_actual
+        paso_altura = dt * 4.5
+        este.altura_colision = altura_actual
+        si diferencia_altura > 0.0:
+            este.altura_colision += minimo(diferencia_altura, paso_altura)
+        sino si diferencia_altura < 0.0:
+            este.altura_colision -= minimo(abs(diferencia_altura), paso_altura)
+
+        este.banderas_resultado = 0
+        si este.correr:
+            este.banderas_resultado += 1
+        si este.saltando:
+            este.banderas_resultado += 2
+        si este.suelo:
+            este.banderas_resultado += 4
+        si longitud > 0.1:
+            este.banderas_resultado += 8
+        si salto_evento:
+            este.banderas_resultado += 16
+
+    func resultado_vx(este) -> decimal:
+        devolver este.vx
+
+    func resultado_vz(este) -> decimal:
+        devolver este.vz
+
+    func resultado_vy(este) -> decimal:
+        devolver este.vy
+
+    func resultado_mueve_x(este) -> decimal:
+        devolver este.mueve_x
+
+    func resultado_mueve_z(este) -> decimal:
+        devolver este.mueve_z
+
+    func resultado_coyote(este) -> decimal:
+        devolver este.coyote
+
+    func resultado_recordado(este) -> decimal:
+        devolver este.recordado
+
+    func resultado_altura(este) -> decimal:
+        devolver este.altura_colision
+
+    func banderas(este) -> entero:
+        devolver este.banderas_resultado

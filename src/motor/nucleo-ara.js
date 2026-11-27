@@ -47,6 +47,7 @@ async function crear() {
     },
     espacio3d: espacio3d(E, B),
     fisica3d: fisica3d(E, B),
+    camara3d: camara3d(E),
     /** El error pendiente de Ara (`{ mensaje }`) o null; lo borra. */
     error() { const e = ara.error(); if (e) ara.limpiarError(); return e; },
   };
@@ -101,5 +102,26 @@ function fisica3d(E, B) {
     banderas: () => Number(banderas()),
     contactos: () => Number(contactos()),
     contacto: (i) => Number(contacto(B(i))),
+  };
+}
+
+
+// La cámara no conoce Three.js: Ara calcula ángulos, seguimiento y suavizado.
+function camara3d(E) {
+  const yo = E['Camara3D.crear'](0);
+  const f = (nombre) => E['Camara3D.func.' + nombre].bind(null, yo);
+  const iniciar = f('iniciar'), entrada = f('entrada'), pivote = f('seguir_pivote');
+  const yaw = f('seguir_yaw'), distancia = f('seguir_distancia');
+  const rYaw = f('yaw'), rPitch = f('pitch');
+  const px = f('pivote_x'), py = f('pivote_y'), pz = f('pivote_z'), rDistancia = f('distancia');
+  return {
+    iniciar: (y, p, x, py0, z, d) => iniciar(y, p, x, py0, z, d),
+    entrada: (mx, my, sx, sy, sens, inv, dt, fp) => entrada(mx, my, sx, sy, sens, inv, dt, fp),
+    seguirPivote: (x, y, z, dt) => pivote(x, y, z, dt),
+    seguirYaw: (vx, vz, velocidad, base, dt) => yaw(vx, vz, velocidad, base, dt),
+    seguirDistancia: (libre, dt) => distancia(libre, dt),
+    yaw: () => rYaw(), pitch: () => rPitch(),
+    pivote: () => [px(), py(), pz()],
+    distancia: () => rDistancia(),
   };
 }

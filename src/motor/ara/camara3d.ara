@@ -67,7 +67,10 @@ estructura ControlCamara3D:
     # Suaviza el zoom y la aproximación por obstáculos; la entrada de colisión ya viene resuelta.
     func seguir_distancia(este, libre: decimal, dt: decimal):
         libre = maximo(0.3, libre)
-        k = 1.0 - exp(0.0 - dt * (30.0 si libre < este.distancia sino 3.5))
+        rapidez = 3.5
+        si libre < este.distancia:
+            rapidez = 30.0
+        k = 1.0 - exp(0.0 - dt * rapidez)
         este.distancia += (libre - este.distancia) * k
 
     func resultado_yaw(este) -> decimal:

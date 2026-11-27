@@ -233,3 +233,21 @@ test('el núcleo expone la física 3D escrita en Ara', () => {
   assert.equal(typeof nucleo.fisica3d.mover, 'function');
   assert.equal(typeof nucleo.fisica3d.caja, 'function');
 });
+
+test('Ara resuelve la caída de cuerpos empujables y detecta el apoyo', () => {
+  F.empezar();
+  F.caja(-2, 0, -2, 2, 1, 2, 41, false, false);
+  F.caja(-0.5, 2, -0.5, 0.5, 3, 0.5, 42, false, true);
+  const dy = F.resolverCuerpo(42, -0.5, 2, -0.5, 0.5, 3, 0.5, -1.5);
+  assert.equal(dy, -1);
+  assert.equal(F.cuerpoTieneApoyo(), true);
+  F.desplazarCuerpo(42, dy);
+
+  // Una caída que no alcanza ninguna superficie conserva su desplazamiento.
+  F.empezar();
+  F.caja(-2, 0, -2, 2, 1, 2, 41, false, false);
+  F.caja(8, 4, 8, 9, 5, 9, 43, false, true);
+  const libre = F.resolverCuerpo(43, 8, 4, 8, 9, 5, 9, -0.25);
+  assert.equal(libre, -0.25);
+  assert.equal(F.cuerpoTieneApoyo(), false);
+});

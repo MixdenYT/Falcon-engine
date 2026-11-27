@@ -10,16 +10,16 @@
 
 estructura Solucionador3D:
     cantidad: entero
-    x0: lista[decimal] = []
-    y0: lista[decimal] = []
-    z0: lista[decimal] = []
-    x1: lista[decimal] = []
-    y1: lista[decimal] = []
-    z1: lista[decimal] = []
-    duenos: lista[entero] = []
-    cuerpos: lista[booleano] = []
-    moviles: lista[booleano] = []
-    contactos: lista[entero] = []
+    x0: lista[decimal]
+    y0: lista[decimal]
+    z0: lista[decimal]
+    x1: lista[decimal]
+    y1: lista[decimal]
+    z1: lista[decimal]
+    duenos: lista[entero]
+    cuerpos: lista[booleano]
+    moviles: lista[booleano]
+    contactos: lista[entero]
     cantidad_contactos: entero
     px: decimal
     py: decimal

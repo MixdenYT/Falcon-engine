@@ -147,8 +147,8 @@ export class Mundo3D {
     return new THREE.Box3(new THREE.Vector3(pos[0] - r, pos[1], pos[2] - r), new THREE.Vector3(pos[0] + r, pos[1] + h, pos[2] + r));
   }
 
-  // Las cajas estáticas se cargan una vez por lista de sólidos y se reutilizan para
-  // todos los personajes del paso. El núcleo compartido detecta cambios de mundo/propietario.
+  // Las AABB estáticas y móviles se cargan una vez por lista de sólidos y se reutilizan
+  // para todos los personajes del paso. El núcleo compartido detecta cambios de mundo/propietario.
   prepararFisicaAra(solidos) {
     const F = this.m.nucleo?.fisica3d;
     if (!F || !F.preparar || !F.empezarPersonaje) return null;
@@ -170,8 +170,8 @@ export class Mundo3D {
     return F;
   }
 
-  // La escena entrega las AABB; Ara resuelve el movimiento. Los cuerpos empujables
-  // cercanos conservan temporalmente la ruta JS para sincronizar su transformada.
+  // La escena entrega las AABB; Ara resuelve el movimiento y el empuje. El adaptador
+  // solo sincroniza en los nodos las transformaciones que devuelve el núcleo.
   resolverFisicaPersonajeAra(n, pos, dt, escalaG, nodos, solidos) {
     const F = this.prepararFisicaAra(solidos);
     if (!F) return false;

@@ -365,3 +365,6 @@ estructura ControladorCamara3D:
 
     func resultado_ocultar(este) -> booleano:
         devolver este.ocultar
+
+    func resultado_deseada(este) -> decimal:
+        devolver este.deseada

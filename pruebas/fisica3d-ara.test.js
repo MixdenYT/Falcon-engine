@@ -145,7 +145,7 @@ test('Mundo3D usa Ara para resolver la física y conserva el mapeo de contactos'
   const pared = { nombre: 'Pared' };
   const personaje = {
     props: { tactico: false, altura: 1.8, usa_gravedad: true, gravedad: 18 },
-    grupos: new Set(), mueveX: 10, mueveZ: 0, empX: 0, empZ: 0, vy: 0,
+    grupos: new Set(), mueveX: 10, mueveZ: 0, empX: 0, empZ: 0, vy: 0, _contactosSolidos: new Set(),
   };
   const pos = [0, 0, 0];
   const usado = d.resolverFisicaPersonajeAra(

@@ -77,6 +77,12 @@ clase Fisica3D extiende Nucleo:
     func empezar():
         f.empezar()
 
+    func preparar():
+        f.preparar()
+
+    func empezar_personaje():
+        f.empezar_personaje()
+
     func caja(x0: decimal, y0: decimal, z0: decimal, x1: decimal, y1: decimal, z1: decimal, dueno: entero, cuerpo: booleano, movil: booleano):
         f.caja(x0, y0, z0, x1, y1, z1, dueno, cuerpo, movil)
 

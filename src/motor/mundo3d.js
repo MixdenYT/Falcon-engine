@@ -147,28 +147,43 @@ export class Mundo3D {
     return new THREE.Box3(new THREE.Vector3(pos[0] - r, pos[1], pos[2] - r), new THREE.Vector3(pos[0] + r, pos[1] + h, pos[2] + r));
   }
 
+  // Las cajas estáticas se cargan una vez por lista de sólidos y se reutilizan para
+  // todos los personajes del paso. El núcleo compartido detecta cambios de mundo/propietario.
+  prepararFisicaAra(solidos) {
+    const F = this.m.nucleo?.fisica3d;
+    if (!F || !F.preparar || !F.empezarPersonaje || solidos.some(s => s.movil)) return null;
+    if (F.dueno !== this || F.solidos !== solidos) {
+      F.dueno = this;
+      F.solidos = solidos;
+      F.empezar();
+      const duenos = [];
+      const indices = new Map();
+      for (const s of solidos) {
+        let i = indices.get(s.n);
+        if (i === undefined) { i = duenos.length; indices.set(s.n, i); duenos.push(s.n); }
+        const b = s.b;
+        F.caja(b.min.x, b.min.y, b.min.z, b.max.x, b.max.y, b.max.z, i, false, false);
+      }
+      F.preparar();
+      this._duenosFisicaAra = duenos;
+    }
+    return F;
+  }
+
   // La escena entrega las AABB; Ara resuelve el movimiento. Los cuerpos empujables
   // conservan temporalmente la ruta JS porque también requieren sincronizar su transformada.
   resolverFisicaPersonajeAra(n, pos, dt, escalaG, nodos, solidos) {
-    const F = this.m.nucleo?.fisica3d;
-    if (!F || solidos.some(s => s.movil)) return false;
-    F.empezar();
-    const duenos = [];
-    const indices = new Map();
-    const indice = (nodo) => {
-      let i = indices.get(nodo);
-      if (i === undefined) { i = duenos.length; indices.set(nodo, i); duenos.push(nodo); }
-      return i;
-    };
-    for (const s of solidos) {
-      const b = s.b;
-      F.caja(b.min.x, b.min.y, b.min.z, b.max.x, b.max.y, b.max.z, indice(s.n), false, false);
-    }
+    const F = this.prepararFisicaAra(solidos);
+    if (!F) return false;
+    F.empezarPersonaje();
+    const duenos = this._duenosFisicaAra.slice();
     if (n.props.tactico || n.grupos.has('enemigos_cqb')) {
       for (const otro of nodos) {
         if (otro === n || otro.tipo !== 'Personaje3D' || otro._muerto) continue;
         const b = this.cajaPersonaje(otro, this.posicionGlobal(otro));
-        F.caja(b.min.x, b.min.y, b.min.z, b.max.x, b.max.y, b.max.z, indice(otro), true, false);
+        const indice = duenos.length;
+        duenos.push(otro);
+        F.caja(b.min.x, b.min.y, b.min.z, b.max.x, b.max.y, b.max.z, indice, true, false);
       }
     }
     const radio = n.props.tactico ? 0.42 : 0.38;

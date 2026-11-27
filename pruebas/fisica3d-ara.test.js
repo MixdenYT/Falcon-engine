@@ -206,9 +206,26 @@ test('Mundo3D conserva el respaldo JS cuando hay cuerpos empujables', () => {
   const pos = [0, 0, 0];
   const usado = d.resolverFisicaPersonajeAra(
     personaje, pos, 1 / 60, 1, [personaje],
-    [{ n: {}, movil: true, b: { min: { x: 1, y: 0, z: 0 }, max: { x: 2, y: 1, z: 1 } } }],
+    [{ n: {}, movil: true, b: { min: { x: 0.2, y: 0, z: 0 }, max: { x: 1.2, y: 1, z: 1 } } }],
   );
   assert.equal(usado, false);
+  assert.deepEqual(pos, [0, 0, 0]);
+});
+
+
+test('un cuerpo empujable lejano no desactiva el solucionador Ara', () => {
+  const d = Object.create(Mundo3D.prototype);
+  d.m = { nucleo };
+  const personaje = {
+    props: { tactico: false, altura: 1.8, usa_gravedad: false },
+    grupos: new Set(), mueveX: 0, mueveZ: 0, empX: 0, empZ: 0, vy: 0, _contactosSolidos: new Set(),
+  };
+  const pos = [0, 0, 0];
+  const usado = d.resolverFisicaPersonajeAra(
+    personaje, pos, 1 / 60, 1, [personaje],
+    [{ n: {}, movil: true, b: { min: { x: 8, y: 0, z: 8 }, max: { x: 9, y: 1, z: 9 } } }],
+  );
+  assert.equal(usado, true);
   assert.deepEqual(pos, [0, 0, 0]);
 });
 

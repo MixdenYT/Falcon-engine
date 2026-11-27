@@ -22,6 +22,8 @@ estructura Solucionador3D:
     moviles: lista[booleano]
     contactos: lista[entero]
     cantidad_contactos: entero
+    cuerpo_apoyado: booleano
+    cuerpo_desplazamiento: decimal
     px: decimal
     py: decimal
     pz: decimal
@@ -38,6 +40,8 @@ estructura Solucionador3D:
         este.cantidad = 0
         este.cantidad_estatica = 0
         este.cantidad_contactos = 0
+        este.cuerpo_apoyado = falso
+        este.cuerpo_desplazamiento = 0.0
         este.px = 0.0
         este.py = 0.0
         este.pz = 0.0
@@ -186,6 +190,28 @@ estructura Solucionador3D:
         si dt > 0.0:
             este.vx = (este.px - x) / dt
             este.vz = (este.pz - z) / dt
+
+    # Resuelve la caída vertical de un cuerpo empujable contra las demás AABB.
+    # El dueño permite ignorar sus propias piezas si una malla se descompone en varios sólidos.
+    # Devuelve el desplazamiento corregido y conserva si encontró apoyo.
+    func resolver_cuerpo(este, dueno: entero, min_x: decimal, min_y: decimal, min_z: decimal, max_x: decimal, max_y: decimal, max_z: decimal, desplazamiento_y: decimal) -> decimal:
+        este.cuerpo_apoyado = falso
+        este.cuerpo_desplazamiento = desplazamiento_y
+        min_y2 = min_y + desplazamiento_y
+        max_y2 = max_y + desplazamiento_y
+        para i en rango(este.cantidad):
+            si este.duenos[i] == dueno:
+                continuar
+            si max_x <= este.x0[i] o min_x >= este.x1[i] o max_y2 <= este.y0[i] o min_y2 >= este.y1[i] o max_z <= este.z0[i] o min_z >= este.z1[i]:
+                continuar
+            si desplazamiento_y < 0.0 y min_y >= este.y1[i] - 0.05:
+                este.cuerpo_apoyado = verdadero
+                este.cuerpo_desplazamiento = este.y1[i] - min_y
+                devolver este.cuerpo_desplazamiento
+        devolver este.cuerpo_desplazamiento
+
+    func cuerpo_tiene_apoyo(este) -> booleano:
+        devolver este.cuerpo_apoyado
 
     func resultado_x(este) -> decimal:
         devolver este.px

@@ -44,8 +44,8 @@ estructura ControlCamara3D:
             este.px = tx
             este.py = centro_y
             este.pz = tz
-        kh = 1.0 - exp(0.0 - dt * 16.0)
-        kv = 1.0 - exp(0.0 - dt * 8.0)
+        kh = 1.0 - potencia(2.718281828459045, 0.0 - dt * 16.0)
+        kv = 1.0 - potencia(2.718281828459045, 0.0 - dt * 8.0)
         este.px += (tx - este.px) * kh
         este.pz += (tz - este.pz) * kh
         este.py += (centro_y - este.py) * kv
@@ -70,7 +70,7 @@ estructura ControlCamara3D:
         rapidez = 3.5
         si libre < este.distancia:
             rapidez = 30.0
-        k = 1.0 - exp(0.0 - dt * rapidez)
+        k = 1.0 - potencia(2.718281828459045, 0.0 - dt * rapidez)
         este.distancia += (libre - este.distancia) * k
 
     func resultado_yaw(este) -> decimal:

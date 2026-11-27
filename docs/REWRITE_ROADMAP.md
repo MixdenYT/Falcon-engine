@@ -20,7 +20,7 @@ Esta sección prevalece sobre el estado de «solo commits locales» y el informe
 - `pruebas/fisica3d-ara.test.js`: 500 escenarios deterministas de AABB comparados con la referencia JS, más pruebas de caída, apoyo, empuje libre, empuje bloqueado, contactos e integración de `Mundo3D`.
 - CI de la PR: compilación y comprobación de `nucleo.wasm`, `npm test`, `npm run test:actualizaciones` y validación de configuración de paquetes superadas en la ejecución del 27-11-2026. La regeneración del WebAssembly se mantiene automatizada.
  
-**Límites todavía explícitos:** Three.js sigue calculando las transformaciones de escena y las AABB, y el runtime JS aplica los desplazamientos al grafo de nodos. La cámara y el renderizado tampoco se han migrado. Por tanto, la física 3D aún no está completamente en Ara.
+**Límites todavía explícitos:** Three.js sigue calculando las transformaciones de escena y las AABB, y el runtime JS aplica los desplazamientos al grafo de nodos. La cámara solo ha migrado la órbita, el seguimiento y el suavizado; quedan la resolución geométrica de obstrucciones, la colocación final, el balanceo/efectos de primera persona y la integración del renderizador. Por tanto, ni la cámara completa ni la física/renderizado 3D están todavía íntegramente en Ara.
 
 ## Cómo se trabaja
 

@@ -2,6 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { nucleoAra } from '../src/motor/nucleo-ara.js';
+import { Mundo3D } from '../src/motor/mundo3d.js';
 
 const nucleo = await nucleoAra();
 const F = nucleo.fisica3d;
@@ -135,6 +136,45 @@ test('física 3D en Ara = referencia JS: 500 pasos deterministas con AABB aleato
     };
     comparar(solidos, p, 'caso aleatorio ' + caso);
   }
+});
+
+
+test('Mundo3D usa Ara para resolver la física y conserva el mapeo de contactos', () => {
+  const d = Object.create(Mundo3D.prototype);
+  d.m = { nucleo };
+  const pared = { nombre: 'Pared' };
+  const personaje = {
+    props: { tactico: false, altura: 1.8, usa_gravedad: true, gravedad: 18 },
+    grupos: new Set(), mueveX: 10, mueveZ: 0, empX: 0, empZ: 0, vy: 0,
+  };
+  const pos = [0, 0, 0];
+  const usado = d.resolverFisicaPersonajeAra(
+    personaje, pos, 0.1, 1, [personaje],
+    [{ n: pared, movil: false, b: { min: { x: 1, y: 0, z: -2 }, max: { x: 2, y: 3, z: 2 } } }],
+  );
+  assert.equal(usado, true);
+  assert.equal(pos[0], 0.619);
+  assert.equal(personaje.enPared, true);
+  assert.equal(personaje.enSuelo, false);
+  assert.deepEqual([...personaje._contactosSolidos], [pared]);
+  assert.equal(personaje.vx, pos[0] / 0.1);
+  assert.equal(d.m.nucleo, nucleo, 'el núcleo no ha sufrido errores');
+});
+
+test('Mundo3D conserva el respaldo JS cuando hay cuerpos empujables', () => {
+  const d = Object.create(Mundo3D.prototype);
+  d.m = { nucleo };
+  const personaje = {
+    props: { tactico: false, altura: 1.8, usa_gravedad: true, gravedad: 18 },
+    grupos: new Set(), mueveX: 0, mueveZ: 0, empX: 0, empZ: 0, vy: 0,
+  };
+  const pos = [0, 0, 0];
+  const usado = d.resolverFisicaPersonajeAra(
+    personaje, pos, 1 / 60, 1, [personaje],
+    [{ n: {}, movil: true, b: { min: { x: 1, y: 0, z: 0 }, max: { x: 2, y: 1, z: 1 } } }],
+  );
+  assert.equal(usado, false);
+  assert.deepEqual(pos, [0, 0, 0]);
 });
 
 test('el núcleo expone la física 3D escrita en Ara', () => {

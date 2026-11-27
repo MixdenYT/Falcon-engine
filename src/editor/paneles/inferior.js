@@ -7,7 +7,7 @@ import { crearInterprete, aTexto } from '../../aguila/index.js';
 
 let erroresJuego = 0;
 
-const TITULOS = { salida: 'Salida', depurador: 'Depurador', aguila: 'Águila', animacion: 'Animación', audio: 'Audio' };
+const TITULOS = { salida: 'Salida', depurador: 'Depurador', rendimiento: 'Rendimiento', aguila: 'Águila', animacion: 'Animación', audio: 'Audio' };
 let interpConsola = null;
 const historialConsola = [];
 
@@ -58,9 +58,50 @@ export function crearInferior(contenedor, op = {}) {
     if (plegado) return;
     if (extra[actual]?.pintar) { const r = extra[actual].pintar(cont); if (typeof r === 'function') limpiezas.push(r); return; }
     if (actual === 'salida' || actual === 'depurador') pintarRegistro(cont, actual);
+    else if (actual === 'rendimiento') limpiezas.push(pintarRendimiento(cont));
     else if (actual === 'aguila') pintarConsola(cont);
     else if (actual === 'animacion') limpiezas.push(pintarAnimacion(cont));
     else if (actual === 'audio') pintarAudio(cont);
+  }
+
+  function pintarRendimiento(c) {
+    const panel = el(`<div class="rendimiento desplazable">
+      <div class="rend-cab">
+        <span class="rend-titulo">Diagnóstico del visor 3D</span>
+        <span class="rend-meta"><b data-k="calidad">—</b><span data-k="estado">Esperando métricas…</span><span data-k="gi">GI —</span><span data-k="pixel">Escala —</span></span>
+      </div>
+      <div class="rend-grid">
+        <div class="rend-metrica"><span>Ritmo del bucle</span><b data-k="fps">—</b></div>
+        <div class="rend-metrica"><span>Llamadas de dibujo</span><b data-k="calls">—</b></div>
+        <div class="rend-metrica"><span>Triángulos</span><b data-k="triangulos">—</b></div>
+        <div class="rend-metrica"><span>Geometrías</span><b data-k="geometrias">—</b></div>
+        <div class="rend-metrica"><span>Texturas</span><b data-k="texturas">—</b></div>
+        <div class="rend-metrica"><span>Programas GPU</span><b data-k="programas">—</b></div>
+        <div class="rend-metrica"><span>Captura CPU / sonda</span><b data-k="cpu">—</b></div>
+        <div class="rend-metrica"><span>Captura GPU / sonda</span><b data-k="gpu">—</b></div>
+      </div>
+      <div class="rend-pie">Los contadores corresponden al último fotograma renderizado. El tiempo GPU solo aparece si el navegador admite temporización asíncrona.</div>
+    </div>`);
+    c.append(panel);
+    const numero = (v) => Number.isFinite(v) ? v.toLocaleString('es-ES', { maximumFractionDigits: 1 }) : '—';
+    const fijar = (k, v) => { const e = panel.querySelector(`[data-k="${k}"]`); if (e) e.textContent = v; };
+    const actualizar = (d) => {
+      if (!d) return;
+      fijar('calidad', d.calidad ? `Calidad ${d.calidad}` : 'Calidad —');
+      fijar('estado', d.estado || 'Renderizador activo');
+      fijar('gi', d.giDisponible ? 'GI disponible' : 'GI no disponible');
+      fijar('pixel', `Escala ${numero(d.pixelRatio)}×`);
+      fijar('fps', numero(d.fpsVisor));
+      fijar('calls', numero(d.llamadasDibujo));
+      fijar('triangulos', numero(d.triangulos));
+      fijar('geometrias', numero(d.geometrias));
+      fijar('texturas', numero(d.texturas));
+      fijar('programas', numero(d.programas));
+      fijar('cpu', d.msSondaCPU == null ? '—' : `${numero(d.msSondaCPU)} ms`);
+      fijar('gpu', d.msSondaGPU == null ? 'No disponible' : `${numero(d.msSondaGPU)} ms`);
+    };
+    const quitar = bus.on('grafico:diagnostico', actualizar);
+    return () => quitar();
   }
 
   function pintarRegistro(c, canal) {

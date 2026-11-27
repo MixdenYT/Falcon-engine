@@ -9,15 +9,17 @@ import { chromium } from 'playwright-core';
 
 const raiz = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const tipos = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.wasm': 'application/wasm', '.css': 'text/css; charset=utf-8' };
+const recursosNoEncontrados = [];
 const servidor = createServer(async (req, res) => {
+  const ruta = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
   try {
-    const ruta = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
     const archivo = resolve(raiz, '.' + ruta);
     if (archivo !== raiz && !archivo.startsWith(raiz + sep)) { res.writeHead(403).end(); return; }
     const contenido = await readFile(archivo);
     res.writeHead(200, { 'content-type': tipos[extname(archivo)] || 'application/octet-stream', 'cache-control': 'no-store' });
     res.end(contenido);
   } catch {
+    recursosNoEncontrados.push(ruta);
     res.writeHead(404).end('No encontrado');
   }
 });

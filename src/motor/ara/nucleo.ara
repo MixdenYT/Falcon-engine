@@ -142,3 +142,41 @@ clase Fisica3D extiende Nucleo:
 
     func contacto(i: entero) -> entero:
         devolver f.contacto(i)
+
+
+# Operaciones matemáticas y estado de seguimiento para cámara 3D.
+clase Camara3D extiende Nucleo:
+    c = ControlCamara3D()
+
+    func iniciar(yaw: decimal, pitch: decimal, x: decimal, y: decimal, z: decimal, distancia: decimal):
+        c.iniciar(yaw, pitch, x, y, z, distancia)
+
+    func entrada(mx: decimal, my: decimal, sx: decimal, sy: decimal, sensibilidad: decimal, inversion: decimal, dt: decimal, primera_persona: booleano):
+        c.entrada(mx, my, sx, sy, sensibilidad, inversion, dt, primera_persona)
+
+    func seguir_pivote(x: decimal, y: decimal, z: decimal, dt: decimal):
+        c.seguir_pivote(x, y, z, dt)
+
+    func seguir_yaw(vx: decimal, vz: decimal, velocidad: decimal, velocidad_base: decimal, dt: decimal):
+        c.seguir_yaw(vx, vz, velocidad, velocidad_base, dt)
+
+    func seguir_distancia(libre: decimal, dt: decimal):
+        c.seguir_distancia(libre, dt)
+
+    func yaw() -> decimal:
+        devolver c.resultado_yaw()
+
+    func pitch() -> decimal:
+        devolver c.resultado_pitch()
+
+    func pivote_x() -> decimal:
+        devolver c.pivote_x()
+
+    func pivote_y() -> decimal:
+        devolver c.pivote_y()
+
+    func pivote_z() -> decimal:
+        devolver c.pivote_z()
+
+    func distancia() -> decimal:
+        devolver c.resultado_distancia()

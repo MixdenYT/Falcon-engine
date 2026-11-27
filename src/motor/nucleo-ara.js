@@ -75,6 +75,7 @@ function fisica3d(E, B) {
   const empezar = f('empezar'), preparar = f('preparar'), empezarPersonaje = f('empezar_personaje');
   const caja = f('caja'), mover = f('mover');
   const resolverCuerpo = f('resolver_cuerpo'), cuerpoTieneApoyo = f('cuerpo_tiene_apoyo'), desplazarCuerpo = f('desplazar_cuerpo');
+  const empujados = f('empujados'), empujadoDueno = f('empujado_dueno'), empujadoX = f('empujado_x'), empujadoZ = f('empujado_z');
   const rx = f('r_x'), ry = f('r_y'), rz = f('r_z');
   const rvx = f('r_vx'), rvy = f('r_vy'), rvz = f('r_vz');
   const rempx = f('r_emp_x'), rempz = f('r_emp_z');
@@ -90,6 +91,10 @@ function fisica3d(E, B) {
     resolverCuerpo: (dueno, minX, minY, minZ, maxX, maxY, maxZ, dy) => resolverCuerpo(B(dueno), minX, minY, minZ, maxX, maxY, maxZ, dy),
     cuerpoTieneApoyo: () => !!cuerpoTieneApoyo(),
     desplazarCuerpo: (dueno, dy) => desplazarCuerpo(B(dueno), dy),
+    empujados: () => Number(empujados()),
+    empujadoDueno: (i) => Number(empujadoDueno(B(i))),
+    empujadoX: (i) => empujadoX(B(i)),
+    empujadoZ: (i) => empujadoZ(B(i)),
     x: () => rx(), y: () => ry(), z: () => rz(),
     vx: () => rvx(), vy: () => rvy(), vz: () => rvz(),
     empX: () => rempx(), empZ: () => rempz(),

@@ -1,0 +1,361 @@
+# Estado y matemática de cámara para Controles3D.
+# Three.js sigue haciendo raycasts y aplicando la transformada final; Ara calcula órbita,
+# seguimiento, límites, balanceo, golpe de aterrizaje, inclinación, ADS y FOV.
+
+estructura ControladorCamara3D:
+    yaw: decimal
+    pitch: decimal
+    distancia: decimal
+    distancia_actual: decimal
+    zoom: decimal
+    pivote_x: decimal
+    pivote_y: decimal
+    pivote_z: decimal
+    sin_raton: decimal
+    fase: decimal
+    bob: decimal
+    golpe: decimal
+    caida_max: decimal
+    fov_base: decimal
+    fov: decimal
+    inclinacion: decimal
+    ads: decimal
+    retroceso: decimal
+    dir_x: decimal
+    dir_y: decimal
+    dir_z: decimal
+    cam_x: decimal
+    cam_y: decimal
+    cam_z: decimal
+    roll: decimal
+    deseada: decimal
+    ocultar: booleano
+    primera_persona: booleano
+
+    func crear(este):
+        este.yaw = 0.0
+        este.pitch = 0.0
+        este.distancia = 5.0
+        este.distancia_actual = 5.0
+        este.zoom = 1.0
+        este.pivote_x = 0.0
+        este.pivote_y = 0.0
+        este.pivote_z = 0.0
+        este.sin_raton = 99.0
+        este.fase = 0.0
+        este.bob = 0.0
+        este.golpe = 0.0
+        este.caida_max = 0.0
+        este.fov_base = 65.0
+        este.fov = 65.0
+        este.inclinacion = 0.0
+        este.ads = 0.0
+        este.retroceso = 0.0
+        este.dir_x = 0.0
+        este.dir_y = 0.0
+        este.dir_z = 1.0
+        este.cam_x = 0.0
+        este.cam_y = 0.0
+        este.cam_z = 0.0
+        este.roll = 0.0
+        este.deseada = 5.0
+        este.ocultar = falso
+        este.primera_persona = falso
+
+    func signo(este, valor: decimal) -> decimal:
+        si valor > 0.0:
+            devolver 1.0
+        si valor < 0.0:
+            devolver 0.0 - 1.0
+        devolver 0.0
+
+    func zona(este, valor: decimal) -> decimal:
+        si abs(valor) < 0.15:
+            devolver 0.0
+        devolver (valor - este.signo(valor) * 0.15) / 0.85
+
+    func iniciar(este, offset_x: decimal, offset_y: decimal, offset_z: decimal, rotacion_y: decimal, yaw_visual: decimal, visual_presente: booleano, posicion_x: decimal, posicion_y: decimal, posicion_z: decimal, altura: decimal, primera_persona: booleano, fov_inicial: decimal):
+        pivote_altura = altura * 0.82
+        diferencia_y = offset_y - pivote_altura
+        horizontal = raiz(offset_x * offset_x + offset_z * offset_z)
+        este.distancia = raiz(horizontal * horizontal + diferencia_y * diferencia_y)
+        este.distancia = maximo(1.2, minimo(30.0, este.distancia))
+        este.distancia_actual = este.distancia
+        este.zoom = 1.0
+        si primera_persona:
+            si visual_presente:
+                este.yaw = yaw_visual
+            sino:
+                este.yaw = rotacion_y
+            este.pitch = 0.0
+        sino:
+            este.yaw = 0.0
+            si horizontal > 0.01:
+                este.yaw = atan2(offset_x, offset_z)
+            este.yaw += rotacion_y
+            este.pitch = maximo(-0.35, minimo(1.25, atan2(diferencia_y, maximo(0.01, horizontal))))
+        este.pivote_x = posicion_x
+        este.pivote_z = posicion_z
+        si primera_persona:
+            este.pivote_y = posicion_y + altura * 0.92
+        sino:
+            este.pivote_y = posicion_y + pivote_altura
+        este.fov_base = fov_inicial
+        este.fov = fov_inicial
+        este.golpe = 0.0
+        este.bob = 0.0
+        este.caida_max = 0.0
+        este.primera_persona = primera_persona
+
+    func cambiar_modo(este, posicion_x: decimal, posicion_y: decimal, posicion_z: decimal, altura: decimal, primera_persona: booleano):
+        este.primera_persona = primera_persona
+        si primera_persona:
+            este.pitch = 0.0 - este.pitch * 0.5
+            este.pivote_x = posicion_x
+            este.pivote_y = posicion_y + altura * 0.92
+            este.pivote_z = posicion_z
+        sino:
+            este.pitch = maximo(-0.35, minimo(1.25, 0.25 - este.pitch * 0.5))
+            este.distancia_actual = 0.4
+
+    func preparar(este, posicion_x: decimal, posicion_y: decimal, posicion_z: decimal, altura: decimal, primera_persona: booleano, sensibilidad: decimal, invertir_y: booleano, tactico: booleano, apuntando: booleano, stick_x: decimal, stick_y: decimal, raton_x: decimal, raton_y: decimal, rueda: decimal, capturado: booleano, velocidad_x: decimal, velocidad_z: decimal, velocidad_base: decimal, correr: booleano, en_suelo: booleano, velocidad_y: decimal, dt: decimal, inclinar_derecha: booleano, inclinar_izquierda: booleano):
+        este.primera_persona = primera_persona
+        sens = sensibilidad
+        si tactico y apuntando:
+            sens *= 0.62
+        sx = este.zona(stick_x)
+        sy = este.zona(stick_y)
+        velocidad_stick = 2.8 * sens
+        este.yaw -= raton_x * 0.0024 * sens + sx * velocidad_stick * dt
+        invertir = 1.0
+        si invertir_y:
+            invertir = 0.0 - 1.0
+        delta_pitch = (raton_y * 0.0024 * sens + sy * velocidad_stick * dt) * invertir
+        si primera_persona:
+            este.pitch = maximo(-1.45, minimo(1.45, este.pitch - delta_pitch))
+        sino:
+            este.pitch = maximo(-0.35, minimo(1.25, este.pitch + delta_pitch))
+
+        si raton_x != 0.0 o raton_y != 0.0 o sx != 0.0 o sy != 0.0:
+            este.sin_raton = 0.0
+        sino:
+            este.sin_raton += dt
+        si rueda != 0.0:
+            este.zoom *= potencia(1.12, rueda)
+            este.zoom = maximo(0.4, minimo(2.2, este.zoom))
+
+        este.dir_x = sen(este.yaw) * cos(este.pitch)
+        este.dir_y = sen(este.pitch)
+        este.dir_z = cos(este.yaw) * cos(este.pitch)
+
+        if_tercera = no primera_persona
+        si if_tercera:
+            objetivo_x = posicion_x
+            objetivo_y = posicion_y + altura * 0.82
+            objetivo_z = posicion_z
+            distancia_pivote = raiz((objetivo_x - este.pivote_x) * (objetivo_x - este.pivote_x) + (objetivo_y - este.pivote_y) * (objetivo_y - este.pivote_y) + (objetivo_z - este.pivote_z) * (objetivo_z - este.pivote_z))
+            si distancia_pivote > 6.0:
+                este.pivote_x = objetivo_x
+                este.pivote_y = objetivo_y
+                este.pivote_z = objetivo_z
+            kh = 1.0 - potencia(2.718281828459045, 0.0 - dt * 16.0)
+            kv = 1.0 - potencia(2.718281828459045, 0.0 - dt * 8.0)
+            este.pivote_x += (objetivo_x - este.pivote_x) * kh
+            este.pivote_z += (objetivo_z - este.pivote_z) * kh
+            este.pivote_y += (objetivo_y - este.pivote_y) * kv
+
+            velocidad = raiz(velocidad_x * velocidad_x + velocidad_z * velocidad_z)
+            si no capturado y este.sin_raton > 1.2 y velocidad > 1.0:
+                yaw_objetivo = atan2(0.0 - velocidad_x, 0.0 - velocidad_z)
+                diferencia = yaw_objetivo - este.yaw
+                si diferencia > 3.141592653589793:
+                    diferencia -= 6.283185307179586
+                si diferencia < 0.0 - 3.141592653589793:
+                    diferencia += 6.283185307179586
+                base = velocidad_base
+                si base == 0.0:
+                    base = 5.0
+                si abs(diferencia) < 2.2:
+                    este.yaw += diferencia * minimo(1.0, dt * 1.1 * minimo(1.0, velocidad / base))
+            este.deseada = este.distancia * este.zoom
+            este.cam_x = este.pivote_x
+            este.cam_y = este.pivote_y
+            este.cam_z = este.pivote_z
+            este.roll = 0.0
+        sino:
+            ojos = posicion_y + altura * 0.92
+            si abs(ojos - este.pivote_y) > 3.0:
+                este.pivote_y = ojos
+            este.pivote_x = posicion_x
+            este.pivote_z = posicion_z
+            kv = 1.0 - potencia(2.718281828459045, 0.0 - dt * 18.0)
+            este.pivote_y += (ojos - este.pivote_y) * kv
+            si tactico:
+                este.pivote_y = minimo(este.pivote_y, posicion_y + altura - 0.08)
+
+            velocidad = raiz(velocidad_x * velocidad_x + velocidad_z * velocidad_z)
+            amplitud = 0.0
+            si en_suelo y velocidad > 0.5:
+                factor = minimo(1.0, velocidad / 7.0)
+                si tactico:
+                    si apuntando:
+                        amplitud = factor * 0.006
+                    sino:
+                        amplitud = factor * 0.022
+                sino:
+                    amplitud = factor * 0.05
+            kb = 1.0 - potencia(2.718281828459045, 0.0 - dt * 8.0)
+            este.bob += (amplitud - este.bob) * kb
+            si amplitud > 0.0:
+                este.fase += dt * (5.0 + velocidad * 0.9)
+            si no en_suelo:
+                este.caida_max = minimo(este.caida_max, velocidad_y)
+            si en_suelo y no este.en_suelo_antes y este.caida_max < -3.0:
+                este.golpe = minimo(0.25, 0.0 - este.caida_max * 0.02)
+            si en_suelo:
+                este.caida_max = 0.0
+            este.en_suelo_antes = en_suelo
+            este.golpe *= potencia(2.718281828459045, 0.0 - dt * 7.0)
+            lado = sen(este.fase) * este.bob * 0.5
+            arriba = sen(este.fase * 2.0) * este.bob * 0.6
+            este.cam_x = este.pivote_x + cos(este.yaw) * lado
+            este.cam_y = este.pivote_y + arriba - este.golpe
+            este.cam_z = este.pivote_z - sen(este.yaw) * lado
+            este.roll = sen(este.fase) * este.bob * 0.03
+
+        si tactico:
+            objetivo_inclinacion = 0.0
+            si no correr:
+                si inclinar_derecha:
+                    objetivo_inclinacion += 1.0
+                si inclinar_izquierda:
+                    objetivo_inclinacion -= 1.0
+            ki = 1.0 - potencia(2.718281828459045, 0.0 - dt * 16.0)
+            este.inclinacion += (objetivo_inclinacion - este.inclinacion) * ki
+            objetivo_ads = 0.0
+            si apuntando:
+                objetivo_ads = 1.0
+            este.ads += (objetivo_ads - este.ads) * ki
+            este.retroceso *= potencia(2.718281828459045, 0.0 - dt * 17.0)
+
+    func finalizar(este, distancia_libre: decimal, distancia_inclinacion_libre: decimal, dt: decimal, primera_persona: booleano, tactico: booleano, apuntando: booleano, correr: booleano):
+        si primera_persona:
+            si tactico:
+                direccion = este.signo(este.inclinacion)
+                si direccion == 0.0:
+                    direccion = 1.0
+                distancia = minimo(abs(este.inclinacion) * 0.28, maximo(0.0, distancia_inclinacion_libre))
+                este.cam_x += cos(este.yaw) * direccion * distancia
+                este.cam_z -= sen(este.yaw) * direccion * distancia
+                este.roll = 0.0 - direccion * distancia / 0.28 * 0.10
+        sino:
+            libre = maximo(0.3, distancia_libre)
+            k = 0.0
+            si libre < este.distancia_actual:
+                k = 1.0 - potencia(2.718281828459045, 0.0 - dt * 30.0)
+            sino:
+                k = 1.0 - potencia(2.718281828459045, 0.0 - dt * 3.5)
+            este.distancia_actual += (libre - este.distancia_actual) * k
+            este.cam_x = este.pivote_x + este.dir_x * este.distancia_actual
+            este.cam_y = este.pivote_y + este.dir_y * este.distancia_actual
+            este.cam_z = este.pivote_z + este.dir_z * este.distancia_actual
+
+        objetivo_fov = este.fov_base
+        if tactico:
+            si apuntando:
+                objetivo_fov = 52.0
+            si correr:
+                objetivo_fov += 3.0
+        sino:
+            si correr:
+                si primera_persona:
+                    objetivo_fov += 8.0
+                sino:
+                    objetivo_fov += 5.0
+        velocidad_fov = 6.0
+        si tactico:
+            velocidad_fov = 14.0
+        kf = 1.0 - potencia(2.718281828459045, 0.0 - dt * velocidad_fov)
+        este.fov += (objetivo_fov - este.fov) * kf
+        este.ocultar = primera_persona o este.distancia_actual < 0.7
+
+    func resultado_yaw(este) -> decimal:
+        devolver este.yaw
+
+    func resultado_pitch(este) -> decimal:
+        devolver este.pitch
+
+    func resultado_distancia(este) -> decimal:
+        devolver este.distancia
+
+    func resultado_distancia_actual(este) -> decimal:
+        devolver este.distancia_actual
+
+    func resultado_zoom(este) -> decimal:
+        devolver este.zoom
+
+    func resultado_pivote_x(este) -> decimal:
+        devolver este.pivote_x
+
+    func resultado_pivote_y(este) -> decimal:
+        devolver este.pivote_y
+
+    func resultado_pivote_z(este) -> decimal:
+        devolver este.pivote_z
+
+    func resultado_dir_x(este) -> decimal:
+        devolver este.dir_x
+
+    func resultado_dir_y(este) -> decimal:
+        devolver este.dir_y
+
+    func resultado_dir_z(este) -> decimal:
+        devolver este.dir_z
+
+    func resultado_cam_x(este) -> decimal:
+        devolver este.cam_x
+
+    func resultado_cam_y(este) -> decimal:
+        devolver este.cam_y
+
+    func resultado_cam_z(este) -> decimal:
+        devolver este.cam_z
+
+    func resultado_roll(este) -> decimal:
+        devolver este.roll
+
+    func resultado_fov(este) -> decimal:
+        devolver este.fov
+
+    func resultado_fov_base(este) -> decimal:
+        devolver este.fov_base
+
+    func resultado_sin_raton(este) -> decimal:
+        devolver este.sin_raton
+
+    func resultado_fase(este) -> decimal:
+        devolver este.fase
+
+    func resultado_bob(este) -> decimal:
+        devolver este.bob
+
+    func resultado_golpe(este) -> decimal:
+        devolver este.golpe
+
+    func resultado_caida_max(este) -> decimal:
+        devolver este.caida_max
+
+    func resultado_en_suelo_antes(este) -> booleano:
+        devolver este.en_suelo_antes
+
+    func resultado_inclinacion(este) -> decimal:
+        devolver este.inclinacion
+
+    func resultado_ads(este) -> decimal:
+        devolver este.ads
+
+    func resultado_retroceso(este) -> decimal:
+        devolver este.retroceso
+
+    func resultado_ocultar(este) -> booleano:
+        devolver este.ocultar

@@ -10,6 +10,10 @@ Esta sección prevalece sobre el estado de «solo commits locales» y el informe
 
 - Rama: `codex/fisica3d-ara` (Falcon Engine); `main` no se ha modificado.
 - `src/motor/ara/fisica3d.ara`: el `Solucionador3D` resuelve en Ara el movimiento X/Z de personajes, escalones, impulsos, gravedad, suelo/pared/techo, contactos y la dinámica vertical y horizontal de cuerpos empujables.
+- `src/motor/ara/camara3d.ara`: nuevo `ControlCamara3D` en Ara. Calcula la órbita con ratón/stick, límites de inclinación por perspectiva, seguimiento exponencial del pivote, retorno de yaw detrás del movimiento y suavizado de distancia tras la consulta de obstáculos.
+- `src/motor/ara/nucleo.ara` y `src/motor/nucleo-ara.js`: exponen el estado matemático de cámara al adaptador.
+- `src/motor/control3d.js`: delega esos cálculos a Ara y aplica los resultados a Three.js. Conserva respaldo JS si el núcleo no está disponible y sincroniza el estado al cambiar entre primera y tercera persona.
+- `pruebas/camara3d-ara.test.js`: verifica órbita, sensibilidad/inversión, límites de pitch, seguimiento de pivote, auto-yaw y suavizado de distancia.
 - Los empujes se validan en Ara contra todas las AABB del paso. Si hay espacio, Ara desplaza el cuerpo y registra el movimiento; si no, bloquea el empuje. Las AABB móviles se sincronizan después de cada movimiento para que los siguientes personajes y cuerpos vean el estado actualizado.
 - `src/motor/ara/nucleo.ara` y `src/motor/nucleo-ara.js`: exponen las operaciones de movimiento, empuje, apoyo y sincronización de AABB.
 - `src/motor/mundo3d.js`: entrega las AABB estáticas y móviles a Ara y aplica al grafo de escena los desplazamientos devueltos. El camino JS de física queda como recuperación si Ara falla; ya no se desvía a JS solo porque haya un cuerpo empujable cerca.

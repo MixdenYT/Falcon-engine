@@ -46,6 +46,7 @@ async function crear() {
       parB: (k) => Number(parB(B(k))),
     },
     espacio3d: espacio3d(E, B),
+    fisica3d: fisica3d(E, B),
     /** El error pendiente de Ara (`{ mensaje }`) o null; lo borra. */
     error() { const e = ara.error(); if (e) ara.limpiarError(); return e; },
   };
@@ -63,5 +64,28 @@ function espacio3d(E, B) {
     t: f('r_t'), x: f('r_x'), y: f('r_y'), z: f('r_z'),
     ruta: (ancho, alto, x0, z0, tam, ix, iz, fx, fz, altura) => Number(ruta(B(ancho), B(alto), x0, z0, tam, B(ix), B(iz), B(fx), B(fz), altura)),
     celda: (i) => Number(celda(B(i))),
+  };
+}
+
+
+// Solucionador de colisiones 3D en Ara. Las AABB llegan desde Three.js; el movimiento y las decisiones físicas no.
+function fisica3d(E, B) {
+  const yo = E['Fisica3D.crear'](0);
+  const f = (nombre) => E['Fisica3D.func.' + nombre].bind(null, yo);
+  const empezar = f('empezar'), caja = f('caja'), mover = f('mover');
+  const rx = f('r_x'), ry = f('r_y'), rz = f('r_z');
+  const rvx = f('r_vx'), rvy = f('r_vy'), rvz = f('r_vz');
+  const banderas = f('r_banderas'), contactos = f('r_contactos'), contacto = f('contacto');
+  return {
+    empezar: () => empezar(),
+    caja: (x0, y0, z0, x1, y1, z1, dueno, cuerpo = false, movil = false) =>
+      caja(x0, y0, z0, x1, y1, z1, B(dueno), cuerpo, movil),
+    mover: (x, y, z, radio, altura, alturaTecho, vx, vz, empX, empZ, amort, vy, usaGravedad, gravedad, escalaGravedad, dt) =>
+      mover(x, y, z, radio, altura, alturaTecho, vx, vz, empX, empZ, amort, vy, usaGravedad, gravedad, escalaGravedad, dt),
+    x: () => rx(), y: () => ry(), z: () => rz(),
+    vx: () => rvx(), vy: () => rvy(), vz: () => rvz(),
+    banderas: () => Number(banderas()),
+    contactos: () => Number(contactos()),
+    contacto: (i) => Number(contacto(B(i))),
   };
 }

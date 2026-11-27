@@ -1,0 +1,89 @@
+# Cálculos de cámara 3D que no dependen de Three.js ni del DOM.
+# La capa JS entrega entradas/posiciones y aplica el resultado a la cámara gráfica.
+
+estructura ControlCamara3D:
+    yaw: decimal
+    pitch: decimal
+    px: decimal
+    py: decimal
+    pz: decimal
+    distancia: decimal
+
+    func crear(este):
+        este.yaw = 0.0
+        este.pitch = 0.0
+        este.px = 0.0
+        este.py = 0.0
+        este.pz = 0.0
+        este.distancia = 5.0
+
+    func iniciar(este, yaw: decimal, pitch: decimal, x: decimal, y: decimal, z: decimal, distancia: decimal):
+        este.yaw = yaw
+        este.pitch = pitch
+        este.px = x
+        este.py = y
+        este.pz = z
+        este.distancia = distancia
+
+    # Ratón y stick derecho comparten sensibilidad, inversión y límites de cada vista.
+    func entrada(este, mx: decimal, my: decimal, sx: decimal, sy: decimal, sensibilidad: decimal, inversion: decimal, dt: decimal, primera_persona: booleano):
+        v_stick = 2.8 * sensibilidad
+        este.yaw -= mx * 0.0024 * sensibilidad + sx * v_stick * dt
+        dp = (my * 0.0024 * sensibilidad + sy * v_stick * dt) * inversion
+        si primera_persona:
+            este.pitch = maximo(-1.45, minimo(1.45, este.pitch - dp))
+        sino:
+            este.pitch = maximo(-0.35, minimo(1.25, este.pitch + dp))
+
+    # Seguimiento exponencial desacoplado en horizontal y vertical.
+    func seguir_pivote(este, tx: decimal, ty: decimal, tz: decimal, dt: decimal):
+        dx = tx - este.px
+        dy = ty - este.py
+        dz = tz - este.pz
+        si raiz(dx * dx + dy * dy + dz * dz) > 6.0:
+            este.px = tx
+            este.py = ty
+            este.pz = tz
+        kh = 1.0 - exp(0.0 - dt * 16.0)
+        kv = 1.0 - exp(0.0 - dt * 8.0)
+        este.px += (tx - este.px) * kh
+        este.pz += (tz - este.pz) * kh
+        este.py += (ty - este.py) * kv
+
+    # Si el jugador avanza con teclado, la cámara vuelve suavemente detrás de él.
+    func seguir_yaw(este, vx: decimal, vz: decimal, velocidad: decimal, velocidad_base: decimal, dt: decimal):
+        yaw_obj = atan2(0.0 - vx, 0.0 - vz)
+        diferencia = yaw_obj - este.yaw
+        mientras diferencia > 3.141592653589793:
+            diferencia -= 6.283185307179586
+        mientras diferencia < 0.0 - 3.141592653589793:
+            diferencia += 6.283185307179586
+        si abs(diferencia) < 2.2:
+            base = maximo(0.001, velocidad_base)
+            factor_velocidad = minimo(1.0, velocidad / base)
+            factor_tiempo = minimo(1.0, dt * 1.1 * factor_velocidad)
+            este.yaw += diferencia * factor_tiempo
+
+    # Suaviza el zoom y la aproximación por obstáculos; la entrada de colisión ya viene resuelta.
+    func seguir_distancia(este, libre: decimal, dt: decimal):
+        libre = maximo(0.3, libre)
+        k = 1.0 - exp(0.0 - dt * (30.0 si libre < este.distancia sino 3.5))
+        este.distancia += (libre - este.distancia) * k
+
+    func resultado_yaw(este) -> decimal:
+        devolver este.yaw
+
+    func resultado_pitch(este) -> decimal:
+        devolver este.pitch
+
+    func pivote_x(este) -> decimal:
+        devolver este.px
+
+    func pivote_y(este) -> decimal:
+        devolver este.py
+
+    func pivote_z(este) -> decimal:
+        devolver este.pz
+
+    func resultado_distancia(este) -> decimal:
+        devolver este.distancia

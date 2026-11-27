@@ -1,0 +1,44 @@
+name: Validar física 3D en Ara
+
+on:
+  push:
+    branches:
+      - codex/fisica3d-ara
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fisica3d-ara-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Compilar el núcleo WebAssembly desde los módulos Ara
+        run: node herramientas/compilar-nucleo-ara.mjs
+      - name: Verificar que el binario corresponde a las fuentes Ara
+        run: node herramientas/compilar-nucleo-ara.mjs --comprobar
+      - name: Ejecutar todas las pruebas del motor
+        run: npm test
+      - name: Verificar actualizaciones
+        run: npm run test:actualizaciones
+      - name: Guardar el núcleo WebAssembly regenerado en esta rama
+        shell: bash
+        run: |
+          if ! git diff --quiet -- src/motor/ara/nucleo.wasm; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add src/motor/ara/nucleo.wasm
+            git commit -m "build(ara): regenerar núcleo WebAssembly desde Ara"
+            git push
+          fi

@@ -187,9 +187,105 @@ export class Controles3D {
     else delete n._mirarYaw;
   }
 
+  // Adaptador de cámara: Ara actualiza el estado y la matemática; Three.js solo resuelve oclusión.
+  actualizarCamaraAra(n, nodoCam, dt, A) {
+    if (!A?.iniciar || !A?.preparar || !A?.finalizar) return false;
+    const fp = n.props.controles === 'primera_persona';
+    const alt = n._alturaColision || n.props.altura || 1.8;
+    const pos = this.d3.posicionGlobal(n);
+    const vis = this.d3.obj(n)?.userData.visual;
+    if (this.jugador !== n) {
+      const off = nodoCam ? nodoCam.props.posicion : [0, 2.8, 5.5];
+      const rot = nodoCam ? nodoCam.props.rotacion : [-15, 0, 0];
+      A.iniciar(
+        off[0], off[1], off[2], (rot[1] || 0) * RAD,
+        vis ? vis.rotation.y : 0, !!vis, pos[0], pos[1], pos[2], alt, fp,
+        nodoCam?.props.fov || 65
+      );
+      if (this.d3.errorAra()) return false;
+      this.mostrarCuerpo();
+    } else if (this._modo !== n.props.controles) {
+      A.cambiarModo(pos[0], pos[1], pos[2], alt, fp);
+      if (this.d3.errorAra()) return false;
+      if (!fp) this.mostrarCuerpo();
+    }
+
+    const entrada = this.d3.m.entrada;
+    const ejes = entrada.ejesMando || [];
+    const mx = this.raton.x, my = this.raton.y, rueda = this.raton.rueda;
+    A.preparar(
+      pos[0], pos[1], pos[2], alt, fp, n.props.sensibilidad ?? 1, !!n.props.invertir_y,
+      !!n.props.tactico, !!n._apuntando, ejes[2] || 0, ejes[3] || 0,
+      mx, my, rueda, !!this.capturado, n._vx || 0, n._vz || 0,
+      n.props.velocidad || 5, !!n._correr, !!n.enSuelo, n.vy || 0, dt,
+      entrada.mantiene('inclinar_derecha'), entrada.mantiene('inclinar_izquierda')
+    );
+    if (this.d3.errorAra()) return false;
+
+    let distanciaLibre = 0.3;
+    let distanciaInclinacionLibre = 0.28;
+    if (fp) {
+      if (n.props.tactico && Math.abs(A.inclinacion()) > 0.000001) {
+        const centro = _a.set(A.camX(), A.camY(), A.camZ());
+        const signo = Math.sign(A.inclinacion()) || 1;
+        _dir.set(Math.cos(A.yaw()) * signo, 0, -Math.sin(A.yaw()) * signo);
+        let distancia = Math.abs(A.inclinacion()) * 0.28;
+        _rayo.set(centro, _dir);
+        for (const s of this.d3.solidos) {
+          _caja.copy(s.b).expandByScalar(0.15);
+          if (_caja.containsPoint(centro)) { distancia = 0; break; }
+          if (_rayo.intersectBox(_caja, _hit)) {
+            distancia = Math.min(distancia, Math.max(0, centro.distanceTo(_hit) - 0.015));
+          }
+        }
+        distanciaInclinacionLibre = distancia;
+      }
+    } else {
+      const pivote = _a.set(A.pivoteX(), A.pivoteY(), A.pivoteZ());
+      _dir.set(A.dirX(), A.dirY(), A.dirZ());
+      _rayo.set(pivote, _dir);
+      distanciaLibre = A.deseada();
+      for (const s of this.d3.solidos) {
+        _caja.copy(s.b).expandByScalar(0.18);
+        if (_caja.containsPoint(pivote)) continue;
+        if (_rayo.intersectBox(_caja, _hit)) {
+          const t = _hit.distanceTo(pivote);
+          if (t < distanciaLibre) distanciaLibre = t;
+        }
+      }
+    }
+
+    A.finalizar(distanciaLibre, distanciaInclinacionLibre, dt, fp, !!n.props.tactico, !!n._apuntando, !!n._correr);
+    if (this.d3.errorAra()) return false;
+
+    this.jugador = n;
+    this._modo = n.props.controles;
+    this.primeraPersona = fp;
+    this.yaw = A.yaw(); this.pitch = A.pitch();
+    this.dist = A.distancia(); this.distActual = A.distanciaActual(); this.zoom = A.zoom();
+    this.pivote.set(A.pivoteX(), A.pivoteY(), A.pivoteZ());
+    this.sinRaton = A.sinRaton();
+    this.fase = A.fase(); this.bob = A.bob(); this.golpe = A.golpe();
+    this.caidaMax = A.caidaMax(); this.enSueloAntes = A.enSueloAntes();
+    this.fovBase = A.fovBase(); this.fov = A.fov();
+    this.inclinacion = A.inclinacion(); this.ads = A.ads(); this.retroceso = A.retroceso();
+    this.raton.x = 0; this.raton.y = 0; this.raton.rueda = 0;
+
+    const cam = this.camara;
+    if (nodoCam) cam.far = 1000;
+    cam.position.set(A.camX(), A.camY(), A.camZ());
+    if (fp) cam.rotation.set(this.pitch + this.retroceso, this.yaw, A.roll(), 'YXZ');
+    else cam.lookAt(this.pivote);
+    if (Math.abs(cam.fov - this.fov) > 0.01) cam.fov = this.fov;
+    if (A.ocultar()) this.ocultarCuerpo(n); else this.mostrarCuerpo();
+    return true;
+  }
+
   // ---------- Cámara (en cada fotograma) ----------
   /** Coloca la cámara de los controles. nodoCam: la Cámara3D hija del jugador (o null). */
   actualizarCamara(n, nodoCam, dt) {
+    const A = this.d3.m.nucleo?.camara3d;
+    if (A && this.actualizarCamaraAra(n, nodoCam, dt, A)) return this.camara;
     const fp = n.props.controles === 'primera_persona';
     const alt = n._alturaColision || n.props.altura || 1.8;
     const pos = this.d3.posicionGlobal(n);

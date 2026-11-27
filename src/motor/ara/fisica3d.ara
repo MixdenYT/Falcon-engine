@@ -210,6 +210,14 @@ estructura Solucionador3D:
                 devolver este.cuerpo_desplazamiento
         devolver este.cuerpo_desplazamiento
 
+    # Sincroniza las AABB móviles después de resolver cada cuerpo; así los siguientes
+    # cuerpos del mismo paso pueden apoyarse sobre la posición ya actualizada.
+    func desplazar_cuerpo(este, dueno: entero, desplazamiento_y: decimal):
+        para i en rango(este.cantidad):
+            si este.moviles[i] y este.duenos[i] == dueno:
+                este.y0[i] += desplazamiento_y
+                este.y1[i] += desplazamiento_y
+
     func cuerpo_tiene_apoyo(este) -> booleano:
         devolver este.cuerpo_apoyado
 

@@ -76,6 +76,13 @@ clase Espacio3D extiende Nucleo:
     # La caja más cercana que corta el rayo (o, d) sin pasar de `alcance`, saltando las de los dueños `ig_a` e `ig_b`
     # (-1: ninguno). Con empate gana la última, como `distancia <= cerca` en JS. Deja distancia y punto en rt, rx, ry, rz.
     func rayo(ox: decimal, oy: decimal, oz: decimal, dx: decimal, dy: decimal, dz: decimal, alcance: decimal, ig_a: decimal, ig_b: decimal) -> entero:
+        devolver rayo_con_margen(ox, oy, oz, dx, dy, dz, alcance, ig_a, ig_b, 0.0, falso)
+
+    # La cámara amplía los obstáculos para mantener separación visual. Ignora cajas que ya contienen el pivote.
+    func rayo_camara(ox: decimal, oy: decimal, oz: decimal, dx: decimal, dy: decimal, dz: decimal, alcance: decimal) -> entero:
+        devolver rayo_con_margen(ox, oy, oz, dx, dy, dz, alcance, SIN, SIN, 0.18, verdadero)
+
+    func rayo_con_margen(ox: decimal, oy: decimal, oz: decimal, dx: decimal, dy: decimal, dz: decimal, alcance: decimal, ig_a: decimal, ig_b: decimal, margen: decimal, ignorar_dentro: booleano) -> entero:
         # Vector3.normalize: divideScalar(length() || 1), que es multiplyScalar(1 / l).
         l = raiz(dx * dx + dy * dy + dz * dz)
         si l != l o l == 0.0:
@@ -92,23 +99,32 @@ clase Espacio3D extiende Nucleo:
         para i en rango(nb):
             si bdueno[i] == ig_a o bdueno[i] == ig_b:
                 continuar
-            # Ray.intersectBox de three.js, tal cual (NaN incluido).
+            # La cámara omite obstáculos que contienen su pivote, incluso tras expandirlos.
+            si ignorar_dentro y ox >= bx0[i] - margen y ox <= bx1[i] + margen y oy >= by0[i] - margen y oy <= by1[i] + margen y oz >= bz0[i] - margen y oz <= bz1[i] + margen:
+                continuar
+            # Ray.intersectBox de three.js sobre la AABB expandida (margen cero para rayos generales).
+            x0 = bx0[i] - margen
+            y0 = by0[i] - margen
+            z0 = bz0[i] - margen
+            x1 = bx1[i] + margen
+            y1 = by1[i] + margen
+            z1 = bz1[i] + margen
             tmin = 0.0
             tmax = 0.0
             si ix >= 0.0:
-                tmin = (bx0[i] - ox) * ix
-                tmax = (bx1[i] - ox) * ix
+                tmin = (x0 - ox) * ix
+                tmax = (x1 - ox) * ix
             sino:
-                tmin = (bx1[i] - ox) * ix
-                tmax = (bx0[i] - ox) * ix
+                tmin = (x1 - ox) * ix
+                tmax = (x0 - ox) * ix
             tymin = 0.0
             tymax = 0.0
             si iy >= 0.0:
-                tymin = (by0[i] - oy) * iy
-                tymax = (by1[i] - oy) * iy
+                tymin = (y0 - oy) * iy
+                tymax = (y1 - oy) * iy
             sino:
-                tymin = (by1[i] - oy) * iy
-                tymax = (by0[i] - oy) * iy
+                tymin = (y1 - oy) * iy
+                tymax = (y0 - oy) * iy
             si tmin > tymax o tymin > tmax:
                 continuar
             si tymin > tmin o tmin != tmin:
@@ -118,11 +134,11 @@ clase Espacio3D extiende Nucleo:
             tzmin = 0.0
             tzmax = 0.0
             si iz >= 0.0:
-                tzmin = (bz0[i] - oz) * iz
-                tzmax = (bz1[i] - oz) * iz
+                tzmin = (z0 - oz) * iz
+                tzmax = (z1 - oz) * iz
             sino:
-                tzmin = (bz1[i] - oz) * iz
-                tzmax = (bz0[i] - oz) * iz
+                tzmin = (z1 - oz) * iz
+                tzmax = (z0 - oz) * iz
             si tmin > tzmax o tzmin > tmax:
                 continuar
             si tzmin > tmin o tmin != tmin:

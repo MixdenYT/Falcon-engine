@@ -170,31 +170,6 @@ export class Mundo3D {
     return F;
   }
 
-  // Comprueba el volumen barrido antes de delegar. Solo un cuerpo empujable que pueda
-  // tocar a este personaje fuerza el respaldo JS; los objetos lejanos no desactivan Ara.
-  hayMovilEnTrayectoria(n, pos, dt, escalaG, solidos) {
-    const radio = n.props.tactico ? 0.42 : 0.38;
-    const altura = n._alturaColision || n.props.altura || 1.8;
-    const amort = Math.pow(0.05, dt);
-    const dx = (n.mueveX + (n.empX || 0) * amort) * dt;
-    const dz = (n.mueveZ + (n.empZ || 0) * amort) * dt;
-    const vy0 = n.vy || 0;
-    const vy1 = n.props.usa_gravedad
-      ? Math.max(vy0 - (n.props.gravedad ?? 18) * escalaG * dt, -60)
-      : vy0;
-    const dy = (vy0 + vy1) * 0.5 * dt;
-    const minX = Math.min(pos[0], pos[0] + dx) - radio;
-    const maxX = Math.max(pos[0], pos[0] + dx) + radio;
-    const minY = Math.min(pos[1], pos[1] + dy) - 0.05;
-    const maxY = Math.max(pos[1], pos[1] + dy) + altura + 0.36;
-    const minZ = Math.min(pos[2], pos[2] + dz) - radio;
-    const maxZ = Math.max(pos[2], pos[2] + dz) + radio;
-    return solidos.some(s => s.movil &&
-      maxX > s.b.min.x && minX < s.b.max.x &&
-      maxY > s.b.min.y && minY < s.b.max.y &&
-      maxZ > s.b.min.z && minZ < s.b.max.z);
-  }
-
   // La escena entrega las AABB; Ara resuelve el movimiento. Los cuerpos empujables
   // cercanos conservan temporalmente la ruta JS para sincronizar su transformada.
   resolverFisicaPersonajeAra(n, pos, dt, escalaG, nodos, solidos) {

@@ -210,6 +210,9 @@ export class Controles3D {
     this._modo = n.props.controles;
     if (fp) { this.pitch = -this.pitch * 0.5; this.pivote.set(pos[0], pos[1] + alt * 0.92, pos[2]); }
     else { this.pitch = Math.max(-0.35, Math.min(1.25, 0.25 - this.pitch * 0.5)); this.distActual = 0.4; this.mostrarCuerpo(); }
+    // Al cambiar de vista se sincroniza el estado de Ara para evitar un salto al volver a tercera persona.
+    this.motorAra = this.d3.m.nucleo?.camara3d || null;
+    this.motorAra?.iniciar(this.yaw, this.pitch, this.pivote.x, this.pivote.y, this.pivote.z, this.distActual);
   }
 
   camaraTercera(n, pos, alt, dt) {

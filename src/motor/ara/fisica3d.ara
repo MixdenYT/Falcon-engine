@@ -27,6 +27,8 @@ clase Solucionador3D:
     vy: decimal
     vx: decimal
     vz: decimal
+    emp_x: decimal
+    emp_z: decimal
     suelo: booleano
     pared: booleano
     techo: booleano
@@ -88,6 +90,8 @@ clase Solucionador3D:
         este.vy = velocidad_y
         este.vx = 0.0
         este.vz = 0.0
+        este.emp_x = 0.0
+        este.emp_z = 0.0
         este.suelo = falso
         este.pared = falso
         este.techo = falso
@@ -95,10 +99,8 @@ clase Solucionador3D:
 
         impulso_x *= amortiguacion
         impulso_z *= amortiguacion
-        si abs(impulso_x) < 0.01:
-            impulso_x = 0.0
-        si abs(impulso_z) < 0.01:
-            impulso_z = 0.0
+        este.emp_x = impulso_x
+        este.emp_z = impulso_z
 
         dx = (velocidad_x + impulso_x) * dt
         si dx != 0.0 y dx == dx:
@@ -191,3 +193,9 @@ clase Solucionador3D:
 
     func contacto(este, i: entero) -> entero:
         devolver este.contactos[i]
+
+    func resultado_emp_x(este) -> decimal:
+        devolver este.emp_x
+
+    func resultado_emp_z(este) -> decimal:
+        devolver este.emp_z

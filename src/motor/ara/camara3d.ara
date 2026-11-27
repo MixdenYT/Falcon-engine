@@ -27,9 +27,15 @@ estructura ControlCamara3D:
 
     # Ratón y stick derecho comparten sensibilidad, inversión y límites de cada vista.
     func entrada(este, mx: decimal, my: decimal, sx: decimal, sy: decimal, sensibilidad: decimal, inversion: decimal, dt: decimal, primera_persona: booleano):
+        sx_filtrado = 0.0
+        sy_filtrado = 0.0
+        si abs(sx) >= 0.15:
+            sx_filtrado = (sx - (1.0 si sx > 0.0 sino 0.0 - 1.0) * 0.15) / 0.85
+        si abs(sy) >= 0.15:
+            sy_filtrado = (sy - (1.0 si sy > 0.0 sino 0.0 - 1.0) * 0.15) / 0.85
         v_stick = 2.8 * sensibilidad
-        este.yaw -= mx * 0.0024 * sensibilidad + sx * v_stick * dt
-        dp = (my * 0.0024 * sensibilidad + sy * v_stick * dt) * inversion
+        este.yaw -= mx * 0.0024 * sensibilidad + sx_filtrado * v_stick * dt
+        dp = (my * 0.0024 * sensibilidad + sy_filtrado * v_stick * dt) * inversion
         si primera_persona:
             este.pitch = maximo(-1.45, minimo(1.45, este.pitch - dp))
         sino:

@@ -8,8 +8,8 @@ const cerca = (real, esperado, etiqueta) => assert.ok(Math.abs(real - esperado) 
 test('Ara calcula la órbita con ratón, stick, sensibilidad e inversión vertical', () => {
   C.iniciar(0, 0, 0, 0, 0, 5);
   C.entrada(100, 50, 0.5, -0.25, 1, -1, 0.1, false);
-  cerca(C.yaw(), -0.38, 'yaw combinado');
-  cerca(C.pitch(), -0.05, 'pitch combinado e invertido');
+  cerca(C.yaw(), -(0.24 + ((0.5 - 0.15) / 0.85) * 0.28), 'yaw combinado con zona muerta Ara');
+  cerca(C.pitch(), -(0.12 - ((0.25 - 0.15) / 0.85) * 0.28), 'pitch combinado e invertido');
 });
 
 test('Ara limita el pitch según primera o tercera persona', () => {
@@ -36,4 +36,11 @@ test('Ara devuelve la cámara detrás del movimiento y suaviza el zoom', () => {
   cerca(C.distancia(), 5 + 5 * (1 - Math.exp(-0.35)), 'zoom hacia fuera');
   C.seguirDistancia(2, 0.1);
   cerca(C.distancia(), 2 + (5 + 5 * (1 - Math.exp(-0.35)) - 2) * Math.exp(-3), 'acercamiento rápido');
+});
+
+test('Ara ignora el ruido del stick dentro de la zona muerta', () => {
+  C.iniciar(0.25, 0.1, 0, 0, 0, 5);
+  C.entrada(0, 0, 0.1, -0.14, 1, 1, 0.1, false);
+  cerca(C.yaw(), 0.25, 'yaw estable');
+  cerca(C.pitch(), 0.1, 'pitch estable');
 });

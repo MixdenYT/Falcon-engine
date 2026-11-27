@@ -113,10 +113,12 @@ estructura Solucionador3D:
         dx = (velocidad_x + impulso_x) * dt
         si dx != 0.0 y dx == dx:
             este.px += dx
+            offset_y = 0.05
             para i en rango(este.cantidad):
-                si este.intersecta(este.px - radio, este.py + 0.05, este.pz - radio, este.px + radio, este.py + altura, este.pz + radio, i):
+                si este.intersecta(este.px - radio, este.py + offset_y, este.pz - radio, este.px + radio, este.py + altura, este.pz + radio, i):
                     si no este.moviles[i] y no este.cuerpos[i] y este.y1[i] - este.py < 0.35:
                         este.py = este.y1[i]
+                        offset_y = 0.0
                         continuar
                     si dx > 0.0:
                         este.px = minimo(este.px, este.x0[i] - radio - 0.001)
@@ -124,14 +126,17 @@ estructura Solucionador3D:
                         este.px = maximo(este.px, este.x1[i] + radio + 0.001)
                     este.pared = verdadero
                     este.anotar(este.duenos[i])
+                    offset_y = 0.0
 
         dz = (velocidad_z + impulso_z) * dt
         si dz != 0.0 y dz == dz:
             este.pz += dz
+            offset_y = 0.05
             para i en rango(este.cantidad):
-                si este.intersecta(este.px - radio, este.py + 0.05, este.pz - radio, este.px + radio, este.py + altura, este.pz + radio, i):
+                si este.intersecta(este.px - radio, este.py + offset_y, este.pz - radio, este.px + radio, este.py + altura, este.pz + radio, i):
                     si no este.moviles[i] y no este.cuerpos[i] y este.y1[i] - este.py < 0.35:
                         este.py = este.y1[i]
+                        offset_y = 0.0
                         continuar
                     si dz > 0.0:
                         este.pz = minimo(este.pz, este.z0[i] - radio - 0.001)
@@ -139,6 +144,7 @@ estructura Solucionador3D:
                         este.pz = maximo(este.pz, este.z1[i] + radio + 0.001)
                     este.pared = verdadero
                     este.anotar(este.duenos[i])
+                    offset_y = 0.0
 
         vy_anterior = este.vy
         si usa_gravedad:

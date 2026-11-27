@@ -236,6 +236,38 @@ export class Mundo3D {
     return true;
   }
 
+  // Los cuerpos empujables comparten el mismo solucionador Ara que los personajes.
+  // Three.js solo aporta las AABB y aplica después el desplazamiento corregido al nodo.
+  resolverCuerposMovilesAra(solidos, dt, escalaG) {
+    const F = this.m.nucleo?.fisica3d;
+    if (!F?.empezar || !F.resolverCuerpo || !F.cuerpoTieneApoyo) return false;
+    F.empezar();
+    const duenos = new Map();
+    for (const s of solidos) {
+      let indice = duenos.get(s.n);
+      if (indice === undefined) { indice = duenos.size; duenos.set(s.n, indice); }
+      const b = s.b;
+      F.caja(b.min.x, b.min.y, b.min.z, b.max.x, b.max.y, b.max.z, indice, false, !!s.movil);
+    }
+    for (const s of solidos) {
+      if (!s.movil) continue;
+      const n = s.n;
+      const vyAnterior = n.vy || 0;
+      const vyNuevo = vyAnterior - 18 * escalaG * dt;
+      n.vy = vyNuevo;
+      const dy = (vyAnterior + vyNuevo) * 0.5 * dt;
+      const desplazamiento = F.resolverCuerpo(
+        duenos.get(n), s.b.min.x, s.b.min.y, s.b.min.z,
+        s.b.max.x, s.b.max.y, s.b.max.z, dy,
+      );
+      if (this.errorAra()) return false;
+      n.props.posicion[1] += desplazamiento;
+      s.b.translate(new THREE.Vector3(0, desplazamiento, 0));
+      if (F.cuerpoTieneApoyo()) n.vy = 0;
+    }
+    return true;
+  }
+
   fisica(dt) {
     const nodos = this.m.todos();
     // Sincroniza transformaciones (los scripts pueden haber cambiado posiciones).
@@ -263,22 +295,24 @@ export class Mundo3D {
     const gGlobal = this.m.interp.globales.vars.get('gravedad');
     const escalaG = (this.m.proyecto.datos.gravedad || 18) ? gGlobal / (this.m.proyecto.datos.gravedad || 18) : 1;
 
-    // Cuerpos empujables: caen con gravedad.
-    for (const s of solidos) {
-      if (!s.movil) continue;
-      const n = s.n;
-      // Con aceleración constante, el desplazamiento exacto usa la velocidad media del intervalo:
-      // así la caída es la misma a 60 que a 165 FPS.
-      const vyAnt = n.vy || 0;
-      n.vy = vyAnt - 18 * escalaG * dt;
-      const dy = (vyAnt + n.vy) * 0.5 * dt;
-      const b2 = s.b.clone().translate(new THREE.Vector3(0, dy, 0));
-      let apoyo = false;
-      for (const o of solidos) {
-        if (o === s || !o.b.intersectsBox(b2)) continue;
-        if (dy < 0 && s.b.min.y >= o.b.max.y - 0.05) { apoyo = true; const corr = o.b.max.y - s.b.min.y; n.props.posicion[1] += corr; s.b.translate(new THREE.Vector3(0, corr, 0)); n.vy = 0; break; }
+    // Los cuerpos empujables caen y buscan apoyo en Ara. Si el núcleo falla, se conserva
+    // exactamente el camino JS anterior como recuperación segura.
+    const cuerposEnAra = this.resolverCuerposMovilesAra(solidos, dt, escalaG);
+    if (!cuerposEnAra) {
+      for (const s of solidos) {
+        if (!s.movil) continue;
+        const n = s.n;
+        const vyAnt = n.vy || 0;
+        n.vy = vyAnt - 18 * escalaG * dt;
+        const dy = (vyAnt + n.vy) * 0.5 * dt;
+        const b2 = s.b.clone().translate(new THREE.Vector3(0, dy, 0));
+        let apoyo = false;
+        for (const o of solidos) {
+          if (o === s || !o.b.intersectsBox(b2)) continue;
+          if (dy < 0 && s.b.min.y >= o.b.max.y - 0.05) { apoyo = true; const corr = o.b.max.y - s.b.min.y; n.props.posicion[1] += corr; s.b.translate(new THREE.Vector3(0, corr, 0)); n.vy = 0; break; }
+        }
+        if (!apoyo) { n.props.posicion[1] += dy; s.b.copy(b2); }
       }
-      if (!apoyo) { n.props.posicion[1] += dy; s.b.copy(b2); }
     }
 
     for (const n of nodos) {

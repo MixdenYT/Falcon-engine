@@ -159,11 +159,10 @@ export class Mundo3D {
       const duenos = [];
       const indices = new Map();
       for (const s of solidos) {
-        if (s.movil) continue;
         let i = indices.get(s.n);
         if (i === undefined) { i = duenos.length; indices.set(s.n, i); duenos.push(s.n); }
         const b = s.b;
-        F.caja(b.min.x, b.min.y, b.min.z, b.max.x, b.max.y, b.max.z, i, false, false);
+        F.caja(b.min.x, b.min.y, b.min.z, b.max.x, b.max.y, b.max.z, i, false, !!s.movil);
       }
       F.preparar();
       this._duenosFisicaAra = duenos;
@@ -199,7 +198,6 @@ export class Mundo3D {
   // La escena entrega las AABB; Ara resuelve el movimiento. Los cuerpos empujables
   // cercanos conservan temporalmente la ruta JS para sincronizar su transformada.
   resolverFisicaPersonajeAra(n, pos, dt, escalaG, nodos, solidos) {
-    if (this.hayMovilEnTrayectoria(n, pos, dt, escalaG, solidos)) return false;
     const F = this.prepararFisicaAra(solidos);
     if (!F) return false;
     F.empezarPersonaje();
@@ -222,6 +220,16 @@ export class Mundo3D {
       n.vy || 0, !!n.props.usa_gravedad, n.props.gravedad ?? 18, escalaG, dt
     );
     if (this.errorAra()) return false;
+    // Ara ya ha movido las AABB internas. Reflejamos esos desplazamientos en los nodos
+    // y en las cajas del paso para que los siguientes personajes vean el mismo mundo.
+    for (let i = 0, total = F.empujados(); i < total; i++) {
+      const nodo = duenos[F.empujadoDueno(i)];
+      if (!nodo) continue;
+      const dx = F.empujadoX(i), dz = F.empujadoZ(i);
+      nodo.props.posicion[0] += dx;
+      nodo.props.posicion[2] += dz;
+      for (const s of solidos) if (s.n === nodo) s.b.translate(new THREE.Vector3(dx, 0, dz));
+    }
     pos[0] = F.x(); pos[1] = F.y(); pos[2] = F.z();
     n.vy = F.vy();
     n.empX = F.empX(); n.empZ = F.empZ();

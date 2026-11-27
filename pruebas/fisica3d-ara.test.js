@@ -33,6 +33,7 @@ function ara(solidos, p) {
 
 function referencia(solidos, p) {
   let x = p.x, y = p.y, z = p.z, vy = p.vy || 0;
+  const yOriginal = y;
   let empX = (p.empX || 0) * Math.pow(0.05, p.dt);
   let empZ = (p.empZ || 0) * Math.pow(0.05, p.dt);
   let pared = false, techo = false, suelo = false;
@@ -70,12 +71,12 @@ function referencia(solidos, p) {
   const vyAnt = vy;
   if (p.gravedad) vy = Math.max(vy - p.g * (p.escalaG ?? 1) * p.dt, -60);
   const dy = (vyAnt + vy) * 0.5 * p.dt;
-  const yInicial = y;
   y += dy;
+  const yCaja = y;
   for (const s of solidos) {
-    if (s.cuerpo || !intersecta(s, y)) continue;
-    if (dy <= 0 && yInicial >= s.y1 - 0.36) { y = s.y1; vy = 0; suelo = true; }
-    else if (dy > 0 && yInicial + (p.alturaTecho ?? p.altura) <= s.y0 + 0.05) {
+    if (s.cuerpo || !(x + p.radio > s.x0 && x - p.radio < s.x1 && yCaja + p.altura > s.y0 && yCaja < s.y1 && z + p.radio > s.z0 && z - p.radio < s.z1)) continue;
+    if (dy <= 0 && yOriginal >= s.y1 - 0.36) { y = s.y1; vy = 0; suelo = true; }
+    else if (dy > 0 && yOriginal + (p.alturaTecho ?? p.altura) <= s.y0 + 0.05) {
       y = s.y0 - (p.alturaTecho ?? p.altura); vy = 0; techo = true;
     }
     anotar(s.dueno);

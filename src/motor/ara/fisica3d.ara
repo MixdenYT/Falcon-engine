@@ -172,6 +172,24 @@ estructura Solucionador3D:
                         este.py = este.y1[i]
                         offset_y = 0.0
                         continuar
+                    si este.moviles[i]:
+                        libre = verdadero
+                        min_x_candidato = este.x0[i] + dx
+                        max_x_candidato = este.x1[i] + dx
+                        para j en rango(este.cantidad):
+                            si j == i o este.duenos[j] == este.duenos[i]:
+                                continuar
+                            si max_x_candidato > este.x0[j] y min_x_candidato < este.x1[j] y este.y1[i] > este.y0[j] y este.y0[i] < este.y1[j] y este.z1[i] > este.z0[j] y este.z0[i] < este.z1[j] y este.y0[i] < este.y1[j] - 0.05:
+                                libre = falso
+                        si libre:
+                            dueno_empujado = este.duenos[i]
+                            para k en rango(este.cantidad):
+                                si este.duenos[k] == dueno_empujado y este.moviles[k]:
+                                    este.x0[k] += dx
+                                    este.x1[k] += dx
+                            este.registrar_empuje(dueno_empujado, dx, 0.0)
+                            este.anotar(dueno_empujado)
+                            continuar
                     si dx > 0.0:
                         este.px = minimo(este.px, este.x0[i] - radio - 0.001)
                     sino:
@@ -190,6 +208,24 @@ estructura Solucionador3D:
                         este.py = este.y1[i]
                         offset_y = 0.0
                         continuar
+                    si este.moviles[i]:
+                        libre = verdadero
+                        min_z_candidato = este.z0[i] + dz
+                        max_z_candidato = este.z1[i] + dz
+                        para j en rango(este.cantidad):
+                            si j == i o este.duenos[j] == este.duenos[i]:
+                                continuar
+                            si este.x1[i] > este.x0[j] y este.x0[i] < este.x1[j] y este.y1[i] > este.y0[j] y este.y0[i] < este.y1[j] y max_z_candidato > este.z0[j] y min_z_candidato < este.z1[j] y este.y0[i] < este.y1[j] - 0.05:
+                                libre = falso
+                        si libre:
+                            dueno_empujado = este.duenos[i]
+                            para k en rango(este.cantidad):
+                                si este.duenos[k] == dueno_empujado y este.moviles[k]:
+                                    este.z0[k] += dz
+                                    este.z1[k] += dz
+                            este.registrar_empuje(dueno_empujado, 0.0, dz)
+                            este.anotar(dueno_empujado)
+                            continuar
                     si dz > 0.0:
                         este.pz = minimo(este.pz, este.z0[i] - radio - 0.001)
                     sino:

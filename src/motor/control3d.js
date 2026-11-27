@@ -248,13 +248,17 @@ export class Controles3D {
     const deseada = this.dist * this.zoom;
     _dir.set(Math.sin(this.yaw) * Math.cos(this.pitch), Math.sin(this.pitch), Math.cos(this.yaw) * Math.cos(this.pitch));
     // No atraviesa paredes: se acerca si hay algo entre el personaje y la cámara.
-    let libre = deseada;
-    _rayo.set(this.pivote, _dir);
-    for (const s of this.d3.solidos) {
-      _caja.copy(s.b).expandByScalar(0.18);
-      if (_caja.containsPoint(this.pivote)) continue;
-      if (_rayo.intersectBox(_caja, _hit)) { const t = _hit.distanceTo(this.pivote); if (t < libre) libre = t; }
-    }
+    let libre = this.d3.distanciaCamaraAra(this.pivote, _dir, deseada);
+    if (libre === undefined) {
+      // Respaldo si Ara no está disponible o ha comunicado un error.
+      libre = deseada;
+      _rayo.set(this.pivote, _dir);
+      for (const s of this.d3.solidos) {
+        _caja.copy(s.b).expandByScalar(0.18);
+        if (_caja.containsPoint(this.pivote)) continue;
+        if (_rayo.intersectBox(_caja, _hit)) { const t = _hit.distanceTo(this.pivote); if (t < libre) libre = t; }
+      }
+    } else if (libre === null) libre = deseada;
     libre = Math.max(0.3, libre);
     if (A) { A.seguirDistancia(libre, dt); this.distActual = A.distancia(); }
     else {

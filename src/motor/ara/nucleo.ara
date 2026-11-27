@@ -186,6 +186,9 @@ clase Camara3D extiende Nucleo:
     func r_distancia_actual() -> decimal:
         devolver f.resultado_distancia_actual()
 
+    func r_deseada() -> decimal:
+        devolver f.resultado_deseada()
+
     func r_zoom() -> decimal:
         devolver f.resultado_zoom()
 

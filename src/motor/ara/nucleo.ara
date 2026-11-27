@@ -92,6 +92,9 @@ clase Fisica3D extiende Nucleo:
     func resolver_cuerpo(dueno: entero, min_x: decimal, min_y: decimal, min_z: decimal, max_x: decimal, max_y: decimal, max_z: decimal, desplazamiento_y: decimal) -> decimal:
         devolver f.resolver_cuerpo(dueno, min_x, min_y, min_z, max_x, max_y, max_z, desplazamiento_y)
 
+    func desplazar_cuerpo(dueno: entero, desplazamiento_y: decimal):
+        f.desplazar_cuerpo(dueno, desplazamiento_y)
+
     func cuerpo_tiene_apoyo() -> booleano:
         devolver f.cuerpo_tiene_apoyo()
 

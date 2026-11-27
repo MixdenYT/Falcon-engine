@@ -433,6 +433,19 @@ export class Mundo3D {
     return !!e;
   }
 
+  /**
+   * Distancia al primer obstáculo de cámara calculada en Ara. Las cajas se expanden 0,18 unidades y se ignoran
+   * las que contienen el pivote, igual que el antiguo recorrido THREE.Ray/Box3 de Controles3D.
+   * null = sin obstáculo; undefined = núcleo no disponible/error (el llamador usa el respaldo JS).
+   */
+  distanciaCamaraAra(origen, direccion, alcance) {
+    const F = this.espacioAra();
+    if (!F) return undefined;
+    const i = F.rayoCamara(origen.x, origen.y, origen.z, direccion.x, direccion.y, direccion.z, alcance);
+    if (this.errorAra()) return undefined;
+    return i < 0 ? null : F.t();
+  }
+
   /** El sólido más cercano que corta el rayo, calculado en Ara: un impacto, null si no hay, o undefined si hay que hacerlo en JS. */
   solidoAra(origen, d, alcance, ignorados) {
     const F = this.espacioAra();

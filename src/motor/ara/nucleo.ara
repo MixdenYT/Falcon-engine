@@ -156,3 +156,101 @@ clase Movimiento3D extiende Nucleo:
 
     func r_banderas() -> entero:
         devolver f.banderas()
+
+
+# Cámara 3D: Ara calcula el estado, la órbita, el seguimiento y el movimiento de cámara.
+clase Camara3D extiende Nucleo:
+    f = ControladorCamara3D()
+
+    func iniciar(offset_x: decimal, offset_y: decimal, offset_z: decimal, rotacion_y: decimal, yaw_visual: decimal, visual_presente: booleano, posicion_x: decimal, posicion_y: decimal, posicion_z: decimal, altura: decimal, primera_persona: booleano, fov_inicial: decimal):
+        f.iniciar(offset_x, offset_y, offset_z, rotacion_y, yaw_visual, visual_presente, posicion_x, posicion_y, posicion_z, altura, primera_persona, fov_inicial)
+
+    func cambiar_modo(posicion_x: decimal, posicion_y: decimal, posicion_z: decimal, altura: decimal, primera_persona: booleano):
+        f.cambiar_modo(posicion_x, posicion_y, posicion_z, altura, primera_persona)
+
+    func preparar(posicion_x: decimal, posicion_y: decimal, posicion_z: decimal, altura: decimal, primera_persona: booleano, sensibilidad: decimal, invertir_y: booleano, tactico: booleano, apuntando: booleano, stick_x: decimal, stick_y: decimal, raton_x: decimal, raton_y: decimal, rueda: decimal, capturado: booleano, velocidad_x: decimal, velocidad_z: decimal, velocidad_base: decimal, correr: booleano, en_suelo: booleano, velocidad_y: decimal, dt: decimal, inclinar_derecha: booleano, inclinar_izquierda: booleano):
+        f.preparar(posicion_x, posicion_y, posicion_z, altura, primera_persona, sensibilidad, invertir_y, tactico, apuntando, stick_x, stick_y, raton_x, raton_y, rueda, capturado, velocidad_x, velocidad_z, velocidad_base, correr, en_suelo, velocidad_y, dt, inclinar_derecha, inclinar_izquierda)
+
+    func finalizar(distancia_libre: decimal, distancia_inclinacion_libre: decimal, dt: decimal, primera_persona: booleano, tactico: booleano, apuntando: booleano, correr: booleano):
+        f.finalizar(distancia_libre, distancia_inclinacion_libre, dt, primera_persona, tactico, apuntando, correr)
+
+    func r_yaw() -> decimal:
+        devolver f.resultado_yaw()
+
+    func r_pitch() -> decimal:
+        devolver f.resultado_pitch()
+
+    func r_distancia() -> decimal:
+        devolver f.resultado_distancia()
+
+    func r_distancia_actual() -> decimal:
+        devolver f.resultado_distancia_actual()
+
+    func r_zoom() -> decimal:
+        devolver f.resultado_zoom()
+
+    func r_pivote_x() -> decimal:
+        devolver f.resultado_pivote_x()
+
+    func r_pivote_y() -> decimal:
+        devolver f.resultado_pivote_y()
+
+    func r_pivote_z() -> decimal:
+        devolver f.resultado_pivote_z()
+
+    func r_dir_x() -> decimal:
+        devolver f.resultado_dir_x()
+
+    func r_dir_y() -> decimal:
+        devolver f.resultado_dir_y()
+
+    func r_dir_z() -> decimal:
+        devolver f.resultado_dir_z()
+
+    func r_cam_x() -> decimal:
+        devolver f.resultado_cam_x()
+
+    func r_cam_y() -> decimal:
+        devolver f.resultado_cam_y()
+
+    func r_cam_z() -> decimal:
+        devolver f.resultado_cam_z()
+
+    func r_roll() -> decimal:
+        devolver f.resultado_roll()
+
+    func r_fov() -> decimal:
+        devolver f.resultado_fov()
+
+    func r_fov_base() -> decimal:
+        devolver f.resultado_fov_base()
+
+    func r_sin_raton() -> decimal:
+        devolver f.resultado_sin_raton()
+
+    func r_fase() -> decimal:
+        devolver f.resultado_fase()
+
+    func r_bob() -> decimal:
+        devolver f.resultado_bob()
+
+    func r_golpe() -> decimal:
+        devolver f.resultado_golpe()
+
+    func r_caida_max() -> decimal:
+        devolver f.resultado_caida_max()
+
+    func r_en_suelo_antes() -> booleano:
+        devolver f.resultado_en_suelo_antes()
+
+    func r_inclinacion() -> decimal:
+        devolver f.resultado_inclinacion()
+
+    func r_ads() -> decimal:
+        devolver f.resultado_ads()
+
+    func r_retroceso() -> decimal:
+        devolver f.resultado_retroceso()
+
+    func r_ocultar() -> booleano:
+        devolver f.resultado_ocultar()

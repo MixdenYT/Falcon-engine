@@ -45,7 +45,8 @@ try {
   await pagina.goto(`http://127.0.0.1:${puerto}/pruebas/webgl.html`, { waitUntil: 'load' });
   await pagina.waitForFunction(() => window.__FALCON_WEBGL_RESULTADO__ !== undefined, { timeout: 30000 });
   const resultado = await pagina.evaluate(() => window.__FALCON_WEBGL_RESULTADO__);
-  assert.deepEqual(recursosNoEncontrados, [], 'La prueba solicitó recursos que no existen: ' + recursosNoEncontrados.join(', '));\n  assert.equal(fallosConsola.length, 0, 'La página WebGL produjo errores de consola o HTTP: ' + fallosConsola.join('\\n'));
+  assert.deepEqual(recursosNoEncontrados, [], 'La prueba solicitó recursos que no existen: ' + recursosNoEncontrados.join(', '));
+  assert.equal(fallosConsola.length, 0, 'La página WebGL produjo errores de consola o HTTP: ' + fallosConsola.join('\n'));
   assert.equal(resultado.ok, true, resultado.errores.join('\\n') || JSON.stringify(resultado));
   assert.equal(resultado.fotogramas, 6);
   assert.ok(resultado.llamadasDibujo > 0, 'No se registraron llamadas de dibujo');

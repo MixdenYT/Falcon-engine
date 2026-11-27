@@ -9,7 +9,7 @@
 # La intersección usa límites estrictos, igual que THREE.Box3.intersectsBox.
 
 estructura Solucionador3D:
-    cantidad = 0
+    cantidad: entero
     x0: lista[decimal] = []
     y0: lista[decimal] = []
     z0: lista[decimal] = []
@@ -20,22 +20,30 @@ estructura Solucionador3D:
     cuerpos: lista[booleano] = []
     moviles: lista[booleano] = []
     contactos: lista[entero] = []
-    cantidad_contactos = 0
-    px = 0.0
-    py = 0.0
-    pz = 0.0
-    vy = 0.0
-    vx = 0.0
-    vz = 0.0
-    emp_x = 0.0
-    emp_z = 0.0
-    suelo = falso
-    pared = falso
-    techo = falso
+    cantidad_contactos: entero
+    px: decimal
+    py: decimal
+    pz: decimal
+    vy: decimal
+    vx: decimal
+    vz: decimal
+    emp_x: decimal
+    emp_z: decimal
+    suelo: booleano
+    pared: booleano
+    techo: booleano
 
     func crear(este):
         este.cantidad = 0
         este.cantidad_contactos = 0
+        este.px = 0.0
+        este.py = 0.0
+        este.pz = 0.0
+        este.vy = 0.0
+        este.vx = 0.0
+        este.vz = 0.0
+        este.emp_x = 0.0
+        este.emp_z = 0.0
         este.suelo = falso
         este.pared = falso
         este.techo = falso

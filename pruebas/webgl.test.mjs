@@ -12,6 +12,8 @@ const tipos = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; ch
 const recursosNoEncontrados = [];
 const servidor = createServer(async (req, res) => {
   const ruta = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
+  // Chromium puede pedir el icono opcional del sitio aunque el HTML use un icono data URI.
+  if (ruta === '/favicon.ico') { res.writeHead(204).end(); return; }
   try {
     const archivo = resolve(raiz, '.' + ruta);
     if (archivo !== raiz && !archivo.startsWith(raiz + sep)) { res.writeHead(403).end(); return; }

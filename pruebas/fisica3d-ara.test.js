@@ -110,6 +110,7 @@ test('física 3D en Ara: pared, suelo, techo, escalones e impulsos', () => {
   comparar([suelo, techo], { x: 0, y: 0, z: 0, radio: 0.38, altura: 1.8, vx: 0, vz: 0, vy: 10, gravedad: true, g: 18, dt: 0.1 }, 'techo');
   comparar([caja(0.5, 0, -1, 1.5, 0.2, 1, 4)], { x: 0, y: 0, z: 0, radio: 0.38, altura: 1.8, vx: 5, vz: 0, vy: 0, gravedad: false, g: 18, dt: 0.1 }, 'escalón bajo');
   comparar([pared], { x: 0, y: 0, z: 0, radio: 0.42, altura: 1.12, vx: 0, vz: 0, empX: 4, empZ: 1, vy: 0, gravedad: false, g: 18, dt: 0.1 }, 'impulso amortiguado');
+  comparar([caja(-2, -1, -2, 2, 0.1, 2, 5), caja(-2, -1, -2, 2, 0.05, 2, 6)], { x: 0, y: 0, z: 0, radio: 0.38, altura: 1.8, vx: 0, vz: 0, vy: 0, gravedad: true, g: 18, dt: 0.1 }, 'varias superficies en la misma caja vertical');
 });
 
 test('física 3D en Ara: los cuerpos bloquean horizontalmente, no el eje vertical', () => {

@@ -24,6 +24,10 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci --ignore-scripts
+      - name: Compilar y comprobar el núcleo Ara antes de las pruebas
+        run: |
+          node herramientas/compilar-nucleo-ara.mjs
+          node herramientas/compilar-nucleo-ara.mjs --comprobar
       - run: npm test
       - run: npm run test:actualizaciones
       - name: Validar configuración de paquetes

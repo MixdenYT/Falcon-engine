@@ -68,3 +68,115 @@ clase Fisica2D extiende Nucleo:
 
     func par_b(k: entero) -> entero:
         devolver f.pb[k]
+
+
+# Solucionador de movimiento y colisiones 3D. La escena entrega AABB y recibe resultados.
+clase Fisica3D extiende Nucleo:
+    f = Solucionador3D()
+
+    func empezar():
+        f.empezar()
+
+    func preparar():
+        f.preparar()
+
+    func empezar_personaje():
+        f.empezar_personaje()
+
+    func caja(x0: decimal, y0: decimal, z0: decimal, x1: decimal, y1: decimal, z1: decimal, dueno: entero, cuerpo: booleano, movil: booleano):
+        f.caja(x0, y0, z0, x1, y1, z1, dueno, cuerpo, movil)
+
+    func mover(x: decimal, y_: decimal, z: decimal, radio: decimal, altura: decimal, altura_techo: decimal, vx: decimal, vz: decimal, emp_x: decimal, emp_z: decimal, amort: decimal, vy: decimal, usa_gravedad: booleano, gravedad: decimal, escala_gravedad: decimal, dt: decimal):
+        f.mover(x, y_, z, radio, altura, altura_techo, vx, vz, emp_x, emp_z, amort, vy, usa_gravedad, gravedad, escala_gravedad, dt)
+
+    func empujados() -> entero:
+        devolver f.cantidad_de_empujados()
+
+    func empujado_dueno(i: entero) -> entero:
+        devolver f.empujado_dueno(i)
+
+    func empujado_x(i: entero) -> decimal:
+        devolver f.empujado_x(i)
+
+    func empujado_z(i: entero) -> decimal:
+        devolver f.empujado_z(i)
+
+    func resolver_cuerpo(dueno: entero, min_x: decimal, min_y: decimal, min_z: decimal, max_x: decimal, max_y: decimal, max_z: decimal, desplazamiento_y: decimal) -> decimal:
+        devolver f.resolver_cuerpo(dueno, min_x, min_y, min_z, max_x, max_y, max_z, desplazamiento_y)
+
+    func desplazar_cuerpo(dueno: entero, desplazamiento_y: decimal):
+        f.desplazar_cuerpo(dueno, desplazamiento_y)
+
+    func cuerpo_tiene_apoyo() -> booleano:
+        devolver f.cuerpo_tiene_apoyo()
+
+    func r_x() -> decimal:
+        devolver f.resultado_x()
+
+    func r_y() -> decimal:
+        devolver f.resultado_y()
+
+    func r_z() -> decimal:
+        devolver f.resultado_z()
+
+    func r_vy() -> decimal:
+        devolver f.resultado_vy()
+
+    func r_vx() -> decimal:
+        devolver f.resultado_vx()
+
+    func r_vz() -> decimal:
+        devolver f.resultado_vz()
+
+    func r_emp_x() -> decimal:
+        devolver f.resultado_emp_x()
+
+    func r_emp_z() -> decimal:
+        devolver f.resultado_emp_z()
+
+    func r_banderas() -> entero:
+        devolver f.banderas()
+
+    func r_contactos() -> entero:
+        devolver f.cantidad_de_contactos()
+
+    func contacto(i: entero) -> entero:
+        devolver f.contacto(i)
+
+
+# Operaciones matemáticas y estado de seguimiento para cámara 3D.
+clase Camara3D extiende Nucleo:
+    c = ControlCamara3D()
+
+    func iniciar(yaw: decimal, pitch: decimal, x: decimal, centro_y: decimal, z: decimal, distancia: decimal):
+        c.iniciar(yaw, pitch, x, centro_y, z, distancia)
+
+    func entrada(mx: decimal, my: decimal, sx: decimal, sy: decimal, sensibilidad: decimal, inversion: decimal, dt: decimal, primera_persona: booleano):
+        c.entrada(mx, my, sx, sy, sensibilidad, inversion, dt, primera_persona)
+
+    func seguir_pivote(x: decimal, centro_y: decimal, z: decimal, dt: decimal):
+        c.seguir_pivote(x, centro_y, z, dt)
+
+    func seguir_yaw(vx: decimal, vz: decimal, velocidad: decimal, velocidad_base: decimal, dt: decimal):
+        c.seguir_yaw(vx, vz, velocidad, velocidad_base, dt)
+
+    func seguir_distancia(libre: decimal, dt: decimal):
+        c.seguir_distancia(libre, dt)
+
+    func yaw() -> decimal:
+        devolver c.resultado_yaw()
+
+    func pitch() -> decimal:
+        devolver c.resultado_pitch()
+
+    func pivote_x() -> decimal:
+        devolver c.pivote_x()
+
+    func pivote_y() -> decimal:
+        devolver c.pivote_y()
+
+    func pivote_z() -> decimal:
+        devolver c.pivote_z()
+
+    func distancia() -> decimal:
+        devolver c.resultado_distancia()

@@ -147,6 +147,111 @@ export class Mundo3D {
     return new THREE.Box3(new THREE.Vector3(pos[0] - r, pos[1], pos[2] - r), new THREE.Vector3(pos[0] + r, pos[1] + h, pos[2] + r));
   }
 
+  // Las AABB estáticas y móviles se cargan una vez por lista de sólidos y se reutilizan
+  // para todos los personajes del paso. El núcleo compartido detecta cambios de mundo/propietario.
+  prepararFisicaAra(solidos) {
+    const F = this.m.nucleo?.fisica3d;
+    if (!F || !F.preparar || !F.empezarPersonaje) return null;
+    if (F.dueno !== this || F.solidos !== solidos) {
+      F.dueno = this;
+      F.solidos = solidos;
+      F.empezar();
+      const duenos = [];
+      const indices = new Map();
+      for (const s of solidos) {
+        let i = indices.get(s.n);
+        if (i === undefined) { i = duenos.length; indices.set(s.n, i); duenos.push(s.n); }
+        const b = s.b;
+        F.caja(b.min.x, b.min.y, b.min.z, b.max.x, b.max.y, b.max.z, i, false, !!s.movil);
+      }
+      F.preparar();
+      this._duenosFisicaAra = duenos;
+    }
+    return F;
+  }
+
+  // La escena entrega las AABB; Ara resuelve el movimiento y el empuje. El adaptador
+  // solo sincroniza en los nodos las transformaciones que devuelve el núcleo.
+  resolverFisicaPersonajeAra(n, pos, dt, escalaG, nodos, solidos) {
+    const F = this.prepararFisicaAra(solidos);
+    if (!F) return false;
+    F.empezarPersonaje();
+    const duenos = this._duenosFisicaAra.slice();
+    if (n.props.tactico || n.grupos.has('enemigos_cqb')) {
+      for (const otro of nodos) {
+        if (otro === n || otro.tipo !== 'Personaje3D' || otro._muerto) continue;
+        const b = this.cajaPersonaje(otro, this.posicionGlobal(otro));
+        const indice = duenos.length;
+        duenos.push(otro);
+        F.caja(b.min.x, b.min.y, b.min.z, b.max.x, b.max.y, b.max.z, indice, true, false);
+      }
+    }
+    const radio = n.props.tactico ? 0.42 : 0.38;
+    const altura = n._alturaColision || n.props.altura || 1.8;
+    const alturaTecho = n.props.altura || 1.8;
+    F.mover(
+      pos[0], pos[1], pos[2], radio, altura, alturaTecho,
+      n.mueveX, n.mueveZ, n.empX || 0, n.empZ || 0, Math.pow(0.05, dt),
+      n.vy || 0, !!n.props.usa_gravedad, n.props.gravedad ?? 18, escalaG, dt
+    );
+    if (this.errorAra()) return false;
+    // Ara ya ha movido las AABB internas. Reflejamos esos desplazamientos en los nodos
+    // y en las cajas del paso para que los siguientes personajes vean el mismo mundo.
+    for (let i = 0, total = F.empujados(); i < total; i++) {
+      const nodo = duenos[F.empujadoDueno(i)];
+      if (!nodo) continue;
+      const dx = F.empujadoX(i), dz = F.empujadoZ(i);
+      nodo.props.posicion[0] += dx;
+      nodo.props.posicion[2] += dz;
+      for (const s of solidos) if (s.n === nodo) s.b.translate(new THREE.Vector3(dx, 0, dz));
+    }
+    pos[0] = F.x(); pos[1] = F.y(); pos[2] = F.z();
+    n.vy = F.vy();
+    n.empX = F.empX(); n.empZ = F.empZ();
+    const banderas = F.banderas();
+    n.enSuelo = !!(banderas & 1);
+    n.enPared = !!(banderas & 2);
+    n.enTecho = !!(banderas & 4);
+    for (let i = 0, total = F.contactos(); i < total; i++) {
+      const dueno = duenos[F.contacto(i)];
+      if (dueno) n._contactosSolidos.add(dueno);
+    }
+    return true;
+  }
+
+  // Los cuerpos empujables comparten el mismo solucionador Ara que los personajes.
+  // Three.js solo aporta las AABB y aplica después el desplazamiento corregido al nodo.
+  resolverCuerposMovilesAra(solidos, dt, escalaG) {
+    const F = this.m.nucleo?.fisica3d;
+    if (!F?.empezar || !F.resolverCuerpo || !F.cuerpoTieneApoyo || !F.desplazarCuerpo) return false;
+    F.empezar();
+    const duenos = new Map();
+    for (const s of solidos) {
+      let indice = duenos.get(s.n);
+      if (indice === undefined) { indice = duenos.size; duenos.set(s.n, indice); }
+      const b = s.b;
+      F.caja(b.min.x, b.min.y, b.min.z, b.max.x, b.max.y, b.max.z, indice, false, !!s.movil);
+    }
+    for (const s of solidos) {
+      if (!s.movil) continue;
+      const n = s.n;
+      const vyAnterior = n.vy || 0;
+      const vyNuevo = vyAnterior - 18 * escalaG * dt;
+      n.vy = vyNuevo;
+      const dy = (vyAnterior + vyNuevo) * 0.5 * dt;
+      const desplazamiento = F.resolverCuerpo(
+        duenos.get(n), s.b.min.x, s.b.min.y, s.b.min.z,
+        s.b.max.x, s.b.max.y, s.b.max.z, dy,
+      );
+      if (this.errorAra()) return false;
+      n.props.posicion[1] += desplazamiento;
+      s.b.translate(new THREE.Vector3(0, desplazamiento, 0));
+      F.desplazarCuerpo(duenos.get(n), desplazamiento);
+      if (F.cuerpoTieneApoyo()) n.vy = 0;
+    }
+    return true;
+  }
+
   fisica(dt) {
     const nodos = this.m.todos();
     // Sincroniza transformaciones (los scripts pueden haber cambiado posiciones).
@@ -174,74 +279,77 @@ export class Mundo3D {
     const gGlobal = this.m.interp.globales.vars.get('gravedad');
     const escalaG = (this.m.proyecto.datos.gravedad || 18) ? gGlobal / (this.m.proyecto.datos.gravedad || 18) : 1;
 
-    // Cuerpos empujables: caen con gravedad.
-    for (const s of solidos) {
-      if (!s.movil) continue;
-      const n = s.n;
-      // Con aceleración constante, el desplazamiento exacto usa la velocidad media del intervalo:
-      // así la caída es la misma a 60 que a 165 FPS.
-      const vyAnt = n.vy || 0;
-      n.vy = vyAnt - 18 * escalaG * dt;
-      const dy = (vyAnt + n.vy) * 0.5 * dt;
-      const b2 = s.b.clone().translate(new THREE.Vector3(0, dy, 0));
-      let apoyo = false;
-      for (const o of solidos) {
-        if (o === s || !o.b.intersectsBox(b2)) continue;
-        if (dy < 0 && s.b.min.y >= o.b.max.y - 0.05) { apoyo = true; const corr = o.b.max.y - s.b.min.y; n.props.posicion[1] += corr; s.b.translate(new THREE.Vector3(0, corr, 0)); n.vy = 0; break; }
+    // Los cuerpos empujables caen y buscan apoyo en Ara. Si el núcleo falla, se conserva
+    // exactamente el camino JS anterior como recuperación segura.
+    const cuerposEnAra = this.resolverCuerposMovilesAra(solidos, dt, escalaG);
+    if (!cuerposEnAra) {
+      for (const s of solidos) {
+        if (!s.movil) continue;
+        const n = s.n;
+        const vyAnt = n.vy || 0;
+        n.vy = vyAnt - 18 * escalaG * dt;
+        const dy = (vyAnt + n.vy) * 0.5 * dt;
+        const b2 = s.b.clone().translate(new THREE.Vector3(0, dy, 0));
+        let apoyo = false;
+        for (const o of solidos) {
+          if (o === s || !o.b.intersectsBox(b2)) continue;
+          if (dy < 0 && s.b.min.y >= o.b.max.y - 0.05) { apoyo = true; const corr = o.b.max.y - s.b.min.y; n.props.posicion[1] += corr; s.b.translate(new THREE.Vector3(0, corr, 0)); n.vy = 0; break; }
+        }
+        if (!apoyo) { n.props.posicion[1] += dy; s.b.copy(b2); }
       }
-      if (!apoyo) { n.props.posicion[1] += dy; s.b.copy(b2); }
     }
 
     for (const n of nodos) {
       if (n.tipo !== 'Personaje3D') continue;
       const pos = this.posicionGlobal(n);
       const ini = pos.slice();
-      n.empX *= Math.pow(0.05, dt); n.empZ *= Math.pow(0.05, dt);
-      const vx = n.mueveX + n.empX, vz = n.mueveZ + n.empZ;
       n.enPared = false;
+      n.enTecho = false;
       n._contactosSolidos = new Set();
-      const moverEje = (i, d) => {
-        if (!d) return;
-        pos[i] += d;
-        let caja = this.cajaPersonaje(n, pos);
-        caja.min.y += 0.05;
-        const cuerpos = n.props.tactico || n.grupos.has('enemigos_cqb') ? nodos.filter(o => o !== n && o.tipo === 'Personaje3D' && !o._muerto).map(o => ({ n: o, b: this.cajaPersonaje(o, this.posicionGlobal(o)), cuerpo: true })) : [];
-        for (const s of [...solidos, ...cuerpos]) {
-          if (!s.b.intersectsBox(caja)) continue;
-          // Escalones bajos: se suben solos.
-          if (s.b.max.y - pos[1] < 0.35 && !s.movil && !s.cuerpo) { pos[1] = s.b.max.y; caja = this.cajaPersonaje(n, pos); continue; }
-          if (s.movil) {
-            const desp = new THREE.Vector3(); desp.setComponent(i === 0 ? 0 : 2, d);
-            const b2 = s.b.clone().translate(desp);
-            const libre = !solidos.some(o => o !== s && o.b.intersectsBox(b2) && b2.min.y < o.b.max.y - 0.05);
-            if (libre) { s.n.props.posicion[i] += d; s.b.copy(b2); n._contactosSolidos.add(s.n); continue; }
+      const usoAra = this.resolverFisicaPersonajeAra(n, pos, dt, escalaG, nodos, solidos);
+      if (!usoAra) {
+        n.empX *= Math.pow(0.05, dt); n.empZ *= Math.pow(0.05, dt);
+        const vx = n.mueveX + n.empX, vz = n.mueveZ + n.empZ;
+        const moverEje = (i, d) => {
+          if (!d) return;
+          pos[i] += d;
+          let caja = this.cajaPersonaje(n, pos);
+          caja.min.y += 0.05;
+          const cuerpos = n.props.tactico || n.grupos.has('enemigos_cqb') ? nodos.filter(o => o !== n && o.tipo === 'Personaje3D' && !o._muerto).map(o => ({ n: o, b: this.cajaPersonaje(o, this.posicionGlobal(o)), cuerpo: true })) : [];
+          for (const s of [...solidos, ...cuerpos]) {
+            if (!s.b.intersectsBox(caja)) continue;
+            if (s.b.max.y - pos[1] < 0.35 && !s.movil && !s.cuerpo) { pos[1] = s.b.max.y; caja = this.cajaPersonaje(n, pos); continue; }
+            if (s.movil) {
+              const desp = new THREE.Vector3(); desp.setComponent(i === 0 ? 0 : 2, d);
+              const b2 = s.b.clone().translate(desp);
+              const libre = !solidos.some(o => o !== s && o.b.intersectsBox(b2) && b2.min.y < o.b.max.y - 0.05);
+              if (libre) { s.n.props.posicion[i] += d; s.b.copy(b2); n._contactosSolidos.add(s.n); continue; }
+            }
+            const mitad = n.props.tactico ? 0.42 : 0.38;
+            if (d > 0) pos[i] = Math.min(pos[i], (i === 0 ? s.b.min.x : s.b.min.z) - mitad - 0.001);
+            else pos[i] = Math.max(pos[i], (i === 0 ? s.b.max.x : s.b.max.z) + mitad + 0.001);
+            n.enPared = true;
+            n._contactosSolidos.add(s.n);
+            caja = this.cajaPersonaje(n, pos);
           }
-          const mitad = n.props.tactico ? 0.42 : 0.38;
-          if (d > 0) pos[i] = Math.min(pos[i], (i === 0 ? s.b.min.x : s.b.min.z) - mitad - 0.001);
-          else pos[i] = Math.max(pos[i], (i === 0 ? s.b.max.x : s.b.max.z) + mitad + 0.001);
-          n.enPared = true;
+        };
+        moverEje(0, vx * dt);
+        moverEje(2, vz * dt);
+        const vyAnt = n.vy || 0;
+        if (n.props.usa_gravedad) n.vy = vyAnt - (n.props.gravedad ?? 18) * escalaG * dt;
+        n.vy = Math.max(n.vy, -60);
+        const dy = (vyAnt + n.vy) * 0.5 * dt;
+        pos[1] += dy;
+        n.enSuelo = false;
+        const caja = this.cajaPersonaje(n, pos);
+        for (const s of solidos) {
+          if (!s.b.intersectsBox(caja)) continue;
+          if (dy <= 0 && ini[1] >= s.b.max.y - 0.36) { pos[1] = s.b.max.y; n.vy = 0; n.enSuelo = true; }
+          else if (dy > 0 && ini[1] + (n.props.altura || 1.8) <= s.b.min.y + 0.05) { pos[1] = s.b.min.y - (n.props.altura || 1.8); n.vy = 0; n.enTecho = true; }
           n._contactosSolidos.add(s.n);
-          caja = this.cajaPersonaje(n, pos);
         }
-      };
-      moverEje(0, vx * dt);
-      moverEje(2, vz * dt);
-      // Velocidad media del intervalo (exacto con gravedad constante): el salto llega a la misma
-      // altura a cualquier frecuencia de fotogramas.
-      const vyAnt = n.vy || 0;
-      if (n.props.usa_gravedad) n.vy = vyAnt - (n.props.gravedad ?? 18) * escalaG * dt;
-      n.vy = Math.max(n.vy, -60);
-      const dy = (vyAnt + n.vy) * 0.5 * dt;
-      pos[1] += dy;
-      n.enSuelo = false;
-      const caja = this.cajaPersonaje(n, pos);
-      for (const s of solidos) {
-        if (!s.b.intersectsBox(caja)) continue;
-        if (dy <= 0 && ini[1] >= s.b.max.y - 0.36) { pos[1] = s.b.max.y; n.vy = 0; n.enSuelo = true; }
-        else if (dy > 0 && ini[1] + (n.props.altura || 1.8) <= s.b.min.y + 0.05) { pos[1] = s.b.min.y - (n.props.altura || 1.8); n.vy = 0; n.enTecho = true; }
-        n._contactosSolidos.add(s.n);
+        if (!n.props.usa_gravedad) n.enSuelo = true;
       }
-      if (!n.props.usa_gravedad) n.enSuelo = true;
       n.vx = dt > 0 ? (pos[0] - ini[0]) / dt : 0;
       n.vz = dt > 0 ? (pos[2] - ini[2]) / dt : 0;
       this.fijarPosicionGlobal(n, ...pos);
@@ -323,6 +431,19 @@ export class Mundo3D {
     const e = this.m.nucleo?.error();
     if (e) { console.error('Núcleo de Ara (3D):', e.mensaje); this.m.nucleo = null; }
     return !!e;
+  }
+
+  /**
+   * Distancia al primer obstáculo de cámara calculada en Ara. Las cajas se expanden 0,18 unidades y se ignoran
+   * las que contienen el pivote, igual que el antiguo recorrido THREE.Ray/Box3 de Controles3D.
+   * null = sin obstáculo; undefined = núcleo no disponible/error (el llamador usa el respaldo JS).
+   */
+  distanciaCamaraAra(origen, direccion, alcance) {
+    const F = this.espacioAra();
+    if (!F) return undefined;
+    const i = F.rayoCamara(origen.x, origen.y, origen.z, direccion.x, direccion.y, direccion.z, alcance);
+    if (this.errorAra()) return undefined;
+    return i < 0 ? null : F.t();
   }
 
   /** El sólido más cercano que corta el rayo, calculado en Ara: un impacto, null si no hay, o undefined si hay que hacerlo en JS. */

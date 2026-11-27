@@ -151,15 +151,21 @@ export class Controles3D {
     const sens = (n.props.sensibilidad ?? 1) * (n.props.tactico && n._apuntando ? 0.62 : 1);
     const inv = n.props.invertir_y ? -1 : 1;
     const ejes = this.d3.m.entrada.ejesMando || [];
-    const zona = (a) => Math.abs(a || 0) < 0.15 ? 0 : (a - Math.sign(a) * 0.15) / 0.85;
-    const sx = zona(ejes[2]), sy = zona(ejes[3]);
+    // Ara aplica la zona muerta y normaliza los sticks analógicos.
+    const sx = ejes[2] || 0, sy = ejes[3] || 0;
     const mx = this.raton.x, my = this.raton.y;
     this.raton.x = this.raton.y = 0;
     const vStick = 2.8 * sens;
-    this.yaw -= mx * 0.0024 * sens + sx * vStick * dt;
-    const dp = (my * 0.0024 * sens + sy * vStick * dt) * inv;
-    if (fp) this.pitch = Math.max(-1.45, Math.min(1.45, this.pitch - dp));
-    else this.pitch = Math.max(-0.35, Math.min(1.25, this.pitch + dp));
+    const A = this.d3.m.nucleo?.camara3d;
+    if (A) {
+      A.entrada(mx, my, sx, sy, sens, inv, dt, fp);
+      this.yaw = A.yaw(); this.pitch = A.pitch();
+    } else {
+      this.yaw -= mx * 0.0024 * sens + sx * vStick * dt;
+      const dp = (my * 0.0024 * sens + sy * vStick * dt) * inv;
+      if (fp) this.pitch = Math.max(-1.45, Math.min(1.45, this.pitch - dp));
+      else this.pitch = Math.max(-0.35, Math.min(1.25, this.pitch + dp));
+    }
     this.sinRaton = (mx || my || sx || sy) ? 0 : this.sinRaton + dt;
     if (this.raton.rueda) { this.zoom = Math.max(0.4, Math.min(2.2, this.zoom * 1.12 ** this.raton.rueda)); this.raton.rueda = 0; }
     const cam = this.camara;
@@ -192,6 +198,8 @@ export class Controles3D {
       this.pitch = Math.max(-0.35, Math.min(1.25, Math.atan2(dy, Math.max(0.01, h))));
     }
     this.pivote.set(pos[0], pos[1] + (fp ? alt * 0.92 : piv), pos[2]);
+    this.motorAra = this.d3.m.nucleo?.camara3d || null;
+    this.motorAra?.iniciar(this.yaw, this.pitch, this.pivote.x, this.pivote.y, this.pivote.z, this.distActual);
     this.fovBase = this.fov = nodoCam?.props.fov || 65;
     this.camara.fov = this.fov;
     this.golpe = 0; this.bob = 0; this.caidaMax = 0;
@@ -202,6 +210,9 @@ export class Controles3D {
     this._modo = n.props.controles;
     if (fp) { this.pitch = -this.pitch * 0.5; this.pivote.set(pos[0], pos[1] + alt * 0.92, pos[2]); }
     else { this.pitch = Math.max(-0.35, Math.min(1.25, 0.25 - this.pitch * 0.5)); this.distActual = 0.4; this.mostrarCuerpo(); }
+    // Al cambiar de vista se sincroniza el estado de Ara para evitar un salto al volver a tercera persona.
+    this.motorAra = this.d3.m.nucleo?.camara3d || null;
+    this.motorAra?.iniciar(this.yaw, this.pitch, this.pivote.x, this.pivote.y, this.pivote.z, this.distActual);
   }
 
   camaraTercera(n, pos, alt, dt) {
@@ -210,32 +221,50 @@ export class Controles3D {
     // El punto al que mira sigue al personaje con suavidad (más en vertical, por saltos y escalones).
     _a.set(pos[0], pos[1] + alt * 0.82, pos[2]);
     if (_a.distanceTo(this.pivote) > 6) this.pivote.copy(_a);
-    const kh = 1 - Math.exp(-dt * 16), kv = 1 - Math.exp(-dt * 8);
-    this.pivote.x += (_a.x - this.pivote.x) * kh;
-    this.pivote.z += (_a.z - this.pivote.z) * kh;
-    this.pivote.y += (_a.y - this.pivote.y) * kv;
+    const A = this.d3.m.nucleo?.camara3d;
+    if (A) {
+      A.seguirPivote(_a.x, _a.y, _a.z, dt);
+      const p = A.pivote(); this.pivote.set(p[0], p[1], p[2]);
+    } else {
+      const kh = 1 - Math.exp(-dt * 16), kv = 1 - Math.exp(-dt * 8);
+      this.pivote.x += (_a.x - this.pivote.x) * kh;
+      this.pivote.z += (_a.z - this.pivote.z) * kh;
+      this.pivote.y += (_a.y - this.pivote.y) * kv;
+    }
     // Solo con teclado: la cámara se coloca poco a poco detrás de hacia donde anda.
     const vel = Math.hypot(n._vx || 0, n._vz || 0);
     if (!this.capturado && this.sinRaton > 1.2 && vel > 1) {
-      const yawObj = Math.atan2(-(n._vx || 0), -(n._vz || 0));
-      let d = yawObj - this.yaw;
-      while (d > Math.PI) d -= Math.PI * 2;
-      while (d < -Math.PI) d += Math.PI * 2;
-      if (Math.abs(d) < 2.2) this.yaw += d * Math.min(1, dt * 1.1 * Math.min(1, vel / (n.props.velocidad || 5)));
+      if (A) {
+        A.seguirYaw(n._vx || 0, n._vz || 0, vel, n.props.velocidad || 5, dt);
+        this.yaw = A.yaw();
+      } else {
+        const yawObj = Math.atan2(-(n._vx || 0), -(n._vz || 0));
+        let d = yawObj - this.yaw;
+        while (d > Math.PI) d -= Math.PI * 2;
+        while (d < -Math.PI) d += Math.PI * 2;
+        if (Math.abs(d) < 2.2) this.yaw += d * Math.min(1, dt * 1.1 * Math.min(1, vel / (n.props.velocidad || 5)));
+      }
     }
     const deseada = this.dist * this.zoom;
     _dir.set(Math.sin(this.yaw) * Math.cos(this.pitch), Math.sin(this.pitch), Math.cos(this.yaw) * Math.cos(this.pitch));
     // No atraviesa paredes: se acerca si hay algo entre el personaje y la cámara.
-    let libre = deseada;
-    _rayo.set(this.pivote, _dir);
-    for (const s of this.d3.solidos) {
-      _caja.copy(s.b).expandByScalar(0.18);
-      if (_caja.containsPoint(this.pivote)) continue;
-      if (_rayo.intersectBox(_caja, _hit)) { const t = _hit.distanceTo(this.pivote); if (t < libre) libre = t; }
-    }
+    let libre = this.d3.distanciaCamaraAra(this.pivote, _dir, deseada);
+    if (libre === undefined) {
+      // Respaldo si Ara no está disponible o ha comunicado un error.
+      libre = deseada;
+      _rayo.set(this.pivote, _dir);
+      for (const s of this.d3.solidos) {
+        _caja.copy(s.b).expandByScalar(0.18);
+        if (_caja.containsPoint(this.pivote)) continue;
+        if (_rayo.intersectBox(_caja, _hit)) { const t = _hit.distanceTo(this.pivote); if (t < libre) libre = t; }
+      }
+    } else if (libre === null) libre = deseada;
     libre = Math.max(0.3, libre);
-    const k = libre < this.distActual ? 1 - Math.exp(-dt * 30) : 1 - Math.exp(-dt * 3.5);
-    this.distActual += (libre - this.distActual) * k;
+    if (A) { A.seguirDistancia(libre, dt); this.distActual = A.distancia(); }
+    else {
+      const k = libre < this.distActual ? 1 - Math.exp(-dt * 30) : 1 - Math.exp(-dt * 3.5);
+      this.distActual += (libre - this.distActual) * k;
+    }
     cam.position.copy(this.pivote).addScaledVector(_dir, this.distActual);
     cam.lookAt(this.pivote);
     // Muy cerca, el personaje taparía la vista: se oculta (su sombra sigue).

@@ -46,6 +46,8 @@ async function crear() {
       parB: (k) => Number(parB(B(k))),
     },
     espacio3d: espacio3d(E, B),
+    fisica3d: fisica3d(E, B),
+    camara3d: camara3d(E),
     /** El error pendiente de Ara (`{ mensaje }`) o null; lo borra. */
     error() { const e = ara.error(); if (e) ara.limpiarError(); return e; },
   };
@@ -55,13 +57,72 @@ async function crear() {
 function espacio3d(E, B) {
   const yo = E['Espacio3D.crear'](0);
   const f = (nombre) => E['Espacio3D.func.' + nombre].bind(null, yo);
-  const rayo = f('rayo'), ruta = f('ruta'), celda = f('ruta_celda');
+  const rayo = f('rayo'), rayoCamara = f('rayo_camara'), ruta = f('ruta'), celda = f('ruta_celda');
   return {
     vaciar: f('vaciar'),
     caja: f('caja'), // (x0, y0, z0, x1, y1, z1, dueño)
     rayo: (ox, oy, oz, dx, dy, dz, alcance, igA, igB) => Number(rayo(ox, oy, oz, dx, dy, dz, alcance, igA, igB)),
+    rayoCamara: (ox, oy, oz, dx, dy, dz, alcance) => Number(rayoCamara(ox, oy, oz, dx, dy, dz, alcance)),
     t: f('r_t'), x: f('r_x'), y: f('r_y'), z: f('r_z'),
     ruta: (ancho, alto, x0, z0, tam, ix, iz, fx, fz, altura) => Number(ruta(B(ancho), B(alto), x0, z0, tam, B(ix), B(iz), B(fx), B(fz), altura)),
     celda: (i) => Number(celda(B(i))),
+  };
+}
+
+
+// Solucionador de colisiones 3D en Ara. Las AABB llegan desde Three.js; el movimiento y las decisiones físicas no.
+function fisica3d(E, B) {
+  const yo = E['Fisica3D.crear'](0);
+  const f = (nombre) => E['Fisica3D.func.' + nombre].bind(null, yo);
+  const empezar = f('empezar'), preparar = f('preparar'), empezarPersonaje = f('empezar_personaje');
+  const caja = f('caja'), mover = f('mover');
+  const resolverCuerpo = f('resolver_cuerpo'), cuerpoTieneApoyo = f('cuerpo_tiene_apoyo'), desplazarCuerpo = f('desplazar_cuerpo');
+  const empujados = f('empujados'), empujadoDueno = f('empujado_dueno'), empujadoX = f('empujado_x'), empujadoZ = f('empujado_z');
+  const rx = f('r_x'), ry = f('r_y'), rz = f('r_z');
+  const rvx = f('r_vx'), rvy = f('r_vy'), rvz = f('r_vz');
+  const rempx = f('r_emp_x'), rempz = f('r_emp_z');
+  const banderas = f('r_banderas'), contactos = f('r_contactos'), contacto = f('contacto');
+  return {
+    empezar: () => empezar(),
+    preparar: () => preparar(),
+    empezarPersonaje: () => empezarPersonaje(),
+    caja: (x0, y0, z0, x1, y1, z1, dueno, cuerpo = false, movil = false) =>
+      caja(x0, y0, z0, x1, y1, z1, B(dueno), cuerpo, movil),
+    mover: (x, y, z, radio, altura, alturaTecho, vx, vz, empX, empZ, amort, vy, usaGravedad, gravedad, escalaGravedad, dt) =>
+      mover(x, y, z, radio, altura, alturaTecho, vx, vz, empX, empZ, amort, vy, usaGravedad, gravedad, escalaGravedad, dt),
+    resolverCuerpo: (dueno, minX, minY, minZ, maxX, maxY, maxZ, dy) => resolverCuerpo(B(dueno), minX, minY, minZ, maxX, maxY, maxZ, dy),
+    cuerpoTieneApoyo: () => !!cuerpoTieneApoyo(),
+    desplazarCuerpo: (dueno, dy) => desplazarCuerpo(B(dueno), dy),
+    empujados: () => Number(empujados()),
+    empujadoDueno: (i) => Number(empujadoDueno(B(i))),
+    empujadoX: (i) => empujadoX(B(i)),
+    empujadoZ: (i) => empujadoZ(B(i)),
+    x: () => rx(), y: () => ry(), z: () => rz(),
+    vx: () => rvx(), vy: () => rvy(), vz: () => rvz(),
+    empX: () => rempx(), empZ: () => rempz(),
+    banderas: () => Number(banderas()),
+    contactos: () => Number(contactos()),
+    contacto: (i) => Number(contacto(B(i))),
+  };
+}
+
+
+// La cámara no conoce Three.js: Ara calcula ángulos, seguimiento y suavizado.
+function camara3d(E) {
+  const yo = E['Camara3D.crear'](0);
+  const f = (nombre) => E['Camara3D.func.' + nombre].bind(null, yo);
+  const iniciar = f('iniciar'), entrada = f('entrada'), pivote = f('seguir_pivote');
+  const yaw = f('seguir_yaw'), distancia = f('seguir_distancia');
+  const rYaw = f('yaw'), rPitch = f('pitch');
+  const px = f('pivote_x'), py = f('pivote_y'), pz = f('pivote_z'), rDistancia = f('distancia');
+  return {
+    iniciar: (y, p, x, py0, z, d) => iniciar(y, p, x, py0, z, d),
+    entrada: (mx, my, sx, sy, sens, inv, dt, fp) => entrada(mx, my, sx, sy, sens, inv, dt, fp),
+    seguirPivote: (x, y, z, dt) => pivote(x, y, z, dt),
+    seguirYaw: (vx, vz, velocidad, base, dt) => yaw(vx, vz, velocidad, base, dt),
+    seguirDistancia: (libre, dt) => distancia(libre, dt),
+    yaw: () => rYaw(), pitch: () => rPitch(),
+    pivote: () => [px(), py(), pz()],
+    distancia: () => rDistancia(),
   };
 }

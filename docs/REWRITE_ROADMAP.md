@@ -1,7 +1,26 @@
 # Falcon Engine — Powered by Ara: hoja de ruta
 
-Estado: **arquitectura aprobada por el usuario el 21-11-2026**. Fases 1 y 3 completadas; fases 2 y 4 en desarrollo.
-Rama de trabajo: `motor-ara`, en `falcon-engine` y en `ara-etapa5/ara`. Solo hay commits locales; no se ha subido nada a GitHub.
+Estado: **arquitectura aprobada por el usuario el 21-11-2026**. Esta hoja conserva la auditoría histórica de esa fecha; las actualizaciones de GitHub se registran debajo.
+Rama de trabajo actual: `codex/fisica3d-ara` en `MixdenYT/Falcon-engine`. Los cambios están aislados en una rama y no modifican `main`.
+
+
+## Actualización de trabajo en GitHub — 27-11-2026
+
+Esta sección prevalece sobre el estado de «solo commits locales» y el informe de continuidad del 21-11.
+
+- Rama: `codex/fisica3d-ara` (Falcon Engine); `main` no se ha modificado.
+- `src/motor/ara/fisica3d.ara`: el `Solucionador3D` resuelve en Ara el movimiento X/Z de personajes, escalones, impulsos, gravedad, suelo/pared/techo, contactos y la dinámica vertical y horizontal de cuerpos empujables.
+- `src/motor/ara/camara3d.ara`: nuevo `ControlCamara3D` en Ara. Calcula la órbita con ratón/stick, zona muerta analógica, límites de inclinación por perspectiva, seguimiento exponencial del pivote, retorno de yaw detrás del movimiento y suavizado de distancia tras la consulta de obstáculos.
+- `src/motor/ara/nucleo.ara` y `src/motor/nucleo-ara.js`: exponen el estado matemático de cámara al adaptador.
+- `src/motor/control3d.js`: delega esos cálculos a Ara y aplica los resultados a Three.js. Conserva respaldo JS si el núcleo no está disponible y sincroniza el estado al cambiar entre primera y tercera persona.
+- `pruebas/camara3d-ara.test.js`: verifica órbita, sensibilidad/inversión, zona muerta, límites de pitch, seguimiento de pivote, auto-yaw y suavizado de distancia.
+- Los empujes se validan en Ara contra todas las AABB del paso. Si hay espacio, Ara desplaza el cuerpo y registra el movimiento; si no, bloquea el empuje. Las AABB móviles se sincronizan después de cada movimiento para que los siguientes personajes y cuerpos vean el estado actualizado.
+- `src/motor/ara/nucleo.ara` y `src/motor/nucleo-ara.js`: exponen las operaciones de movimiento, empuje, apoyo y sincronización de AABB.
+- `src/motor/mundo3d.js`: entrega las AABB estáticas y móviles a Ara y aplica al grafo de escena los desplazamientos devueltos. El camino JS de física queda como recuperación si Ara falla; ya no se desvía a JS solo porque haya un cuerpo empujable cerca.
+- `pruebas/fisica3d-ara.test.js`: 500 escenarios deterministas de AABB comparados con la referencia JS, más pruebas de caída, apoyo, empuje libre, empuje bloqueado, contactos e integración de `Mundo3D`.
+- CI de la PR: compilación y comprobación de `nucleo.wasm`, `npm test`, `npm run test:actualizaciones` y validación de configuración de paquetes superadas en la ejecución del 27-11-2026. La regeneración del WebAssembly se mantiene automatizada.
+ 
+**Límites todavía explícitos:** Three.js sigue calculando las transformaciones de escena y las AABB, y el runtime JS aplica los desplazamientos al grafo de nodos. La cámara solo ha migrado la órbita, el seguimiento y el suavizado; quedan la resolución geométrica de obstrucciones, la colocación final, el balanceo/efectos de primera persona y la integración del renderizador. Por tanto, ni la cámara completa ni la física/renderizado 3D están todavía íntegramente en Ara.
 
 ## Cómo se trabaja
 
@@ -25,7 +44,7 @@ Electron 44 + three.js 0.186; unas 22.900 líneas de JS en `src/`. `npm test` (h
 |---|---|---|---|---|
 | Escena, nodos y eventos | `motor/mundo.js`, `tipos.js` | 1.700 | Funciona | No |
 | Física 2D | `mundo.js` (`fisica2d`, `contactos2d`) | 160 | Funciona | **En revisión** (B3): `fisica2d`, cajas, matrices de mundo y pares de `contactos2d` en Ara (`motor/ara/fisica2d.ara`), idénticos bit a bit; JS de respaldo. Ara es 1,8–4× más rápido (`docs/BENCHMARKS.md`) |
-| Física 3D (cajas), controles, CQB | `mundo3d.js`, `control3d.js`, `tactico3d.js` | 1.075 | Funciona, mezclada con three.js | La IA de CQB sí (Blueprints→Ara). **En revisión** (B4): rayos contra los sólidos (`primerImpacto`: combate, visión, cobertura, arma baja) y A* (`calcularRuta`) en Ara (`motor/ara/espacio3d.ara`), idénticos bit a bit a three.js/JS (`pruebas/espacio3d-ara.test.js`); JS de respaldo. Rayo 1,2–1,8×, A* 2,6–4× más rápido (`docs/BENCHMARKS.md`). Pendiente: física de cajas de `mundo3d`, cámara de `control3d` |
+| Física 3D (cajas), controles, CQB | `mundo3d.js`, `control3d.js`, `tactico3d.js` | 1.075 | Funciona; núcleo parcialmente Ara | Rayos y A* ya estaban en Ara (B4). Nueva rama `codex/fisica3d-ara`: movimiento de personajes, colisiones AABB estáticas y de cuerpos, escalones, gravedad, suelo/pared/techo y contactos resueltos en `fisica3d.ara`. Three.js sigue aportando AABB y escena. Las cajas estáticas se cargan una vez por lista y se reutilizan entre personajes; las cajas de otros personajes se añaden por personaje. Respaldo JS solo cuando un cuerpo empujable intersecta el volumen barrido del personaje; los cuerpos lejanos no desactivan Ara. Cámara y física de objetos empujables siguen pendientes |
 | Render 2D | `render2d.js` (Canvas2D) | 400 | Funciona | No |
 | Render 3D y Lumbre | `lumbre*.js`, `escena3d.js`, `materiales.js` | 2.500 | Funciona: WebGL2, sondas, GTAO, bloom | No |
 | Audio | `audio.js` (Web Audio) | 124 | Funciona | No |
@@ -90,7 +109,7 @@ Reglas de la frontera:
 |---|---|---|
 | 0 | Auditoría, línea base y esta hoja de ruta | Completado |
 | 1 | Fundación:<br>• trigonometría en Ara<br>• `herramientas/compilar-nucleo-ara.mjs`<br>• `src/motor/ara/nucleo.wasm` versionado | Completado |
-| 2 | Núcleo en Ara, por bloques, cada uno con las pruebas headless en verde:<br>1. física 2D — completado (B2/B3, revisado)<br>2. contactos 2D — completado (pares en Ara)<br>3. temporizadores, partículas, animación de sprites — pendiente<br>4. física 3D, controles y CQB — rayos y A* completados (B4); física de cajas 3D y cámara de `control3d` pendientes<br>5. compilador de Blueprints — completado (en Ara, único; el de JS retirado) | En desarrollo |
+| 2 | Núcleo en Ara, por bloques, cada uno con las pruebas headless en verde:<br>1. física 2D — completado (B2/B3, revisado)<br>2. contactos 2D — completado (pares en Ara)<br>3. temporizadores, partículas, animación de sprites — pendiente<br>4. física 3D, controles y CQB — rayos/A* (B4) y solucionador de movimiento/colisiones de personajes en Ara; cámara y física de objetos empujables pendientes<br>5. compilador de Blueprints — completado (en Ara, único; el de JS retirado) | En desarrollo |
 | 3 | Ara nativo (Windows x64):<br>• FFI con DLL, convención Win64<br>• `f32` y búferes<br>• ventana Win32<br>• triángulo y cubo OpenGL<br>• llamadas indirectas y retrollamadas<br>• anfitrión escrito en Ara (`externa func` con cuerpo, `Clase(yo)`, `avisar`) | Completado (Ara `fced30d`) |
 | 4 | Runtime nativo: el núcleo de la fase 2 corre en un `.exe` y dibuja con la fase 3; escena 2D primero | En desarrollo: el nivel «plataformas» con sus scripts y Blueprints corre en un `.exe`, igual bit a bit que Falcon (`fc2b5c7`, `064b90d`, `eda6a59`). Falta: resto de la API, Inspector y Señales, sprites, texto, audio, cargar escenas |
 | 5 | Lumbre nativo: capacidades documentadas por plataforma | Pendiente |
@@ -229,3 +248,15 @@ Reglas de la frontera:
     - los valores del Inspector y las Señales;
     - audio y temblor de cámara (hoy no hacen nada);
     - un error de script cierra el `.exe`; en Falcon desactiva ese `cuando` y el juego sigue.
+
+
+## Cámara 3D: colisión geométrica migrada a Ara (27-11-2026)
+
+- `src/motor/ara/espacio3d.ara` incorpora `rayo_camara` sobre el mismo conjunto de AABB que ya alimenta el núcleo:
+  - expande cada obstáculo 0,18 unidades, manteniendo el margen visual que tenía la cámara en Three.js;
+  - ignora las cajas que ya contienen el pivote, para evitar que una pared que engloba el punto de seguimiento fuerce una distancia falsa;
+  - calcula en Ara el primer impacto y la distancia limitada por el zoom solicitado.
+- `src/motor/nucleo-ara.js` y `src/motor/mundo3d.js` exponen esa operación como `distanciaCamaraAra`. `src/motor/control3d.js` ya no recorre los sólidos ni ejecuta el slab test durante el funcionamiento normal: consume la distancia calculada por Ara y aplica la posición final a Three.js. El recorrido geométrico JS queda únicamente como respaldo si Ara no está disponible o informa de un error.
+- `pruebas/espacio3d-ara.test.js` compara 600 rayos deterministas con Three.js, incluyendo pivotes dentro de obstáculos, márgenes, varios alcances y ausencia de impacto. Se mantiene la batería previa de rayos generales y A*.
+- Límite restante de cámara: Three.js sigue aplicando la posición/orientación final y renderizando; balanceo, golpe de aterrizaje, inclinación táctica, ADS y retroceso de primera persona siguen en JS.
+- La CI del commit `8f87f446365b3fc6e933045b6b4da078686fcbbc` compiló el núcleo Ara y superó `npm test`, `npm run test:actualizaciones` y la validación de paquetes. El workflow de push que regenera/verifica el WASM debe comprobar también el HEAD más reciente.

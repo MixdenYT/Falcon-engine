@@ -55,6 +55,36 @@ test('rayos en Ara = JS: escena al azar, direcciones con ceros (también -0), or
   assert.equal(ara.m.nucleo, nucleo, 'sin errores del núcleo');
 });
 
+test('Ara resuelve las colisiones de cámara: margen 0,18, pivote dentro y distancia máxima', () => {
+  const r = azar(23), M = { nombre: 'Obstáculo' };
+  const solidos = Array.from({ length: 36 }, () => {
+    const x = r() * 18 - 9, y = r() * 3, z = r() * 18 - 9;
+    return caja(M, x, y, z, x + 0.3 + r() * 2, y + 0.3 + r() * 2, z + 0.3 + r() * 2);
+  });
+  const d = espacio(solidos, [], true), punto = new THREE.Vector3();
+  for (let i = 0; i < 600; i++) {
+    const origen = i % 9 === 0
+      ? solidos[i % solidos.length].b.getCenter(new THREE.Vector3())
+      : V(r() * 24 - 12, r() * 5, r() * 24 - 12);
+    const direccion = V(r() * 2 - 1, r() * 1.2 - 0.6, r() * 2 - 1).normalize();
+    const alcance = [0.3, 1, 2.5, 5, 30][i % 5];
+    const ray = new THREE.Ray(origen, direccion);
+    let esperado = null, cerca = alcance;
+    for (const s of solidos) {
+      const b = s.b.clone().expandByScalar(0.18);
+      if (b.containsPoint(origen)) continue;
+      const hit = ray.intersectBox(b, punto);
+      if (!hit) continue;
+      const distancia = origen.distanceTo(hit);
+      if (distancia <= cerca) { cerca = distancia; esperado = distancia; }
+    }
+    const real = d.distanciaCamaraAra(origen, direccion, alcance);
+    if (esperado === null) assert.equal(real, null, `sin obstáculo ${i}`);
+    else assert.ok(Math.abs(real - esperado) < 1e-10, `rayo ${i}: ${real} != ${esperado}`);
+  }
+  assert.equal(d.m.nucleo, nucleo, 'el núcleo Ara sigue operativo');
+});
+
 test('rayos en Ara = JS: nodo eliminado u oculto tras la física, y la lista de sólidos cambia', () => {
   const a = { nombre: 'A' }, b = { nombre: 'B' }, solidos = [caja(a, -1, 0, -3, 1, 2, -2), caja(b, -1, 0, -6, 1, 2, -5)];
   const js = espacio(solidos, [], false), ara = espacio(solidos, [], true), o = V(0, 1, 0), d = V(0, 0, -1);

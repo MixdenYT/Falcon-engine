@@ -1,0 +1,333 @@
+# Solucionador de colisiones 3D de Falcon Engine.
+#
+# La escena, las transformaciones y la obtención de AABB pertenecen al adaptador Three.js.
+# La resolución de movimiento, escalones, gravedad, suelo, paredes, techo y contactos se ejecuta aquí.
+# Las cajas se entregan en coordenadas de mundo por fotograma y se reutilizan entre ejes.
+#
+# Convenciones: el personaje se representa con una caja vertical centrada en X/Z:
+# [x-radio, y, z-radio] .. [x+radio, y+altura, z+radio].
+# La intersección usa límites estrictos, igual que THREE.Box3.intersectsBox.
+
+estructura Solucionador3D:
+    cantidad: entero
+    cantidad_base: entero
+    x0: lista[decimal]
+    y0: lista[decimal]
+    z0: lista[decimal]
+    x1: lista[decimal]
+    y1: lista[decimal]
+    z1: lista[decimal]
+    duenos: lista[entero]
+    cuerpos: lista[booleano]
+    moviles: lista[booleano]
+    contactos: lista[entero]
+    cantidad_contactos: entero
+    cantidad_empujados: entero
+    empujados: lista[entero]
+    empuje_x: lista[decimal]
+    empuje_z: lista[decimal]
+    cuerpo_apoyado: booleano
+    cuerpo_desplazamiento: decimal
+    px: decimal
+    py: decimal
+    pz: decimal
+    vy: decimal
+    vx: decimal
+    vz: decimal
+    emp_x: decimal
+    emp_z: decimal
+    suelo: booleano
+    pared: booleano
+    techo: booleano
+
+    func crear(este):
+        este.cantidad = 0
+        este.cantidad_base = 0
+        este.cantidad_contactos = 0
+        este.cantidad_empujados = 0
+        este.cuerpo_apoyado = falso
+        este.cuerpo_desplazamiento = 0.0
+        este.px = 0.0
+        este.py = 0.0
+        este.pz = 0.0
+        este.vy = 0.0
+        este.vx = 0.0
+        este.vz = 0.0
+        este.emp_x = 0.0
+        este.emp_z = 0.0
+        este.suelo = falso
+        este.pared = falso
+        este.techo = falso
+
+    func empezar(este):
+        este.cantidad = 0
+        este.cantidad_base = 0
+        este.cantidad_contactos = 0
+        este.cantidad_empujados = 0
+
+    # Marca las AABB del paso. Se conservan mientras se resuelven todos los personajes.
+    func preparar(este):
+        este.cantidad_base = este.cantidad
+
+    # Descarta las cajas temporales del personaje anterior y conserva las AABB del paso.
+    func empezar_personaje(este):
+        este.cantidad = este.cantidad_base
+        este.cantidad_contactos = 0
+        este.cantidad_empujados = 0
+
+    # Añade una AABB. dueno es el índice que el adaptador usa para recuperar el nodo.
+    func caja(este, min_x: decimal, min_y: decimal, min_z: decimal, max_x: decimal, max_y: decimal, max_z: decimal, dueno: entero, es_cuerpo: booleano, es_movil: booleano):
+        i = este.cantidad
+        si i < largo(este.x0):
+            este.x0[i] = min_x
+            este.y0[i] = min_y
+            este.z0[i] = min_z
+            este.x1[i] = max_x
+            este.y1[i] = max_y
+            este.z1[i] = max_z
+            este.duenos[i] = dueno
+            este.cuerpos[i] = es_cuerpo
+            este.moviles[i] = es_movil
+        sino:
+            agregar(este.x0, min_x)
+            agregar(este.y0, min_y)
+            agregar(este.z0, min_z)
+            agregar(este.x1, max_x)
+            agregar(este.y1, max_y)
+            agregar(este.z1, max_z)
+            agregar(este.duenos, dueno)
+            agregar(este.cuerpos, es_cuerpo)
+            agregar(este.moviles, es_movil)
+        este.cantidad += 1
+
+    func intersecta(este, min_x: decimal, min_y: decimal, min_z: decimal, max_x: decimal, max_y: decimal, max_z: decimal, i: entero) -> booleano:
+        devolver max_x > este.x0[i] y min_x < este.x1[i] y max_y > este.y0[i] y min_y < este.y1[i] y max_z > este.z0[i] y min_z < este.z1[i]
+
+    func anotar(este, dueno: entero):
+        para i en rango(este.cantidad_contactos):
+            si este.contactos[i] == dueno:
+                devolver
+        si este.cantidad_contactos < largo(este.contactos):
+            este.contactos[este.cantidad_contactos] = dueno
+        sino:
+            agregar(este.contactos, dueno)
+        este.cantidad_contactos += 1
+
+    func registrar_empuje(este, dueno: entero, dx: decimal, dz: decimal):
+        para i en rango(este.cantidad_empujados):
+            si este.empujados[i] == dueno:
+                este.empuje_x[i] += dx
+                este.empuje_z[i] += dz
+                devolver
+        si este.cantidad_empujados < largo(este.empujados):
+            este.empujados[este.cantidad_empujados] = dueno
+            este.empuje_x[este.cantidad_empujados] = dx
+            este.empuje_z[este.cantidad_empujados] = dz
+        sino:
+            agregar(este.empujados, dueno)
+            agregar(este.empuje_x, dx)
+            agregar(este.empuje_z, dz)
+        este.cantidad_empujados += 1
+
+    func cantidad_de_empujados(este) -> entero:
+        devolver este.cantidad_empujados
+
+    func empujado_dueno(este, i: entero) -> entero:
+        devolver este.empujados[i]
+
+    func empujado_x(este, i: entero) -> decimal:
+        devolver este.empuje_x[i]
+
+    func empujado_z(este, i: entero) -> decimal:
+        devolver este.empuje_z[i]
+
+    # Resuelve un paso completo. dx/dz son velocidades, no desplazamientos.
+    func mover(este, x: decimal, y_: decimal, z: decimal, radio: decimal, altura: decimal, altura_techo: decimal, velocidad_x: decimal, velocidad_z: decimal, impulso_x: decimal, impulso_z: decimal, amortiguacion: decimal, velocidad_y: decimal, usa_gravedad: booleano, gravedad: decimal, escala_gravedad: decimal, dt: decimal):
+        este.px = x
+        este.py = y_
+        este.pz = z
+        y_original = y_
+        este.vy = velocidad_y
+        este.vx = 0.0
+        este.vz = 0.0
+        este.emp_x = 0.0
+        este.emp_z = 0.0
+        este.suelo = falso
+        este.pared = falso
+        este.techo = falso
+        este.cantidad_contactos = 0
+
+        impulso_x *= amortiguacion
+        impulso_z *= amortiguacion
+        este.emp_x = impulso_x
+        este.emp_z = impulso_z
+
+        dx = (velocidad_x + impulso_x) * dt
+        si dx != 0.0 y dx == dx:
+            este.px += dx
+            offset_y = 0.05
+            para i en rango(este.cantidad):
+                si este.intersecta(este.px - radio, este.py + offset_y, este.pz - radio, este.px + radio, este.py + altura, este.pz + radio, i):
+                    si no este.moviles[i] y no este.cuerpos[i] y este.y1[i] - este.py < 0.35:
+                        este.py = este.y1[i]
+                        offset_y = 0.0
+                        continuar
+                    si este.moviles[i]:
+                        libre = verdadero
+                        min_x_candidato = este.x0[i] + dx
+                        max_x_candidato = este.x1[i] + dx
+                        para j en rango(este.cantidad):
+                            si j == i o este.duenos[j] == este.duenos[i]:
+                                continuar
+                            si max_x_candidato > este.x0[j] y min_x_candidato < este.x1[j] y este.y1[i] > este.y0[j] y este.y0[i] < este.y1[j] y este.z1[i] > este.z0[j] y este.z0[i] < este.z1[j] y este.y0[i] < este.y1[j] - 0.05:
+                                libre = falso
+                        si libre:
+                            dueno_empujado = este.duenos[i]
+                            para k en rango(este.cantidad):
+                                si este.duenos[k] == dueno_empujado y este.moviles[k]:
+                                    este.x0[k] += dx
+                                    este.x1[k] += dx
+                            este.registrar_empuje(dueno_empujado, dx, 0.0)
+                            este.anotar(dueno_empujado)
+                            continuar
+                    si dx > 0.0:
+                        este.px = minimo(este.px, este.x0[i] - radio - 0.001)
+                    sino:
+                        este.px = maximo(este.px, este.x1[i] + radio + 0.001)
+                    este.pared = verdadero
+                    este.anotar(este.duenos[i])
+                    offset_y = 0.0
+
+        dz = (velocidad_z + impulso_z) * dt
+        si dz != 0.0 y dz == dz:
+            este.pz += dz
+            offset_y = 0.05
+            para i en rango(este.cantidad):
+                si este.intersecta(este.px - radio, este.py + offset_y, este.pz - radio, este.px + radio, este.py + altura, este.pz + radio, i):
+                    si no este.moviles[i] y no este.cuerpos[i] y este.y1[i] - este.py < 0.35:
+                        este.py = este.y1[i]
+                        offset_y = 0.0
+                        continuar
+                    si este.moviles[i]:
+                        libre = verdadero
+                        min_z_candidato = este.z0[i] + dz
+                        max_z_candidato = este.z1[i] + dz
+                        para j en rango(este.cantidad):
+                            si j == i o este.duenos[j] == este.duenos[i]:
+                                continuar
+                            si este.x1[i] > este.x0[j] y este.x0[i] < este.x1[j] y este.y1[i] > este.y0[j] y este.y0[i] < este.y1[j] y max_z_candidato > este.z0[j] y min_z_candidato < este.z1[j] y este.y0[i] < este.y1[j] - 0.05:
+                                libre = falso
+                        si libre:
+                            dueno_empujado = este.duenos[i]
+                            para k en rango(este.cantidad):
+                                si este.duenos[k] == dueno_empujado y este.moviles[k]:
+                                    este.z0[k] += dz
+                                    este.z1[k] += dz
+                            este.registrar_empuje(dueno_empujado, 0.0, dz)
+                            este.anotar(dueno_empujado)
+                            continuar
+                    si dz > 0.0:
+                        este.pz = minimo(este.pz, este.z0[i] - radio - 0.001)
+                    sino:
+                        este.pz = maximo(este.pz, este.z1[i] + radio + 0.001)
+                    este.pared = verdadero
+                    este.anotar(este.duenos[i])
+                    offset_y = 0.0
+
+        vy_anterior = este.vy
+        si usa_gravedad:
+            este.vy -= gravedad * escala_gravedad * dt
+            este.vy = maximo(este.vy, -60.0)
+        dy = (vy_anterior + este.vy) * 0.5 * dt
+        este.py += dy
+        y_caja = este.py
+        para i en rango(este.cantidad):
+            si este.cuerpos[i]:
+                continuar
+            si no este.intersecta(este.px - radio, y_caja, este.pz - radio, este.px + radio, y_caja + altura, este.pz + radio, i):
+                continuar
+            si dy <= 0.0 y y_original >= este.y1[i] - 0.36:
+                este.py = este.y1[i]
+                este.vy = 0.0
+                este.suelo = verdadero
+            sino si dy > 0.0 y y_original + altura_techo <= este.y0[i] + 0.05:
+                este.py = este.y0[i] - altura_techo
+                este.vy = 0.0
+                este.techo = verdadero
+            este.anotar(este.duenos[i])
+
+        si no usa_gravedad:
+            este.suelo = verdadero
+        si dt > 0.0:
+            este.vx = (este.px - x) / dt
+            este.vz = (este.pz - z) / dt
+
+    # Resuelve la caída vertical de un cuerpo empujable contra las demás AABB.
+    # El dueño permite ignorar sus propias piezas si una malla se descompone en varios sólidos.
+    # Devuelve el desplazamiento corregido y conserva si encontró apoyo.
+    func resolver_cuerpo(este, dueno: entero, min_x: decimal, min_y: decimal, min_z: decimal, max_x: decimal, max_y: decimal, max_z: decimal, desplazamiento_y: decimal) -> decimal:
+        este.cuerpo_apoyado = falso
+        este.cuerpo_desplazamiento = desplazamiento_y
+        min_y2 = min_y + desplazamiento_y
+        max_y2 = max_y + desplazamiento_y
+        para i en rango(este.cantidad):
+            si este.duenos[i] == dueno:
+                continuar
+            si max_x <= este.x0[i] o min_x >= este.x1[i] o max_y2 <= este.y0[i] o min_y2 >= este.y1[i] o max_z <= este.z0[i] o min_z >= este.z1[i]:
+                continuar
+            si desplazamiento_y < 0.0 y min_y >= este.y1[i] - 0.05:
+                este.cuerpo_apoyado = verdadero
+                este.cuerpo_desplazamiento = este.y1[i] - min_y
+                devolver este.cuerpo_desplazamiento
+        devolver este.cuerpo_desplazamiento
+
+    # Sincroniza las AABB móviles después de resolver cada cuerpo; así los siguientes
+    # cuerpos del mismo paso pueden apoyarse sobre la posición ya actualizada.
+    func desplazar_cuerpo(este, dueno: entero, desplazamiento_y: decimal):
+        para i en rango(este.cantidad):
+            si este.moviles[i] y este.duenos[i] == dueno:
+                este.y0[i] += desplazamiento_y
+                este.y1[i] += desplazamiento_y
+
+    func cuerpo_tiene_apoyo(este) -> booleano:
+        devolver este.cuerpo_apoyado
+
+    func resultado_x(este) -> decimal:
+        devolver este.px
+
+    func resultado_y(este) -> decimal:
+        devolver este.py
+
+    func resultado_z(este) -> decimal:
+        devolver este.pz
+
+    func resultado_vy(este) -> decimal:
+        devolver este.vy
+
+    func resultado_vx(este) -> decimal:
+        devolver este.vx
+
+    func resultado_vz(este) -> decimal:
+        devolver este.vz
+
+    func banderas(este) -> entero:
+        b = 0
+        si este.suelo:
+            b += 1
+        si este.pared:
+            b += 2
+        si este.techo:
+            b += 4
+        devolver b
+
+    func cantidad_de_contactos(este) -> entero:
+        devolver este.cantidad_contactos
+
+    func contacto(este, i: entero) -> entero:
+        devolver este.contactos[i]
+
+    func resultado_emp_x(este) -> decimal:
+        devolver este.emp_x
+
+    func resultado_emp_z(este) -> decimal:
+        devolver este.emp_z

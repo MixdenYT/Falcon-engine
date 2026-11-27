@@ -10,7 +10,7 @@
 
 estructura Solucionador3D:
     cantidad: entero
-    cantidad_estatica: entero
+    cantidad_base: entero
     x0: lista[decimal]
     y0: lista[decimal]
     z0: lista[decimal]
@@ -42,7 +42,7 @@ estructura Solucionador3D:
 
     func crear(este):
         este.cantidad = 0
-        este.cantidad_estatica = 0
+        este.cantidad_base = 0
         este.cantidad_contactos = 0
         este.cantidad_empujados = 0
         este.cuerpo_apoyado = falso
@@ -61,17 +61,17 @@ estructura Solucionador3D:
 
     func empezar(este):
         este.cantidad = 0
-        este.cantidad_estatica = 0
+        este.cantidad_base = 0
         este.cantidad_contactos = 0
         este.cantidad_empujados = 0
 
-    # Marca las AABB estáticas ya cargadas. Se conservan mientras se resuelven todos los personajes del paso.
+    # Marca las AABB del paso. Se conservan mientras se resuelven todos los personajes.
     func preparar(este):
-        este.cantidad_estatica = este.cantidad
+        este.cantidad_base = este.cantidad
 
-    # Descarta los cuerpos del personaje anterior sin volver a cargar las cajas estáticas.
+    # Descarta las cajas temporales del personaje anterior y conserva las AABB del paso.
     func empezar_personaje(este):
-        este.cantidad = este.cantidad_estatica
+        este.cantidad = este.cantidad_base
         este.cantidad_contactos = 0
         este.cantidad_empujados = 0
 

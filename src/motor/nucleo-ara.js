@@ -47,6 +47,7 @@ async function crear() {
     },
     espacio3d: espacio3d(E, B),
     fisica3d: fisica3d(E, B),
+    movimiento3d: movimiento3d(E),
     /** El error pendiente de Ara (`{ mensaje }`) o null; lo borra. */
     error() { const e = ara.error(); if (e) ara.limpiarError(); return e; },
   };
@@ -92,5 +93,23 @@ function fisica3d(E, B) {
     banderas: () => Number(banderas()),
     contactos: () => Number(contactos()),
     contacto: (i) => Number(contacto(B(i))),
+  };
+}
+
+
+// Control de movimiento en Ara. La capa JS solo muestrea entrada y ejes de cámara.
+function movimiento3d(E) {
+  const yo = E['Movimiento3D.crear'](0);
+  const f = (nombre) => E['Movimiento3D.func.' + nombre].bind(null, yo);
+  const actualizar = f('actualizar');
+  const rvx = f('r_vx'), rvz = f('r_vz'), rvy = f('r_vy');
+  const rmx = f('r_mueve_x'), rmz = f('r_mueve_z');
+  const rc = f('r_coyote'), rr = f('r_recordado'), ra = f('r_altura'), rb = f('r_banderas');
+  return {
+    actualizar: (...args) => actualizar(...args),
+    vx: () => rvx(), vz: () => rvz(), vy: () => rvy(),
+    mueveX: () => rmx(), mueveZ: () => rmz(),
+    coyote: () => rc(), recordado: () => rr(), altura: () => ra(),
+    banderas: () => Number(rb()),
   };
 }

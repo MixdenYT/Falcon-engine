@@ -124,7 +124,7 @@ function camara3d(E) {
   const preparar = f('preparar'), finalizar = f('finalizar');
   const nombres = {
     yaw: 'r_yaw', pitch: 'r_pitch', distancia: 'r_distancia',
-    distanciaActual: 'r_distancia_actual', zoom: 'r_zoom',
+    distanciaActual: 'r_distancia_actual', deseada: 'r_deseada', zoom: 'r_zoom',
     pivoteX: 'r_pivote_x', pivoteY: 'r_pivote_y', pivoteZ: 'r_pivote_z',
     dirX: 'r_dir_x', dirY: 'r_dir_y', dirZ: 'r_dir_z',
     camX: 'r_cam_x', camY: 'r_cam_y', camZ: 'r_cam_z', roll: 'r_roll',

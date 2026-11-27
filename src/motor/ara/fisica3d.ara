@@ -91,9 +91,9 @@ estructura Solucionador3D:
         este.cantidad_contactos += 1
 
     # Resuelve un paso completo. dx/dz son velocidades, no desplazamientos.
-    func mover(este, x: decimal, y: decimal, z: decimal, radio: decimal, altura: decimal, altura_techo: decimal, velocidad_x: decimal, velocidad_z: decimal, impulso_x: decimal, impulso_z: decimal, amortiguacion: decimal, velocidad_y: decimal, usa_gravedad: booleano, gravedad: decimal, escala_gravedad: decimal, dt: decimal):
+    func mover(este, x: decimal, posicion_y: decimal, z: decimal, radio: decimal, altura: decimal, altura_techo: decimal, velocidad_x: decimal, velocidad_z: decimal, impulso_x: decimal, impulso_z: decimal, amortiguacion: decimal, velocidad_y: decimal, usa_gravedad: booleano, gravedad: decimal, escala_gravedad: decimal, dt: decimal):
         este.px = x
-        este.py = y
+        este.py = posicion_y
         este.pz = z
         este.vy = velocidad_y
         este.vx = 0.0

@@ -1,7 +1,22 @@
 # Falcon Engine — Powered by Ara: hoja de ruta
 
-Estado: **arquitectura aprobada por el usuario el 21-11-2026**. Fases 1 y 3 completadas; fases 2 y 4 en desarrollo.
-Rama de trabajo: `motor-ara`, en `falcon-engine` y en `ara-etapa5/ara`. Solo hay commits locales; no se ha subido nada a GitHub.
+Estado: **arquitectura aprobada por el usuario el 21-11-2026**. Esta hoja conserva la auditoría histórica de esa fecha; las actualizaciones de GitHub se registran debajo.
+Rama de trabajo actual: `codex/fisica3d-ara` en `MixdenYT/Falcon-engine`. Los cambios están aislados en una rama y no modifican `main`.
+
+
+## Actualización de trabajo en GitHub — 27-11-2026
+
+Esta sección prevalece sobre el estado de «solo commits locales» y el informe de continuidad del 21-11.
+
+- Rama: `codex/fisica3d-ara` (Falcon Engine); `main` no se ha modificado.
+- `src/motor/ara/fisica3d.ara`: nuevo `Solucionador3D` en Ara. Recibe AABB ya calculadas por la capa de escena y resuelve movimiento X/Z, escalones bajos, amortiguación de impulsos, gravedad, colisiones verticales, banderas de suelo/pared/techo y lista de contactos.
+- `src/motor/ara/nucleo.ara` y `src/motor/nucleo-ara.js`: envoltura pequeña para exponer el solucionador al runtime.
+- `src/motor/mundo3d.js`: usa Ara para personajes cuando los sólidos son estáticos. Si hay cuerpos empujables, conserva el camino JS anterior para no cambiar el comportamiento de empuje hasta migrar también su dinámica.
+- `pruebas/fisica3d-ara.test.js`: pruebas deterministas de pared, suelo, techo, escalones, impulsos, cuerpos y 500 escenarios AABB aleatorios comparados con una referencia JS; también verifica la integración real de `Mundo3D` y el respaldo de cuerpos empujables.
+- `src/motor/ara/nucleo.wasm`: regenerado desde las fuentes Ara en CI. `node herramientas/compilar-nucleo-ara.mjs --comprobar` confirma que está al día.
+- CI del 27-11: compilación del núcleo, pruebas completas `npm test` y `npm run test:actualizaciones` superadas en la rama.
+
+**Límites todavía explícitos:** Three.js sigue calculando las cajas de mundo y transformaciones de escena; la cámara, la dinámica de cuerpos empujables y el renderizado no se han migrado. No se afirma que toda la física 3D esté ya en Ara.
 
 ## Cómo se trabaja
 
@@ -25,7 +40,7 @@ Electron 44 + three.js 0.186; unas 22.900 líneas de JS en `src/`. `npm test` (h
 |---|---|---|---|---|
 | Escena, nodos y eventos | `motor/mundo.js`, `tipos.js` | 1.700 | Funciona | No |
 | Física 2D | `mundo.js` (`fisica2d`, `contactos2d`) | 160 | Funciona | **En revisión** (B3): `fisica2d`, cajas, matrices de mundo y pares de `contactos2d` en Ara (`motor/ara/fisica2d.ara`), idénticos bit a bit; JS de respaldo. Ara es 1,8–4× más rápido (`docs/BENCHMARKS.md`) |
-| Física 3D (cajas), controles, CQB | `mundo3d.js`, `control3d.js`, `tactico3d.js` | 1.075 | Funciona, mezclada con three.js | La IA de CQB sí (Blueprints→Ara). **En revisión** (B4): rayos contra los sólidos (`primerImpacto`: combate, visión, cobertura, arma baja) y A* (`calcularRuta`) en Ara (`motor/ara/espacio3d.ara`), idénticos bit a bit a three.js/JS (`pruebas/espacio3d-ara.test.js`); JS de respaldo. Rayo 1,2–1,8×, A* 2,6–4× más rápido (`docs/BENCHMARKS.md`). Pendiente: física de cajas de `mundo3d`, cámara de `control3d` |
+| Física 3D (cajas), controles, CQB | `mundo3d.js`, `control3d.js`, `tactico3d.js` | 1.075 | Funciona; núcleo parcialmente Ara | Rayos y A* ya estaban en Ara (B4). Nueva rama `codex/fisica3d-ara`: movimiento de personajes, colisiones AABB estáticas y de cuerpos, escalones, gravedad, suelo/pared/techo y contactos resueltos en `fisica3d.ara`. Three.js sigue aportando AABB y escena. Respaldo JS para cuerpos empujables. Cámara y física de objetos empujables siguen pendientes |
 | Render 2D | `render2d.js` (Canvas2D) | 400 | Funciona | No |
 | Render 3D y Lumbre | `lumbre*.js`, `escena3d.js`, `materiales.js` | 2.500 | Funciona: WebGL2, sondas, GTAO, bloom | No |
 | Audio | `audio.js` (Web Audio) | 124 | Funciona | No |
@@ -90,7 +105,7 @@ Reglas de la frontera:
 |---|---|---|
 | 0 | Auditoría, línea base y esta hoja de ruta | Completado |
 | 1 | Fundación:<br>• trigonometría en Ara<br>• `herramientas/compilar-nucleo-ara.mjs`<br>• `src/motor/ara/nucleo.wasm` versionado | Completado |
-| 2 | Núcleo en Ara, por bloques, cada uno con las pruebas headless en verde:<br>1. física 2D — completado (B2/B3, revisado)<br>2. contactos 2D — completado (pares en Ara)<br>3. temporizadores, partículas, animación de sprites — pendiente<br>4. física 3D, controles y CQB — rayos y A* completados (B4); física de cajas 3D y cámara de `control3d` pendientes<br>5. compilador de Blueprints — completado (en Ara, único; el de JS retirado) | En desarrollo |
+| 2 | Núcleo en Ara, por bloques, cada uno con las pruebas headless en verde:<br>1. física 2D — completado (B2/B3, revisado)<br>2. contactos 2D — completado (pares en Ara)<br>3. temporizadores, partículas, animación de sprites — pendiente<br>4. física 3D, controles y CQB — rayos/A* (B4) y solucionador de movimiento/colisiones de personajes en Ara; cámara y física de objetos empujables pendientes<br>5. compilador de Blueprints — completado (en Ara, único; el de JS retirado) | En desarrollo |
 | 3 | Ara nativo (Windows x64):<br>• FFI con DLL, convención Win64<br>• `f32` y búferes<br>• ventana Win32<br>• triángulo y cubo OpenGL<br>• llamadas indirectas y retrollamadas<br>• anfitrión escrito en Ara (`externa func` con cuerpo, `Clase(yo)`, `avisar`) | Completado (Ara `fced30d`) |
 | 4 | Runtime nativo: el núcleo de la fase 2 corre en un `.exe` y dibuja con la fase 3; escena 2D primero | En desarrollo: el nivel «plataformas» con sus scripts y Blueprints corre en un `.exe`, igual bit a bit que Falcon (`fc2b5c7`, `064b90d`, `eda6a59`). Falta: resto de la API, Inspector y Señales, sprites, texto, audio, cargar escenas |
 | 5 | Lumbre nativo: capacidades documentadas por plataforma | Pendiente |

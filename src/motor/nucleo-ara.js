@@ -72,13 +72,16 @@ function espacio3d(E, B) {
 function fisica3d(E, B) {
   const yo = E['Fisica3D.crear'](0);
   const f = (nombre) => E['Fisica3D.func.' + nombre].bind(null, yo);
-  const empezar = f('empezar'), caja = f('caja'), mover = f('mover');
+  const empezar = f('empezar'), preparar = f('preparar'), empezarPersonaje = f('empezar_personaje');
+  const caja = f('caja'), mover = f('mover');
   const rx = f('r_x'), ry = f('r_y'), rz = f('r_z');
   const rvx = f('r_vx'), rvy = f('r_vy'), rvz = f('r_vz');
   const rempx = f('r_emp_x'), rempz = f('r_emp_z');
   const banderas = f('r_banderas'), contactos = f('r_contactos'), contacto = f('contacto');
   return {
     empezar: () => empezar(),
+    preparar: () => preparar(),
+    empezarPersonaje: () => empezarPersonaje(),
     caja: (x0, y0, z0, x1, y1, z1, dueno, cuerpo = false, movil = false) =>
       caja(x0, y0, z0, x1, y1, z1, B(dueno), cuerpo, movil),
     mover: (x, y, z, radio, altura, alturaTecho, vx, vz, empX, empZ, amort, vy, usaGravedad, gravedad, escalaGravedad, dt) =>

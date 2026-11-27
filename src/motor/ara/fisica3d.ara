@@ -8,7 +8,7 @@
 # [x-radio, y, z-radio] .. [x+radio, y+altura, z+radio].
 # La intersección usa límites estrictos, igual que THREE.Box3.intersectsBox.
 
-clase Solucionador3D:
+estructura Solucionador3D:
     cantidad = 0
     x0: lista[decimal] = []
     y0: lista[decimal] = []

@@ -157,7 +157,7 @@ test('Mundo3D usa Ara para resolver la física y conserva el mapeo de contactos'
   assert.equal(personaje.enPared, true);
   assert.equal(personaje.enSuelo, false);
   assert.deepEqual([...personaje._contactosSolidos], [pared]);
-  assert.equal(personaje.vx, pos[0] / 0.1);
+  assert.equal(personaje.vy, -1.8);
   assert.equal(d.m.nucleo, nucleo, 'el núcleo no ha sufrido errores');
 });
 

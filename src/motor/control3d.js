@@ -151,8 +151,8 @@ export class Controles3D {
     const sens = (n.props.sensibilidad ?? 1) * (n.props.tactico && n._apuntando ? 0.62 : 1);
     const inv = n.props.invertir_y ? -1 : 1;
     const ejes = this.d3.m.entrada.ejesMando || [];
-    const zona = (a) => Math.abs(a || 0) < 0.15 ? 0 : (a - Math.sign(a) * 0.15) / 0.85;
-    const sx = zona(ejes[2]), sy = zona(ejes[3]);
+    // Ara aplica la zona muerta y normaliza los sticks analógicos.
+    const sx = ejes[2] || 0, sy = ejes[3] || 0;
     const mx = this.raton.x, my = this.raton.y;
     this.raton.x = this.raton.y = 0;
     const vStick = 2.8 * sens;
@@ -234,13 +234,15 @@ export class Controles3D {
     // Solo con teclado: la cámara se coloca poco a poco detrás de hacia donde anda.
     const vel = Math.hypot(n._vx || 0, n._vz || 0);
     if (!this.capturado && this.sinRaton > 1.2 && vel > 1) {
-      const yawObj = Math.atan2(-(n._vx || 0), -(n._vz || 0));
-      let d = yawObj - this.yaw;
-      while (d > Math.PI) d -= Math.PI * 2;
-      while (d < -Math.PI) d += Math.PI * 2;
-      if (Math.abs(d) < 2.2) {
-        if (A) { A.seguirYaw(n._vx || 0, n._vz || 0, vel, n.props.velocidad || 5, dt); this.yaw = A.yaw(); }
-        else this.yaw += d * Math.min(1, dt * 1.1 * Math.min(1, vel / (n.props.velocidad || 5)));
+      if (A) {
+        A.seguirYaw(n._vx || 0, n._vz || 0, vel, n.props.velocidad || 5, dt);
+        this.yaw = A.yaw();
+      } else {
+        const yawObj = Math.atan2(-(n._vx || 0), -(n._vz || 0));
+        let d = yawObj - this.yaw;
+        while (d > Math.PI) d -= Math.PI * 2;
+        while (d < -Math.PI) d += Math.PI * 2;
+        if (Math.abs(d) < 2.2) this.yaw += d * Math.min(1, dt * 1.1 * Math.min(1, vel / (n.props.velocidad || 5)));
       }
     }
     const deseada = this.dist * this.zoom;

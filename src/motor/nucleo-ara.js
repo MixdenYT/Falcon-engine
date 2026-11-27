@@ -57,12 +57,12 @@ async function crear() {
 function espacio3d(E, B) {
   const yo = E['Espacio3D.crear'](0);
   const f = (nombre) => E['Espacio3D.func.' + nombre].bind(null, yo);
-  const rayo = f('rayo'), ruta = f('ruta'), celda = f('ruta_celda');
+  const rayo = f('rayo'), rayoCamara = f('rayo_camara'), ruta = f('ruta'), celda = f('ruta_celda');
   return {
     vaciar: f('vaciar'),
     caja: f('caja'), // (x0, y0, z0, x1, y1, z1, dueño)
     rayo: (ox, oy, oz, dx, dy, dz, alcance, igA, igB) => Number(rayo(ox, oy, oz, dx, dy, dz, alcance, igA, igB)),
-    rayoCamara: (ox, oy, oz, dx, dy, dz, alcance) => Number(f('rayo_camara')(ox, oy, oz, dx, dy, dz, alcance)),
+    rayoCamara: (ox, oy, oz, dx, dy, dz, alcance) => Number(rayoCamara(ox, oy, oz, dx, dy, dz, alcance)),
     t: f('r_t'), x: f('r_x'), y: f('r_y'), z: f('r_z'),
     ruta: (ancho, alto, x0, z0, tam, ix, iz, fx, fz, altura) => Number(ruta(B(ancho), B(alto), x0, z0, tam, B(ix), B(iz), B(fx), B(fz), altura)),
     celda: (i) => Number(celda(B(i))),

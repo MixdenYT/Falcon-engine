@@ -147,6 +147,53 @@ export class Mundo3D {
     return new THREE.Box3(new THREE.Vector3(pos[0] - r, pos[1], pos[2] - r), new THREE.Vector3(pos[0] + r, pos[1] + h, pos[2] + r));
   }
 
+  // La escena entrega las AABB; Ara resuelve el movimiento. Los cuerpos empujables
+  // conservan temporalmente la ruta JS porque también requieren sincronizar su transformada.
+  resolverFisicaPersonajeAra(n, pos, dt, escalaG, nodos, solidos) {
+    const F = this.m.nucleo?.fisica3d;
+    if (!F || solidos.some(s => s.movil)) return false;
+    F.empezar();
+    const duenos = [];
+    const indices = new Map();
+    const indice = (nodo) => {
+      let i = indices.get(nodo);
+      if (i === undefined) { i = duenos.length; indices.set(nodo, i); duenos.push(nodo); }
+      return i;
+    };
+    for (const s of solidos) {
+      const b = s.b;
+      F.caja(b.min.x, b.min.y, b.min.z, b.max.x, b.max.y, b.max.z, indice(s.n), false, false);
+    }
+    if (n.props.tactico || n.grupos.has('enemigos_cqb')) {
+      for (const otro of nodos) {
+        if (otro === n || otro.tipo !== 'Personaje3D' || otro._muerto) continue;
+        const b = this.cajaPersonaje(otro, this.posicionGlobal(otro));
+        F.caja(b.min.x, b.min.y, b.min.z, b.max.x, b.max.y, b.max.z, indice(otro), true, false);
+      }
+    }
+    const radio = n.props.tactico ? 0.42 : 0.38;
+    const altura = n._alturaColision || n.props.altura || 1.8;
+    const alturaTecho = n.props.altura || 1.8;
+    F.mover(
+      pos[0], pos[1], pos[2], radio, altura, alturaTecho,
+      n.mueveX, n.mueveZ, n.empX || 0, n.empZ || 0, Math.pow(0.05, dt),
+      n.vy || 0, !!n.props.usa_gravedad, n.props.gravedad ?? 18, escalaG, dt
+    );
+    if (this.errorAra()) return false;
+    pos[0] = F.x(); pos[1] = F.y(); pos[2] = F.z();
+    n.vy = F.vy();
+    n.empX = F.empX(); n.empZ = F.empZ();
+    const banderas = F.banderas();
+    n.enSuelo = !!(banderas & 1);
+    n.enPared = !!(banderas & 2);
+    n.enTecho = !!(banderas & 4);
+    for (let i = 0, total = F.contactos(); i < total; i++) {
+      const dueno = duenos[F.contacto(i)];
+      if (dueno) n._contactosSolidos.add(dueno);
+    }
+    return true;
+  }
+
   fisica(dt) {
     const nodos = this.m.todos();
     // Sincroniza transformaciones (los scripts pueden haber cambiado posiciones).
@@ -196,52 +243,53 @@ export class Mundo3D {
       if (n.tipo !== 'Personaje3D') continue;
       const pos = this.posicionGlobal(n);
       const ini = pos.slice();
-      n.empX *= Math.pow(0.05, dt); n.empZ *= Math.pow(0.05, dt);
-      const vx = n.mueveX + n.empX, vz = n.mueveZ + n.empZ;
       n.enPared = false;
+      n.enTecho = false;
       n._contactosSolidos = new Set();
-      const moverEje = (i, d) => {
-        if (!d) return;
-        pos[i] += d;
-        let caja = this.cajaPersonaje(n, pos);
-        caja.min.y += 0.05;
-        const cuerpos = n.props.tactico || n.grupos.has('enemigos_cqb') ? nodos.filter(o => o !== n && o.tipo === 'Personaje3D' && !o._muerto).map(o => ({ n: o, b: this.cajaPersonaje(o, this.posicionGlobal(o)), cuerpo: true })) : [];
-        for (const s of [...solidos, ...cuerpos]) {
-          if (!s.b.intersectsBox(caja)) continue;
-          // Escalones bajos: se suben solos.
-          if (s.b.max.y - pos[1] < 0.35 && !s.movil && !s.cuerpo) { pos[1] = s.b.max.y; caja = this.cajaPersonaje(n, pos); continue; }
-          if (s.movil) {
-            const desp = new THREE.Vector3(); desp.setComponent(i === 0 ? 0 : 2, d);
-            const b2 = s.b.clone().translate(desp);
-            const libre = !solidos.some(o => o !== s && o.b.intersectsBox(b2) && b2.min.y < o.b.max.y - 0.05);
-            if (libre) { s.n.props.posicion[i] += d; s.b.copy(b2); n._contactosSolidos.add(s.n); continue; }
+      const usoAra = this.resolverFisicaPersonajeAra(n, pos, dt, escalaG, nodos, solidos);
+      if (!usoAra) {
+        n.empX *= Math.pow(0.05, dt); n.empZ *= Math.pow(0.05, dt);
+        const vx = n.mueveX + n.empX, vz = n.mueveZ + n.empZ;
+        const moverEje = (i, d) => {
+          if (!d) return;
+          pos[i] += d;
+          let caja = this.cajaPersonaje(n, pos);
+          caja.min.y += 0.05;
+          const cuerpos = n.props.tactico || n.grupos.has('enemigos_cqb') ? nodos.filter(o => o !== n && o.tipo === 'Personaje3D' && !o._muerto).map(o => ({ n: o, b: this.cajaPersonaje(o, this.posicionGlobal(o)), cuerpo: true })) : [];
+          for (const s of [...solidos, ...cuerpos]) {
+            if (!s.b.intersectsBox(caja)) continue;
+            if (s.b.max.y - pos[1] < 0.35 && !s.movil && !s.cuerpo) { pos[1] = s.b.max.y; caja = this.cajaPersonaje(n, pos); continue; }
+            if (s.movil) {
+              const desp = new THREE.Vector3(); desp.setComponent(i === 0 ? 0 : 2, d);
+              const b2 = s.b.clone().translate(desp);
+              const libre = !solidos.some(o => o !== s && o.b.intersectsBox(b2) && b2.min.y < o.b.max.y - 0.05);
+              if (libre) { s.n.props.posicion[i] += d; s.b.copy(b2); n._contactosSolidos.add(s.n); continue; }
+            }
+            const mitad = n.props.tactico ? 0.42 : 0.38;
+            if (d > 0) pos[i] = Math.min(pos[i], (i === 0 ? s.b.min.x : s.b.min.z) - mitad - 0.001);
+            else pos[i] = Math.max(pos[i], (i === 0 ? s.b.max.x : s.b.max.z) + mitad + 0.001);
+            n.enPared = true;
+            n._contactosSolidos.add(s.n);
+            caja = this.cajaPersonaje(n, pos);
           }
-          const mitad = n.props.tactico ? 0.42 : 0.38;
-          if (d > 0) pos[i] = Math.min(pos[i], (i === 0 ? s.b.min.x : s.b.min.z) - mitad - 0.001);
-          else pos[i] = Math.max(pos[i], (i === 0 ? s.b.max.x : s.b.max.z) + mitad + 0.001);
-          n.enPared = true;
+        };
+        moverEje(0, vx * dt);
+        moverEje(2, vz * dt);
+        const vyAnt = n.vy || 0;
+        if (n.props.usa_gravedad) n.vy = vyAnt - (n.props.gravedad ?? 18) * escalaG * dt;
+        n.vy = Math.max(n.vy, -60);
+        const dy = (vyAnt + n.vy) * 0.5 * dt;
+        pos[1] += dy;
+        n.enSuelo = false;
+        const caja = this.cajaPersonaje(n, pos);
+        for (const s of solidos) {
+          if (!s.b.intersectsBox(caja)) continue;
+          if (dy <= 0 && ini[1] >= s.b.max.y - 0.36) { pos[1] = s.b.max.y; n.vy = 0; n.enSuelo = true; }
+          else if (dy > 0 && ini[1] + (n.props.altura || 1.8) <= s.b.min.y + 0.05) { pos[1] = s.b.min.y - (n.props.altura || 1.8); n.vy = 0; n.enTecho = true; }
           n._contactosSolidos.add(s.n);
-          caja = this.cajaPersonaje(n, pos);
         }
-      };
-      moverEje(0, vx * dt);
-      moverEje(2, vz * dt);
-      // Velocidad media del intervalo (exacto con gravedad constante): el salto llega a la misma
-      // altura a cualquier frecuencia de fotogramas.
-      const vyAnt = n.vy || 0;
-      if (n.props.usa_gravedad) n.vy = vyAnt - (n.props.gravedad ?? 18) * escalaG * dt;
-      n.vy = Math.max(n.vy, -60);
-      const dy = (vyAnt + n.vy) * 0.5 * dt;
-      pos[1] += dy;
-      n.enSuelo = false;
-      const caja = this.cajaPersonaje(n, pos);
-      for (const s of solidos) {
-        if (!s.b.intersectsBox(caja)) continue;
-        if (dy <= 0 && ini[1] >= s.b.max.y - 0.36) { pos[1] = s.b.max.y; n.vy = 0; n.enSuelo = true; }
-        else if (dy > 0 && ini[1] + (n.props.altura || 1.8) <= s.b.min.y + 0.05) { pos[1] = s.b.min.y - (n.props.altura || 1.8); n.vy = 0; n.enTecho = true; }
-        n._contactosSolidos.add(s.n);
+        if (!n.props.usa_gravedad) n.enSuelo = true;
       }
-      if (!n.props.usa_gravedad) n.enSuelo = true;
       n.vx = dt > 0 ? (pos[0] - ini[0]) / dt : 0;
       n.vz = dt > 0 ? (pos[2] - ini[2]) / dt : 0;
       this.fijarPosicionGlobal(n, ...pos);

@@ -16,7 +16,7 @@ Esta sección prevalece sobre el estado de «solo commits locales» y el informe
 - `src/motor/ara/nucleo.wasm`: regenerado desde las fuentes Ara en CI. `node herramientas/compilar-nucleo-ara.mjs --comprobar` confirma que está al día.
 - CI del 27-11: compilación del núcleo, pruebas completas `npm test` y `npm run test:actualizaciones` superadas en la rama.
 
-**Límites todavía explícitos:** Three.js sigue calculando las cajas de mundo y transformaciones de escena; las AABB estáticas se envían una vez por lista de sólidos y se reutilizan entre personajes. La cámara, la dinámica de cuerpos empujables y el renderizado no se han migrado. No se afirma que toda la física 3D esté ya en Ara.
+**Límites todavía explícitos:** Three.js sigue calculando las cajas de mundo y transformaciones de escena; las AABB estáticas se envían una vez por lista de sólidos y se reutilizan entre personajes. La cámara, la dinámica de cuerpos empujables que sí entran en el recorrido del personaje y el renderizado no se han migrado. No se afirma que toda la física 3D esté ya en Ara.
 
 ## Cómo se trabaja
 
@@ -40,7 +40,7 @@ Electron 44 + three.js 0.186; unas 22.900 líneas de JS en `src/`. `npm test` (h
 |---|---|---|---|---|
 | Escena, nodos y eventos | `motor/mundo.js`, `tipos.js` | 1.700 | Funciona | No |
 | Física 2D | `mundo.js` (`fisica2d`, `contactos2d`) | 160 | Funciona | **En revisión** (B3): `fisica2d`, cajas, matrices de mundo y pares de `contactos2d` en Ara (`motor/ara/fisica2d.ara`), idénticos bit a bit; JS de respaldo. Ara es 1,8–4× más rápido (`docs/BENCHMARKS.md`) |
-| Física 3D (cajas), controles, CQB | `mundo3d.js`, `control3d.js`, `tactico3d.js` | 1.075 | Funciona; núcleo parcialmente Ara | Rayos y A* ya estaban en Ara (B4). Nueva rama `codex/fisica3d-ara`: movimiento de personajes, colisiones AABB estáticas y de cuerpos, escalones, gravedad, suelo/pared/techo y contactos resueltos en `fisica3d.ara`. Three.js sigue aportando AABB y escena. Las cajas estáticas se cargan una vez por lista y se reutilizan entre personajes; las cajas de otros personajes se añaden por personaje. Respaldo JS para cuerpos empujables. Cámara y física de objetos empujables siguen pendientes |
+| Física 3D (cajas), controles, CQB | `mundo3d.js`, `control3d.js`, `tactico3d.js` | 1.075 | Funciona; núcleo parcialmente Ara | Rayos y A* ya estaban en Ara (B4). Nueva rama `codex/fisica3d-ara`: movimiento de personajes, colisiones AABB estáticas y de cuerpos, escalones, gravedad, suelo/pared/techo y contactos resueltos en `fisica3d.ara`. Three.js sigue aportando AABB y escena. Las cajas estáticas se cargan una vez por lista y se reutilizan entre personajes; las cajas de otros personajes se añaden por personaje. Respaldo JS solo cuando un cuerpo empujable intersecta el volumen barrido del personaje; los cuerpos lejanos no desactivan Ara. Cámara y física de objetos empujables siguen pendientes |
 | Render 2D | `render2d.js` (Canvas2D) | 400 | Funciona | No |
 | Render 3D y Lumbre | `lumbre*.js`, `escena3d.js`, `materiales.js` | 2.500 | Funciona: WebGL2, sondas, GTAO, bloom | No |
 | Audio | `audio.js` (Web Audio) | 124 | Funciona | No |

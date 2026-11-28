@@ -60,6 +60,6 @@ Lo que **existe en el código** (líneas de `HEAD`; `lumbre.js` tiene cambios si
 - Render en Ara dentro de Falcon: no hay nada.
   - Ara tiene dos ejemplos nativos que Falcon no usa: un triángulo OpenGL 1.1 (`ejemplos/ventana_triangulo.ara`) y un cubo con OpenGL moderno (`ejemplos/ventana_cubo.ara`, Ara `eb22a34`).
   - En Ara, `f32` solo existe en la frontera de las `externa` y en el búfer, no como tipo del lenguaje.
-- Pruebas de imagen (comparar capturas de referencia).
+- Pruebas de imagen en CI. Hay una línea base manual con capturas de referencia para tres escenas: [`GRAPHICS_BASELINE.md`](GRAPHICS_BASELINE.md).
 
 Lumbre nativo es la fase 5 de [`REWRITE_ROADMAP.md`](REWRITE_ROADMAP.md) y está en Plan.

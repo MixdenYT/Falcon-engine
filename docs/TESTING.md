@@ -1,8 +1,8 @@
-# Pruebas de Falcon Engine y de Ara
+# Pruebas de Falcon engine y de Ara
 
 Estado comprobado el 21-11-2026 en la rama `motor-ara` (`db8923f`), con Windows 11 ARM64 y Node v26.13.1 arm64.
 
-## Falcon Engine
+## Falcon engine
 
 ### Cómo se ejecutan
 
@@ -11,6 +11,7 @@ Estado comprobado el 21-11-2026 en la rama `motor-ara` (`db8923f`), con Windows 
 | `npm test` | Primero `pretest`: `node herramientas/reconstruir-cqb.cjs` rehace los GLB del CQB a partir de sus fragmentos. Después `node pruebas/ejecutar.js` importa, uno tras otro y por orden alfabético, todos los `pruebas/*.test.js`. |
 | `npm run test:actualizaciones` | `node --test pruebas/actualizaciones.test.cjs`: el actualizador. Es CommonJS, así que `npm test` no lo incluye. |
 | `node pruebas/<archivo>.test.js` | Ejecuta un solo archivo. |
+| `node herramientas/linea-base-grafica.mjs` | Línea base gráfica en Chromium: escenas patrón, métricas y comparación con capturas de referencia. Necesita Playwright y no forma parte de `npm test` ni de CI. Ver [`GRAPHICS_BASELINE.md`](GRAPHICS_BASELINE.md). |
 
 - **Todo es headless, en Node**: no se abre Electron, no hay WebGL ni Canvas, no suena nada y no hay DOM real.
   - `pruebas/dom.js` añade lo mínimo del DOM que necesita el motor: `DOMMatrix` y `DOMPoint` para transformaciones afines 2D. Lo importan las pruebas que crean un `Mundo` 2D.

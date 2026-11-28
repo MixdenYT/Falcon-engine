@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <link rel="icon" href="data:,">
+  <title>Falcon Engine · Línea base gráfica</title>
+  <script type="importmap">
+    { "imports": {
+      "three": "/node_modules/three/build/three.module.js",
+      "three/addons/": "/node_modules/three/examples/jsm/",
+      "three-mesh-bvh": "/node_modules/three-mesh-bvh/build/index.module.js"
+    } }
+  </script>
+  <style>body { margin: 0; background: #000; } canvas { display: block; }</style>
+</head>
+<body>
+  <canvas id="salida"></canvas>
+  <script type="module">
+    // Mide una escena patrón con el código real del motor y la compara con su captura de referencia.
+    // Parámetros: ?escena=S02&ancho=384&alto=216&cuadros=60&calentamiento=5&referencia=<url png>
+    //             &umbral=16&tolerancia=0.002&calidad=<nivel>&alterar=1 (cambio deliberado de material)
+    import * as THREE from 'three';
+    import { ESCENAS } from './escenas.js';
+
+    const q = new URLSearchParams(location.search);
+    const id = q.get('escena') || 'S02';
+    const def = ESCENAS[id];
+    const ancho = +q.get('ancho') || 384, alto = +q.get('alto') || 216;
+    const cuadros = +q.get('cuadros') || 60, calentamiento = +q.get('calentamiento') || 5;
+    const NO = 'NO SOPORTADO';
+    const r = { escena: id, nombre: def?.nombre, ok: false, errores: [] };
+
+    // Media, p95 y p99 de una lista de tiempos (ms).
+    const resumen = (xs) => {
+      const s = [...xs].sort((a, b) => a - b), pc = (p) => s[Math.min(s.length - 1, Math.ceil(p * s.length) - 1)];
+      const red = (x) => Math.round(x * 1000) / 1000;
+      return { muestras: s.length, media: red(s.reduce((a, b) => a + b, 0) / s.length), p95: red(pc(0.95)), p99: red(pc(0.99)), max: red(s[s.length - 1]) };
+    };
+
+    // Lee el lienzo por el mismo camino (drawImage → 2D) que la referencia, así no importa si es WebGL o 2D.
+    const pixeles = (fuente) => {
+      const c = new OffscreenCanvas(ancho, alto), x = c.getContext('2d', { willReadFrequently: true });
+      x.drawImage(fuente, 0, 0, ancho, alto);
+      return x.getImageData(0, 0, ancho, alto).data;
+    };
+
+    async function comparar(lienzo, url) {
+      const img = new Image();
+      img.src = url;
+      try { await img.decode(); } catch { return { estado: 'SIN REFERENCIA', url }; }
+      if (img.naturalWidth !== ancho || img.naturalHeight !== alto) return { estado: 'TAMAÑO DISTINTO', referencia: [img.naturalWidth, img.naturalHeight] };
+      const a = pixeles(lienzo), b = pixeles(img);
+      const umbral = +(q.get('umbral') ?? 16), tolerancia = +(q.get('tolerancia') ?? def.tolerancia ?? 0.002);
+      let distintos = 0, suma = 0, max = 0;
+      for (let i = 0; i < a.length; i += 4) {
+        const d = Math.max(Math.abs(a[i] - b[i]), Math.abs(a[i + 1] - b[i + 1]), Math.abs(a[i + 2] - b[i + 2]));
+        suma += d; if (d > max) max = d; if (d > umbral) distintos++;
+      }
+      const fraccion = distintos / (ancho * alto);
+      return { estado: fraccion <= tolerancia ? 'IGUAL' : 'DISTINTA', umbral, tolerancia, pixelesDistintos: distintos, fraccion: +fraccion.toFixed(6), difMedia: +(suma / (ancho * alto)).toFixed(4), difMax: max };
+    }
+
+    async function medir2D(lienzo) {
+      const { Render2D, CacheImagenes } = await import('/src/motor/render2d.js');
+      lienzo.width = ancho; lienzo.height = alto;
+      const c = lienzo.getContext('2d');
+      const cache = new CacheImagenes({ url: (rel) => '/' + rel, ajustesImportacion: (rel) => def.ajustes?.[rel] || {} });
+      // Precarga de imágenes: la captura no debe depender de cuándo llegan.
+      for (const rel of Object.keys(def.ajustes || {})) { const e = cache.obtener(rel); await e.img.decode(); e.listo = true; }
+      const render = new Render2D(cache);
+      const vista = { ancho, alto, escala: 1 };
+      const dibujar = () => {
+        c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, ancho, alto);
+        render.dibujarMundo(c, def.raiz, def.camara, vista, { limitesVista: [ancho, alto] });
+        render.dibujarInterfaz(c, def.raiz, vista);
+      };
+      const tiempos = [];
+      for (let i = 0; i < calentamiento + cuadros; i++) {
+        const t0 = performance.now(); dibujar(); const t = performance.now() - t0;
+        if (i >= calentamiento) tiempos.push(t);
+      }
+      r.cpuMs = resumen(tiempos);
+      r.gpuMs = NO;  // Canvas2D no expone tiempos de GPU.
+      r.render = { llamadasDibujo: NO, triangulos: NO, instancias: NO };
+    }
+
+    async function medir3D(lienzo) {
+      const { Escena3D } = await import('/src/motor/escena3d.js');
+      const { Lumbre } = await import('/src/motor/lumbre.js');
+      const renderer = new THREE.WebGLRenderer({ canvas: lienzo, antialias: true, preserveDrawingBuffer: true });
+      renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFShadowMap;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.outputColorSpace = THREE.SRGBColorSpace;
+      renderer.info.autoReset = false;
+      const gl = renderer.getContext();
+      const escena = new Escena3D({ url: (ruta) => '/' + ruta, ajustesImportacion: () => ({}) });
+      const raiz = structuredClone(def.raiz);
+      if (q.get('alterar')) raiz.hijos.find(n => n.tipo === 'Malla3D' && n.props.malla !== 'plano').props.color = '#2E86DE';
+      const t0 = performance.now();
+      await escena.construir(raiz);
+      r.cargaMs = +(performance.now() - t0).toFixed(3);
+      // Lumbre mide sus sondas con su propia consulta TIME_ELAPSED; dos consultas a la vez son INVALID_OPERATION.
+      globalThis.__falconPerfilGPU = true;
+      const lumbre = new Lumbre(renderer, escena, {});
+      r.calidad = q.get('calidad') || def.calidad;
+      lumbre.configurar(r.calidad, escena.entornoProps);
+      renderer.setPixelRatio(lumbre.pixelRatio());
+      renderer.setSize(ancho, alto, false);
+      const cam = new THREE.PerspectiveCamera(def.camara.fov, ancho / alto, 0.1, 200);
+      cam.position.set(...def.camara.pos); cam.lookAt(...def.camara.mira);
+      // Compilación de shaders: CPU hasta que three.js entrega los programas (el driver puede seguir compilando).
+      const tc = performance.now();
+      renderer.compile(escena.scene, cam);
+      r.compilacionShadersMs = +(performance.now() - tc).toFixed(3);
+
+      // Tiempo de GPU por fotograma solo si el contexto ofrece consultas de tiempo.
+      const ext = gl.getExtension('EXT_disjoint_timer_query_webgl2');
+      const consultas = [];
+      const tiempos = [];
+      let info = null;
+      for (let i = 0; i < calentamiento + cuadros; i++) {
+        renderer.info.reset();
+        const medir = ext && i >= calentamiento;
+        let consulta;
+        if (medir) { consulta = gl.createQuery(); gl.beginQuery(ext.TIME_ELAPSED_EXT, consulta); }
+        const t = performance.now();
+        // Paso fijo: el reparto de trabajo de Lumbre depende de dt y debe repetirse igual.
+        lumbre.actualizar(cam, 1 / 60, ancho, alto);
+        lumbre.renderizar(cam, ancho, alto);
+        const dt = performance.now() - t;
+        if (medir) { gl.endQuery(ext.TIME_ELAPSED_EXT); consultas.push(consulta); }
+        if (i >= calentamiento) tiempos.push(dt);
+        info = { calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, points: renderer.info.render.points, lines: renderer.info.render.lines };
+        await new Promise(requestAnimationFrame);
+      }
+      r.cpuMs = resumen(tiempos);
+      if (!ext) r.gpuMs = NO;
+      else {
+        // Espera a los resultados (máx. 2 s); las consultas sin resultado o con GPU_DISJOINT se cuentan como perdidas.
+        const limite = performance.now() + 2000;
+        while (performance.now() < limite && !gl.getQueryParameter(consultas.at(-1), gl.QUERY_RESULT_AVAILABLE)) await new Promise(requestAnimationFrame);
+        const disjunta = gl.getParameter(ext.GPU_DISJOINT_EXT);
+        const gpu = [];
+        for (const c of consultas) {
+          if (!disjunta && gl.getQueryParameter(c, gl.QUERY_RESULT_AVAILABLE)) gpu.push(gl.getQueryParameter(c, gl.QUERY_RESULT) / 1e6);
+          gl.deleteQuery(c);
+        }
+        r.gpuMs = gpu.length ? { ...resumen(gpu), perdidas: consultas.length - gpu.length } : NO;
+      }
+      let instancias = 0;
+      escena.scene.traverse(o => { if (o.isInstancedMesh) instancias += o.count; });
+      r.render = {
+        llamadasDibujo: info.calls, triangulos: info.triangles, lineas: info.lines, puntos: info.points,
+        instancias,                      // InstancedMesh en escena; sin instancing, 0 es el valor real.
+        geometrias: renderer.info.memory.geometries, texturas: renderer.info.memory.textures,
+        programas: renderer.info.programs?.length ?? NO,
+        memoriaGpuMB: NO,               // WebGL no informa de la memoria de vídeo.
+        porPase: NO,                    // No hay Render Graph: los pases de Lumbre no se miden por separado.
+      };
+      r.lumbre = { estado: lumbre.estado, giDisponible: lumbre.giDisponible, usaGI: lumbre.usaGI, usaComposer: lumbre.usaComposer, sondas: lumbre.total, sombras: lumbre.stats.sombras, espejos: lumbre.stats.espejos, pixelRatio: lumbre.pixelRatio() };
+      const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+      r.gpu = dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
+      r.extensiones = { timerQuery: !!ext, colorBufferFloat: renderer.extensions.has('EXT_color_buffer_float'), floatLinear: renderer.extensions.has('OES_texture_float_linear') };
+      r.errorWebGL = gl.getError();
+      return () => { lumbre.destruir(); escena.limpiar(); renderer.dispose(); };
+    }
+
+    let liberar;
+    try {
+      if (!def) throw new Error('Escena desconocida: ' + id);
+      const lienzo = document.querySelector('#salida');
+      lienzo.style.width = ancho + 'px'; lienzo.style.height = alto + 'px';
+      liberar = def.tipo === '2d' ? await medir2D(lienzo) : await medir3D(lienzo);
+      r.resolucion = [ancho, alto];
+      r.dpr = devicePixelRatio;
+      r.navegador = navigator.userAgent;
+      r.captura = lienzo.toDataURL('image/png');
+      if (q.get('referencia')) r.comparacion = await comparar(lienzo, q.get('referencia'));
+      r.ok = !r.errorWebGL;   // En 2D no hay errorWebGL: basta con no lanzar excepción.
+    } catch (e) {
+      r.errores.push(e?.stack || String(e));
+    } finally {
+      try { liberar?.(); } catch {}
+    }
+    window.__LINEA_BASE__ = r;
+  </script>
+</body>
+</html>

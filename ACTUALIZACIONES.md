@@ -1,4 +1,4 @@
-# Releases y actualizaciones de Falcon Engine
+# Releases y actualizaciones de Falcon engine
 
 La interfaz de apoyo y actualizaciones se muestra únicamente en el gestor de
 proyectos. Los IPC de actualizaciones rechazan llamadas desde el editor y los

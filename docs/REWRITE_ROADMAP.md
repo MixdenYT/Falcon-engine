@@ -1,4 +1,4 @@
-# Falcon Engine — Powered by Ara: hoja de ruta
+# Falcon engine: hoja de ruta
 
 Estado: **arquitectura aprobada por el usuario el 21-11-2026**. Fases 1 y 3 completadas; fases 2 y 4 en desarrollo.
 Rama de trabajo: `motor-ara`, en `falcon-engine` y en `ara-etapa5/ara`. Solo hay commits locales; no se ha subido nada a GitHub.

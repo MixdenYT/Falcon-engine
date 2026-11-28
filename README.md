@@ -1,6 +1,6 @@
-<p align="center"><img src="recursos/logo.png" alt="Falcon Engine" width="128"></p>
+<p align="center"><img src="recursos/logo.png" alt="Falcon engine" width="128"></p>
 
-<h1 align="center">FALCON ENGINE — POWERED BY ARA</h1>
+<h1 align="center">Falcon engine</h1>
 
 <p align="center"><strong>Crea tu próximo juego, en tu idioma.</strong></p>
 
@@ -13,7 +13,7 @@ Falcon no es un envoltorio de otro motor. Su núcleo se está escribiendo en Ara
 
 [Web oficial](https://mixden.net/falcon-engine/) · [Instalar y probar](#instalar-y-probar) · [Capturas](#el-editor-en-imágenes) · [Ara dentro de Falcon](#ara-dentro-de-falcon) · [Exportar](#exportar-y-empaquetar) · [Documentación](#documentación)
 
-![Editor 3D de Falcon Engine con una mazmorra iluminada](docs/images/falcon-editor-3d.webp)
+![Editor 3D de Falcon engine con una mazmorra iluminada](docs/images/falcon-editor-3d.webp)
 
 > **En desarrollo activo.** Las capturas corresponden al editor actual. La compatibilidad y el rendimiento pueden variar según el equipo y el proyecto; lo comprobado en cada plataforma está en [`docs/PLATFORM_MATRIX.md`](docs/PLATFORM_MATRIX.md).
 
@@ -315,7 +315,7 @@ docs                 Documentación (abajo)
 
 | Documento | De qué trata |
 | --- | --- |
-| [REWRITE_ROADMAP](docs/REWRITE_ROADMAP.md) | Hoja de ruta de Falcon — Powered by Ara, estado real e informe de continuidad |
+| [REWRITE_ROADMAP](docs/REWRITE_ROADMAP.md) | Hoja de ruta de Falcon engine, estado real e informe de continuidad |
 | [ARCHITECTURE](docs/ARCHITECTURE.md) | Procesos, motor, núcleo en Ara y capa de plataforma |
 | [ARA_INTEGRATION](docs/ARA_INTEGRATION.md) | Cómo entra Ara: scripts, Blueprints, núcleo, actualización y runtime nativo |
 | [BLUEPRINTS](docs/BLUEPRINTS.md) | Del grafo al código Ara |

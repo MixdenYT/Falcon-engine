@@ -403,12 +403,13 @@ export async function dialogoExportar() {
     <div class="fila fila-flex"><div class="crece"><label class="etiqueta-campo">Nombre del ejecutable</label><input class="campo" data-k="nombre" value="${esc(p.datos.exportacion?.nombre_ejecutable || p.datos.nombre)}"></div><div style="width:120px"><label class="etiqueta-campo">Versión</label><input class="campo mono" data-k="version" value="${esc(p.datos.exportacion?.version || '1.0.0')}"></div></div>
     <div class="fila"><label class="etiqueta-campo">Carpeta de destino</label><div class="fila-flex"><input class="campo mono" data-k="destino" value="${esc(destinoDef)}"><button class="btn secundario" data-a="examinar">Examinar</button></div></div>
     <div class="fila">${interruptor(!!p.datos.exportacion?.pantalla_completa, 'Abrir a pantalla completa', 'completa')}</div>
+    <div class="fila">${interruptor(!!p.datos.exportacion?.licencia_publicacion, 'Tengo la licencia de publicación de este juego (20 €)', 'licencia')}<p style="color:var(--texto-2);font-size:12px;margin:6px 0 0">Sin licencia, la exportación es una versión de prueba con marca de agua y no se puede publicar (LICENSE, apartado 3 bis).</p></div>
     <div class="progreso-export oculto"><div class="fila-flex"><span class="cargando"></span><span class="txt-export" style="font-size:13px">Preparando…</span></div><div class="barra-progreso" style="margin-top:10px"><div style="width:0%"></div></div><div class="registro-export"></div></div>
   </div>`);
   $$('.plat-exp', c).forEach(l => l.querySelector('input').onchange = (e) => { if (e.target.checked) elegidas.add(l.dataset.p); else elegidas.delete(l.dataset.p); l.classList.toggle('activo', e.target.checked); });
   c.querySelector('[data-a=examinar]').onclick = async () => { const r = await falcon.dialogo.carpeta({ titulo: 'Carpeta de destino', ruta: c.querySelector('[data-k=destino]').value }); if (r) c.querySelector('[data-k=destino]').value = r.replace(/\\/g, '/'); };
   await dialogo({
-    titulo: 'Exportar juego', sub: 'Crea una versión de tu juego que se abre sin Falcon Engine.', ancho: 600, contenido: c,
+    titulo: 'Exportar juego', sub: 'Crea una versión de tu juego que se abre sin Falcon engine.', ancho: 600, contenido: c,
     botones: [{ texto: 'Cerrar', valor: null }, {
       texto: 'Exportar', tipo: 'principal', icono: 'exportar', accion: async (dlg) => {
         if (!elegidas.size) { avisar('Elige al menos una plataforma.', 'aviso'); return false; }
@@ -423,11 +424,11 @@ export async function dialogoExportar() {
           if (pr.fase !== 'descarga' || pr.porcentaje === 0) reg.insertAdjacentHTML('beforeend', `<div>${esc(pr.plataforma)} · ${esc(pr.texto)}</div>`);
           reg.scrollTop = reg.scrollHeight;
         });
-        p.datos.exportacion = { nombre_ejecutable: c.querySelector('[data-k=nombre]').value, version: c.querySelector('[data-k=version]').value, pantalla_completa: c.querySelector('[data-campo=completa]').checked };
+        p.datos.exportacion = { nombre_ejecutable: c.querySelector('[data-k=nombre]').value, version: c.querySelector('[data-k=version]').value, pantalla_completa: c.querySelector('[data-campo=completa]').checked, licencia_publicacion: c.querySelector('[data-campo=licencia]').checked };
         await p.guardar();
         const r = await falcon.exportar({
           proyecto: p.ruta, plataformas: [...elegidas], destino: c.querySelector('[data-k=destino]').value,
-          nombre: p.datos.exportacion.nombre_ejecutable, version: p.datos.exportacion.version, pantallaCompleta: p.datos.exportacion.pantalla_completa,
+          nombre: p.datos.exportacion.nombre_ejecutable, version: p.datos.exportacion.version, pantallaCompleta: p.datos.exportacion.pantalla_completa, licenciaPublicacion: p.datos.exportacion.licencia_publicacion,
           icono: est.info.raizApp + '/recursos/icono.ico',
         });
         quitar();
@@ -459,7 +460,7 @@ export async function abrirGuia(id) {
 export async function acercaDe() {
   const i = est.info;
   await dialogo({
-    titulo: 'Falcon Engine',
+    titulo: 'Falcon engine',
     contenido: `<p style="color:var(--texto-2);margin:0 0 12px">Motor de videojuegos 2D y 3D con el lenguaje Ara.</p>
       <div class="lector"><table><tr><td>Versión</td><td>${esc(i.version)}</td></tr><tr><td>Sistema</td><td>${esc(i.plataforma)} ${esc(i.arquitectura)}</td></tr><tr><td>Electron</td><td>${esc(i.electron)}</td></tr><tr><td>Proyecto</td><td class="mono">${esc(est.proyecto.ruta)}</td></tr></table></div>`,
     botones: [{ texto: 'Cerrar', tipo: 'principal', valor: true }],

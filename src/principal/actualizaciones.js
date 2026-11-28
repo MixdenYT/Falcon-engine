@@ -47,7 +47,7 @@ function crearActualizaciones({ app, ipcMain, net, esGestor, publicar, plataform
     return emitir({ fase: 'error', error: mensaje, alSalir: false });
   }
   function datosRelease(v, notas, fecha, nombre, tamano) {
-    return { version: v, nombre: nombre || `Falcon Engine ${v}`, fecha: fecha || null, tamano: Number.isFinite(tamano) ? tamano : null,
+    return { version: v, nombre: nombre || `Falcon engine ${v}`, fecha: fecha || null, tamano: Number.isFinite(tamano) ? tamano : null,
       notas: notasTexto(notas), grupos: agruparNotas(notas), url: `https://github.com/${repo.owner}/${repo.repo}/releases/tag/v${v}` };
   }
   async function comprobar(manual = false) {

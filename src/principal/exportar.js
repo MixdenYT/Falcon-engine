@@ -243,7 +243,11 @@ async function exportarSinAsar(op) {
       await fsp.writeFile(path.join(app, 'juego', '.falcon', 'ara.wasm'), ara.modulo);
       await fsp.writeFile(path.join(app, 'juego', '.falcon', 'ara.json'), JSON.stringify(ara.descripcion));
     }
-    await fsp.writeFile(path.join(app, 'juego', '.exportado.json'), JSON.stringify({ pantalla_completa: !!op.pantallaCompleta, fecha: Date.now() }));
+    await fsp.writeFile(path.join(app, 'juego', '.exportado.json'), JSON.stringify({
+      pantalla_completa: !!op.pantallaCompleta, fecha: Date.now(),
+      // shortcut: la licencia de publicación es declarada, no verificada; cuando exista el canal de pago, validar un código aquí.
+      prueba: !op.licenciaPublicacion,
+    }));
 
     if (plat.platform === 'win32') {
       op.progreso({ plataforma: clave, fase: 'icono', texto: 'Poniendo nombre e icono al ejecutable…', porcentaje: 80 });
@@ -291,7 +295,7 @@ async function editarExeWindows(exe, { nombre, version, icono }) {
   vi.setProductVersion(a, b, c, 0, lang);
   vi.setStringValues({ lang, codepage: 1200 }, {
     FileDescription: nombre, ProductName: nombre, OriginalFilename: `${nombre}.exe`, InternalName: nombre,
-    CompanyName: 'Hecho con Falcon Engine', FileVersion: version, ProductVersion: version, LegalCopyright: '',
+    CompanyName: 'Hecho con Falcon engine', FileVersion: version, ProductVersion: version, LegalCopyright: '',
   });
   vi.outputToResourceEntries(recursos.entries);
   recursos.outputResource(ejecutable);

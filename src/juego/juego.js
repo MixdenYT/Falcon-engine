@@ -64,7 +64,12 @@ async function iniciar() {
   pintarCalidad();
   setTimeout(() => $('.pista-atajos')?.classList.add('fuera'), 4500);
   if (MODO === 'exportado') {
-    try { const ex = JSON.parse(await proyecto.leer('.exportado.json')); if (ex.pantalla_completa) falcon.ventana.pantallaCompleta(); } catch {}
+    try {
+      const ex = JSON.parse(await proyecto.leer('.exportado.json'));
+      if (ex.pantalla_completa) falcon.ventana.pantallaCompleta();
+      // Versión de prueba (sin licencia de publicación): marca de agua fija, sin interceptar el ratón.
+      if (ex.prueba === true) document.body.insertAdjacentHTML('beforeend', '<div class="marca-agua" aria-hidden="true">Hecho con Falcon engine · versión de prueba</div>');
+    } catch {}
   }
 }
 

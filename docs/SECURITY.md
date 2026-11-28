@@ -1,4 +1,4 @@
-# Seguridad de Falcon Engine
+# Seguridad de Falcon engine
 
 Auditoría del 21-11-2026 (agente 08, ciberseguridad), sobre Falcon Engine 1.3.0 con Electron 44.9.0. El trabajo consistió en leer el código. No se ejecutaron pruebas de concepto contra la aplicación. Los números de línea corresponden al árbol de trabajo de esa fecha (commit `db8923f` y los cambios locales sin confirmar).
 

@@ -1,4 +1,4 @@
-# Dependencias de Falcon Engine
+# Dependencias de Falcon engine
 
 Estado a 21-11-2026 (Falcon Engine 1.3.0, actualizado en `ee249af`). Fuentes: `package.json`, `package-lock.json` (lockfileVersion de npm 11.20.0) y un grep de los imports en `src/`, `herramientas/` y `electron-builder.config.cjs`.
 

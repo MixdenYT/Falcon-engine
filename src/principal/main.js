@@ -138,7 +138,7 @@ function crearVentana(opciones = {}) {
   const v = new BrowserWindow({
     width: 1440, height: 900, minWidth: 1100, minHeight: 680,
     frame: false, backgroundColor: '#050605', show: false, icon: ICONO,
-    title: 'Falcon Engine',
+    title: 'Falcon engine',
     webPreferences: preferenciasWeb(),
     ...opciones,
   });
@@ -380,7 +380,7 @@ ipcMain.handle('dialogo:guardar', async (e, op = {}) => {
 ipcMain.handle('dialogo:mensaje', async (e, op = {}) => {
   if (!de(e, 'gestor', 'editor')) return null;
   const r = await dialog.showMessageBox(BrowserWindow.fromWebContents(e.sender), {
-    type: op.tipo || 'question', title: op.titulo || 'Falcon Engine', message: op.mensaje, detail: op.detalle,
+    type: op.tipo || 'question', title: op.titulo || 'Falcon engine', message: op.mensaje, detail: op.detalle,
     buttons: op.botones || ['Aceptar'], defaultId: 0, cancelId: op.cancelar ?? (op.botones ? op.botones.length - 1 : 0),
   });
   return r.response;
@@ -457,7 +457,7 @@ ipcMain.handle('exportar', async (e, op = {}) => {
   try {
     const salidas = await exportarJuego({
       proyecto, destino, plataformas: Array.isArray(op.plataformas) ? op.plataformas : [],
-      nombre: op.nombre, version: op.version, pantallaCompleta: !!op.pantallaCompleta,
+      nombre: op.nombre, version: op.version, pantallaCompleta: !!op.pantallaCompleta, licenciaPublicacion: !!op.licenciaPublicacion,
       icono: path.join(RAIZ_APP, 'recursos', 'icono.ico'),
       raizApp: RAIZ_APP, progreso, cache: path.join(app.getPath('userData'), 'cache-exportacion'),
     });

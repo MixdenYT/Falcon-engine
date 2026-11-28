@@ -46,7 +46,7 @@ function pintarMarco() {
   const app = $('#app');
   app.innerHTML = `
     <div class="barra-titulo">
-      <div class="marca">${logo(24)}<span>Falcon Engine</span><span class="sub">Gestor de proyectos</span></div>
+      <div class="marca">${logo(24)}<span>Falcon engine</span><span class="sub">Gestor de proyectos</span></div>
     </div>
     <div class="marco">
       <aside class="lateral">
@@ -62,7 +62,7 @@ function pintarMarco() {
           <b>¿Venías de Talon Engine?</b>
           <p>Tus proyectos anteriores se abren sin conversión. Falcon los reconoce automáticamente.</p>
         </div>
-        <div class="version">Falcon Engine ${esc(info.version)}<button class="buscar-actualizaciones" data-comunidad="actualizar">Buscar actualizaciones</button></div>
+        <div class="version">Falcon engine ${esc(info.version)}<button class="buscar-actualizaciones" data-comunidad="actualizar">Buscar actualizaciones</button></div>
       </aside>
       <main class="contenido"><div class="contenido-interior"></div></main>
     </div>`;
@@ -354,7 +354,7 @@ export function abrirGuia(id) {
 function vistaAjustes(c) {
   const a = datos.ajustes;
   c.innerHTML = `
-    <header class="cabecera"><div><h1>Ajustes</h1><p>Preferencias generales de Falcon Engine en este equipo.</p></div></header>
+    <header class="cabecera"><div><h1>Ajustes</h1><p>Preferencias generales de Falcon engine en este equipo.</p></div></header>
     <section class="ajustes">
       <div class="ajuste"><div class="texto-ajuste"><b>Carpeta de proyectos</b><span>Donde se crean los proyectos nuevos e importados.</span></div>
         <div class="control"><input class="campo mono" data-k="carpetaProyectos" readonly title="Elige la carpeta con Cambiar" value="${esc(a.carpetaProyectos)}"><button class="btn secundario peq" data-a="carpeta">Cambiar</button></div></div>
@@ -370,7 +370,7 @@ function vistaAjustes(c) {
         <div class="control">${interruptor(a.mostrarFps, '', 'mostrarFps')}</div></div>
       <div class="ajuste"><div class="texto-ajuste"><b>Tamaño de la cuadrícula 2D</b><span>Para «Ajustar a cuadrícula».</span></div>
         <div class="control"><select class="campo" data-k="cuadricula" style="width:120px">${[8, 16, 20, 32, 40, 64].map(m => `<option value="${m}" ${a.cuadricula == m ? 'selected' : ''}>${m} px</option>`).join('')}</select></div></div>
-      <div class="ajuste"><div class="texto-ajuste"><b>Sistema</b><span>Falcon Engine ${esc(info.version)} · ${esc(info.plataforma)} ${esc(info.arquitectura)} · Electron ${esc(info.electron)}</span></div>
+      <div class="ajuste"><div class="texto-ajuste"><b>Sistema</b><span>Falcon engine ${esc(info.version)} · ${esc(info.plataforma)} ${esc(info.arquitectura)} · Electron ${esc(info.electron)}</span></div>
         <div class="control"><button class="btn secundario peq" data-a="borrar-recientes">Vaciar recientes</button></div></div>
     </section>`;
   const guardar = async () => { await guardarDatos(); avisar('Ajustes guardados'); };

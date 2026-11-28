@@ -62,3 +62,4 @@
 
 .cargando-juego { position: absolute; inset: 0; display: grid; place-items: center; color: var(--texto-2); gap: 12px; }
 body.exportado .barra-titulo, body.exportado .herramientas, body.exportado .vivos, body.exportado .pista-atajos { display: none; }
+.marca-agua { position: fixed; right: 12px; bottom: 10px; z-index: 9999; pointer-events: none; padding: 4px 10px; border-radius: 6px; background: rgba(0,0,0,.45); color: rgba(255,255,255,.85); font: 600 12px/1.4 Manrope, sans-serif; letter-spacing: .02em; }

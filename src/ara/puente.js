@@ -140,7 +140,7 @@ export class ProgramaAra {
    * necesita el compilador. `textos` son los .ara del proyecto (para situar los errores de ejecución).
    */
   static async desdeCompilado(mundo, textos, modulo, descripcion) {
-    if (descripcion.disposicion !== DISPOSICION_EXPORTADA) throw new Error('los scripts de Ara se exportaron con otra versión de Falcon Engine; vuelve a exportar el juego');
+    if (descripcion.disposicion !== DISPOSICION_EXPORTADA) throw new Error('los scripts de Ara se exportaron con otra versión de Falcon engine; vuelve a exportar el juego');
     const [motor, runtime] = await Promise.all([leerPropio('./motor.ara', true), runtimeAra()]);
     const p = new ProgramaAra(mundo, Object.fromEntries([['motor.ara', motor], ...textos]));
     await p.montar(modulo, descripcion.archivos, compilado(runtime));

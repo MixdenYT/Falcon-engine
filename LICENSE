@@ -1,10 +1,11 @@
-FALCON ENGINE PROPRIETARY LICENSE
-Version 1.0 | Español / English
+LICENCIA DE FALCON ENGINE / FALCON ENGINE LICENSE
+Versión 2.0 | Español / English
+BORRADOR pendiente de revisión legal y del canal de pago (ver 3 bis).
 
 ESPAÑOL
 
 1. Titularidad y ámbito
-El código original y los recursos propios de Falcon Engine pertenecen a sus
+El código original y los recursos propios de Falcon engine pertenecen a sus
 respectivos titulares. Mixden, responsable del proyecto bajo la cuenta
 MixdenYT, concede únicamente los derechos que posee o está autorizado a
 licenciar. Todos los derechos no concedidos expresamente quedan reservados.
@@ -14,17 +15,19 @@ de terceros ni a materiales sujetos a otra licencia identificada.
 
 2. Uso autorizado del editor
 Quien obtenga legítimamente una distribución oficial puede instalar y ejecutar
-Falcon Engine para aprender, evaluar y crear juegos o aplicaciones, con fines
-personales, educativos o comerciales. Puede hacer las copias locales necesarias
-para ese uso. Esta licencia no cobra regalías ni exige una suscripción o una
-aportación a Patreon. No autoriza a redistribuir el editor o su código fuente.
+Falcon engine gratis para aprender, evaluar y crear juegos o aplicaciones, con
+fines personales, educativos o comerciales, y exportar versiones de prueba. Puede
+hacer las copias locales necesarias para ese uso. Usar el editor no exige una
+suscripción ni una aportación a Patreon. Publicar un juego exige la licencia de
+publicación del apartado 3 bis. No autoriza a redistribuir el editor o su código
+fuente.
 
 3. Juegos y motor de ejecución
 El usuario conserva los derechos sobre sus propios juegos, scripts, Blueprints,
 escenas, recursos y demás contenido original. Puede publicar, vender y distribuir
-sus juegos sin pagar regalías a Falcon Engine bajo esta versión de la licencia.
-Para ello recibe permiso mundial, no exclusivo y sin regalías para reproducir y
-distribuir el motor de ejecución y los componentes de Falcon Engine que la
+sus juegos sin pagar regalías sobre sus ventas, una vez obtenida la licencia de
+publicación de cada juego (apartado 3 bis). Para ello recibe permiso mundial, no exclusivo y sin regalías para reproducir y
+distribuir el motor de ejecución y los componentes de Falcon engine que la
 exportación oficial incorpore y que sean necesarios para ejecutar su juego,
 únicamente como parte de ese juego y sin ofrecerlos como motor, editor,
 biblioteca o kit de desarrollo independiente. Este permiso incluye las copias
@@ -34,6 +37,26 @@ Debe conservar los avisos de titularidad y licencias de esos componentes y de
 terceros, sin atribuirse su autoría. Los archivos propios del usuario y el código
 generado para su juego pueden distribuirse como parte de ese juego. La licencia
 no reclama la propiedad del contenido del usuario ni obliga a publicar su código.
+
+3 bis. Licencia de publicación y versiones de prueba
+a) Publicar un juego hecho con Falcon engine exige una licencia de publicación
+de 20 € (veinte euros, impuestos aplicables aparte) por juego, que se paga una
+sola vez al titular antes de la publicación. «Publicar» es poner el juego a
+disposición de terceros, gratis o de pago, en tiendas, webs, redes o soportes
+físicos. No es publicar compartirlo de forma privada con un número reducido de
+personas para probarlo, ni presentarlo en clase o en una evaluación.
+b) La licencia cubre un juego: un mismo título con sus actualizaciones,
+parches, contenido descargable, demos y versiones para otras plataformas.
+Una secuela o un juego distinto necesita su propia licencia.
+c) Sin licencia de publicación, el exportador genera una versión de prueba que
+muestra la marca de agua «Hecho con Falcon engine · versión de prueba». Está
+prohibido eliminarla, ocultarla o alterarla, y publicar una versión de prueba.
+d) El pago se realiza por el canal oficial que indique el titular. [PENDIENTE:
+canal de pago y forma de acreditar la licencia.] Hasta que exista ese canal,
+la obligación de pago no es exigible y los juegos pueden publicarse con la
+marca de agua.
+e) Los juegos publicados antes de que esta versión de la licencia se aplique
+a la copia del editor que los exportó no requieren licencia de publicación.
 
 4. Código fuente y restricciones
 Recibir acceso al repositorio o al código, incluso mediante Patreon, no concede
@@ -82,7 +105,7 @@ disponibles. Las medidas no afectan a los derechos independientes de terceros,
 a permisos concedidos anteriormente ni a los derechos legales irrenunciables.
 
 8. Garantías, responsabilidad e interpretación
-Falcon Engine está en desarrollo. En la máxima medida permitida por la ley se
+Falcon engine está en desarrollo. En la máxima medida permitida por la ley se
 ofrece tal como está, sin garantías adicionales de funcionamiento ininterrumpido,
 adecuación o ausencia de errores. No se excluyen responsabilidades ni garantías
 que legalmente no puedan excluirse, ni las derivadas de dolo u otros supuestos
@@ -99,7 +122,7 @@ en https://github.com/MixdenYT/Falcon-engine.
 ENGLISH
 
 1. Ownership and scope
-Falcon Engine's original code and original assets belong to their respective
+Falcon engine's original code and original assets belong to their respective
 rights holders. Mixden, who maintains the project under the MixdenYT account,
 grants only rights they own or are authorized to license. All rights not
 expressly granted are reserved. This license covers original material expressly
@@ -108,17 +131,18 @@ third-party components or material identified as having a separate license.
 
 2. Authorized editor use
 Anyone who lawfully obtains an official distribution may install and run
-Falcon Engine to learn, evaluate, and create games or applications for personal,
-educational, or commercial purposes, and make local copies necessary for that
-use. This license charges no royalties and requires no subscription or Patreon
-contribution. It does not authorize redistribution of the editor or source code.
+Falcon engine free of charge to learn, evaluate, and create games or applications
+for personal, educational, or commercial purposes, export test builds, and make
+local copies necessary for that use. Using the editor requires no subscription
+or Patreon contribution. Publishing a game requires the publishing license in
+section 3a. It does not authorize redistribution of the editor or source code.
 
 3. Games and runtime
 Users retain rights to their own games, scripts, Blueprints, scenes, assets,
 and other original content. They may publish, sell, and distribute their games
-without paying royalties to Falcon Engine under this license version.
-For that purpose, they receive worldwide, nonexclusive, royalty-free permission
-to reproduce and distribute the runtime and Falcon Engine components included
+without paying royalties on their sales, once they obtain the publishing license
+for each game (section 3a). For that purpose, they receive worldwide, nonexclusive, royalty-free permission
+to reproduce and distribute the runtime and Falcon engine components included
 by the official export process and necessary to run their game, solely as part
 of that game, without offering those components as a standalone engine, editor,
 library, or development kit. This includes copies made by stores and distributors
@@ -128,6 +152,26 @@ preserved; users must not claim authorship of those components. Users' own files
 and code generated for their game may be distributed as part of that game.
 This license neither claims ownership of user content nor requires disclosure
 of users' source code.
+
+3a. Publishing license and test builds
+a) Publishing a game made with Falcon engine requires a publishing license of
+EUR 20 (twenty euros, applicable taxes excluded) per game, paid once to the
+rights holder before publication. "Publishing" means making the game available
+to third parties, free or paid, through stores, websites, networks, or physical
+media. Privately sharing it with a small number of people for testing, or
+presenting it in a class or assessment, is not publishing.
+b) One license covers one game: a single title with its updates, patches,
+downloadable content, demos, and ports. A sequel or different game needs its
+own license.
+c) Without a publishing license, the exporter produces a test build showing the
+watermark "Hecho con Falcon engine · versión de prueba". Removing, hiding, or
+altering it, or publishing a test build, is prohibited.
+d) Payment is made through the official channel designated by the rights
+holder. [PENDING: payment channel and proof of license.] Until that channel
+exists, the payment obligation is not enforceable and games may be published
+with the watermark.
+e) Games published before this license version applies to the editor copy that
+exported them do not require a publishing license.
 
 4. Source access and restrictions
 Receiving repository or source access, including through Patreon, does not by
@@ -174,7 +218,7 @@ removal and pursue available legal remedies. Such measures do not affect
 independent third-party rights, earlier grants, or non-waivable statutory rights.
 
 8. Warranties, liability, and interpretation
-Falcon Engine is in development. To the maximum extent permitted by law, it is
+Falcon engine is in development. To the maximum extent permitted by law, it is
 provided as is, without additional warranties of uninterrupted operation, fitness,
 or freedom from errors. No liability or warranty that cannot legally be excluded
 is excluded, including liability for intentional misconduct or other mandatory

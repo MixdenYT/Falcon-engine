@@ -14,7 +14,7 @@ Leyenda:
 - **Pendiente de verificación**: no se ha probado.
 - **No soportado**: no existe en el código.
 
-## Falcon Engine (Electron 44.11.5)
+## Falcon engine (Electron 44.11.5)
 
 ### Qué genera cada herramienta
 

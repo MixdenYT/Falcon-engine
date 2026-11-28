@@ -1,4 +1,4 @@
-# Arquitectura de Falcon Engine
+# Arquitectura de Falcon engine
 
 Estado del 21-11-2026, rama `motor-ara` (`6117105`). Las referencias `fichero:línea` son de ese commit.
 Lo marcado **Plan** no existe en el código. Plan y fases: [`REWRITE_ROADMAP.md`](REWRITE_ROADMAP.md).

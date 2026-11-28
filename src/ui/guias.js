@@ -4,7 +4,7 @@ export const GUIAS = [
     id: 'primeros-pasos', icono: 'libro', titulo: 'Primeros pasos',
     resumen: 'Crea un proyecto, coloca a tu personaje y pruébalo en segundos.',
     html: `
-<p>Falcon Engine se organiza en cinco modos que tienes siempre arriba: <b>2D</b>, <b>3D</b>, <b>Blueprints</b>, <b>Ara</b> y <b>Recursos</b>.</p>
+<p>Falcon engine se organiza en cinco modos que tienes siempre arriba: <b>2D</b>, <b>3D</b>, <b>Blueprints</b>, <b>Ara</b> y <b>Recursos</b>.</p>
 <h3>1. Crea una escena y añade tu primer personaje</h3>
 <p>En el panel <b>Escena</b> pulsa <b>+</b> y elige <i>Personaje2D</i>. Dentro de él añade un <i>Sprite</i> (su dibujo) y una <i>Colisión</i> (la forma con la que choca).</p>
 <h3>2. Dale movimiento con un Blueprint, sin escribir código</h3>

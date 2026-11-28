@@ -38,7 +38,7 @@ async function iniciar() {
   // El compilador de Blueprints (blueprints.wasm) se carga una vez; el editor compila en vivo y es síncrono.
   await cargarCompiladorBlueprints().catch((e) => log(e.message, 'error'));
   est.modoEditor = est.proyecto.datos.modo_editor === 'sencillo' ? 'sencillo' : 'avanzado';
-  falcon.ventana.titulo(`${est.proyecto.datos.nombre} · Falcon Engine`);
+  falcon.ventana.titulo(`${est.proyecto.datos.nombre} · Falcon engine`);
   await refrescarArchivos();
   A.escucharJuego();
   log(`Proyecto «${est.proyecto.datos.nombre}» cargado`);
@@ -61,7 +61,7 @@ async function iniciar() {
   bus.on('doc:activo', (d) => { if (d) est.modo = modoDeDoc(d); pintarModos(); relayout(); guardarSesion(); });
   bus.on('docs:lista', guardarSesion);
   bus.on('juego:estado', pintarProbar);
-  bus.on('proyecto:ajustes', () => { falcon.ventana.titulo(`${est.proyecto.datos.nombre} · Falcon Engine`); pintarBarra(); });
+  bus.on('proyecto:ajustes', () => { falcon.ventana.titulo(`${est.proyecto.datos.nombre} · Falcon engine`); pintarBarra(); });
   bus.on('recursos:mostrar', (rel) => { est.recursoSeleccionado = rel; irAModo('recursos'); });
   bus.on('ui:modo-editor', (m) => cambiarModoEditor(m));
   document.addEventListener('keydown', atajos, true);
@@ -307,7 +307,7 @@ function abrirMenu(b) {
       { texto: 'Eliminar', atajo: 'Supr', desactivado: !esEscena || !d.seleccion.length, accion: () => eliminarNodos(d) },
       '-',
       { texto: 'Modo Sencillo', marcado: est.modoEditor === 'sencillo', accion: () => cambiarModoEditor('sencillo') },
-      { texto: 'Ajustes de Falcon Engine…', icono: 'ajustes', accion: () => { avisar('Los ajustes generales están en el gestor de proyectos › Ajustes.', 'aviso'); } },
+      { texto: 'Ajustes de Falcon engine…', icono: 'ajustes', accion: () => { avisar('Los ajustes generales están en el gestor de proyectos › Ajustes.', 'aviso'); } },
     ],
     Ayuda: [
       { texto: 'Primeros pasos', icono: 'libro', accion: () => A.abrirGuia('primeros-pasos') },
@@ -319,7 +319,7 @@ function abrirMenu(b) {
       { texto: 'Controles 3D · primera y tercera persona', icono: 'persona', accion: () => A.abrirGuia('controles3d') },
       { texto: 'Curso «Mi primer juego» (modo Sencillo)', icono: 'estrella', accion: () => cambiarModoEditor('sencillo') },
       '-',
-      { texto: 'Acerca de Falcon Engine', icono: 'info', accion: () => A.acercaDe() },
+      { texto: 'Acerca de Falcon engine', icono: 'info', accion: () => A.acercaDe() },
     ],
   }[b.dataset.menu];
   menuBajo(b, items);
@@ -346,7 +346,7 @@ async function ofrecerConversion(pedida) {
   const r = await dialogo({
     titulo: 'Pasar el proyecto a Ara',
     ancho: 560,
-    contenido: `<p>Falcon Engine usa ahora <b>Ara</b>: los scripts se compilan a WebAssembly y van decenas de veces más rápido que con Águila, también en los juegos exportados.</p>
+    contenido: `<p>Falcon engine usa ahora <b>Ara</b>: los scripts se compilan a WebAssembly y van decenas de veces más rápido que con Águila, también en los juegos exportados.</p>
       <p>Este proyecto tiene ${agls.length} script(s) de Águila. Al convertirlo:</p>
       <ul>
         <li>Cada <code>.agl</code> pasa a ser un <code>.ara</code> con el mismo nombre, y las escenas lo usan.</li>

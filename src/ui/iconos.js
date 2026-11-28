@@ -120,7 +120,7 @@ export function logo(tam = 32, variante = 'verde') {
   const trazoAve = variante === 'contorno'
     ? `<path d="${PERFIL}" fill="none" stroke="#3DDC84" stroke-width="2" stroke-linejoin="round"/>`
     : `<path d="${PERFIL}" fill="${ave}" fill-rule="evenodd"/>`;
-  return `<svg class="logo" width="${tam}" height="${tam}" viewBox="0 0 64 64" aria-label="Falcon Engine">${variante !== 'contorno' ? `<rect width="64" height="64" rx="17" fill="${fondo}"/>` : ''}${borde}${trazoAve}</svg>`;
+  return `<svg class="logo" width="${tam}" height="${tam}" viewBox="0 0 64 64" aria-label="Falcon engine">${variante !== 'contorno' ? `<rect width="64" height="64" rx="17" fill="${fondo}"/>` : ''}${borde}${trazoAve}</svg>`;
 }
 
 // Silueta del halcón de recursos/logo.png; se regenera con: npx electron herramientas/trazar-logo.js
